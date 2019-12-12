@@ -1,0 +1,29 @@
+{
+  "comments": {
+    "text": "Fall back default race report template"
+  },
+  "colours": {
+    "dark": "0.06, 0.06, 0.06", 
+    "topbar": "0.25, 0.25, 0.25"
+  }, 
+  "elements": {
+    "mainlogo": "image, 15.5, 8.2, 55.5, 25.2, 0.0, 0.5, mainlogo",
+    "title": "text, mid, 12.2, 0.5, title, dark, title", 
+    "subtitle": "text, mid, 18.7, 0.5, subtitle,dark, subtitle", 
+    "sublogo": "image, -55.5, 8.2, -15.5, 25.2, 1.0, 0.5, sublogo", 
+    "htopbox": "box, 15.5, 27.0, -15.5, 31.4, topbar,,,,", 
+    "docstr": "text, mid, 27.4, 0.5, annotation,white, docstr", 
+    "diststr": "text, -17.2, 27.4, 1.0,annotation,white, diststr", 
+    "datestr": "text, 17.2, 27.4, 0.0,annotation,white, datestr", 
+    "hbotline": "line, 15.5, -32.2, -15.5, -32.2, 0.5pt,dark,", 
+    "pagestr": "text, 17.2, -31.8, 0.0, annotation,dark, pagestr", 
+    "commstr": "text, mid, -31.8, 0.5, annotation,dark, commstr", 
+    "orgstr": "text, -17.2, -31.8, 1.0, annotation,dark, orgstr", 
+    "footlogo": "image, 15.5, -25.2, -15.5, -5.2,,, footlogo", 
+    "header": "group,htopbox,mainlogo,sublogo,title,subtitle,datestr,diststr", 
+    "footer": "group, hbotline, commstr, orgstr, footlogo"
+  }, 
+  "page": {
+    "elements": "header footer docstr"
+  }
+}

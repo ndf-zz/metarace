@@ -1,0 +1,8 @@
+{
+  "sender":{
+    "protocol":"dhi",
+    "encoding":"utf-8",
+    "linelen": 24,
+    "pagelen": 7
+  }
+}

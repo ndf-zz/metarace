@@ -22,7 +22,7 @@ setuptools.setup(
     python_requires='>=3.0',
     zip_safe=True,
     install_requires=[ 
-      'serial', 'rsvg', 'cairo', 'pango', 'pangocairo',
+      'serial', 'rsvg', 'cairo', 'pango', 'pangocairo', 'xlwt',
     ],
 )
 
