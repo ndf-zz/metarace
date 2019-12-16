@@ -224,7 +224,7 @@ def vecmap(vec=[], maxkey=10):
         ret[i] = None
     for i in range(0,len(vec)):
         if vec[i]:
-            if type(vec[i]) in [str, str]:
+            if isinstance(vec[i], str):
                 ret[i] = vec[i].strip()	# why stripped -> for TEMPLATE
             else:
                 ret[i] = vec[i]
@@ -356,9 +356,9 @@ class dual_ittt_startlist(object):
                 self.h *= 2
             for r in self.lines:	# account for any team members
                 tcnt = 0
-                if len(r) > 3 and type(r[3]) is list:
+                if len(r) > 3 and isinstance(r[3], list):
                     tcnt = len(r[3])
-                if len(r) > 7 and type(r[7]) is list:
+                if len(r) > 7 and isinstance(r[7], list):
                     tcnt = max(tcnt, len(r[7]))
                 if tcnt > 0:
                     self.h += tcnt * report.line_height
@@ -509,7 +509,7 @@ class dual_ittt_startlist(object):
                     nv[1] = r[1]
                     nv[2] = r[2]
                 rows.append(nv)	# allow empty
-                if len(r) > 3 and type(r[3]) is list:
+                if len(r) > 3 and isinstance(r[3], list):
                     for tm in r[3]:
                         tv = [None,tm[0],tm[1]]
                         rows.append(tv)
@@ -518,7 +518,7 @@ class dual_ittt_startlist(object):
                     rows.append(nv)
                 elif dual:
                     rows.append([None, None, '[No Rider]'])
-                if len(r) > 7 and type(r[7]) is list:
+                if len(r) > 7 and isinstance(r[7], list):
                     for tm in r[7]:
                         tv = [None,tm[0],tm[1]]
                         rows.append(tv)
@@ -561,7 +561,7 @@ class dual_ittt_startlist(object):
                     nv[1] = r[1]
                     nv[2] = r[2]
                 rows.append(nv)
-                if len(r) > 3 and type(r[3]) is list:
+                if len(r) > 3 and isinstance(r[3], list):
                     for tm in r[3]:
                         tv = [None,tm[0],tm[1]]
                         rows.append(tv)
@@ -570,7 +570,7 @@ class dual_ittt_startlist(object):
                     rows.append(nv)
                 elif dual:
                     rows.append([None, None, '[No Rider]'])
-                if len(r) > 7 and type(r[7]) is list:
+                if len(r) > 7 and isinstance(r[7], list):
                     for tm in r[7]:
                         tv = [None,tm[0],tm[1]]
                         rows.append(tv)
@@ -2809,7 +2809,7 @@ class section(object):
         if self.h is None or len(self.lines) != self.lcount:
             self.lcount = len(self.lines)
             for l in self.lines:
-                if len(l) > 6 and l[6] and type(l[6]) is list:
+                if len(l) > 6 and l[6] and isinstance(l[6], list):
                     self.lcount+= 1
             self.h = report.line_height * self.lcount
             if self.colheader:	# colheader is written out with body
@@ -2915,7 +2915,7 @@ class section(object):
                 if self.grey:
                     grey = (cnt+1)%2
                 report.h += report.standard_row(report.h, r, grey)
-                if len(r) > 6 and type(r[6]) is list:
+                if len(r) > 6 and isinstance(r[6], list):
                     report.h += report.standard_row(report.h,r[6],grey)
             #eh = report.h	- for the column shade box
             #report.drawbox(report.col_oft_time-mm2pt(20.0), sh,
@@ -2946,7 +2946,7 @@ class section(object):
                 if len(nv) == 2:
                     nv = [nv[0], None, nv[1]]
                 rows.append(vecmapstr(nv, 7))
-                if len(r) > 6 and type(r[6]) is list:
+                if len(r) > 6 and isinstance(r[6], list):
                     if r[6]:
                         nv = r[6]
                         rows.append(vecmapstr(nv, 7))
@@ -2990,7 +2990,7 @@ class section(object):
                 if len(nv) == 2:
                     nv = [nv[0], None, nv[1]]
                 rows.append(nv)
-                if len(r) > 6 and type(r[6]) is list:
+                if len(r) > 6 and isinstance(r[6], list):
                     if r[6]:
                         rows.append(r[6])
             if self.units:
@@ -3464,7 +3464,7 @@ class printrep(object):
                     else:
                         s = section()	# default is all-purpose list
                     doheader = False
-                    if type(s) is not pagebreak:
+                    if not isinstance(s, pagebreak):
                         if 'head' in srec and srec['head']:
                             s.heading = srec['head']
                         if 'subh' in srec and srec['subh']:
@@ -3481,15 +3481,15 @@ class printrep(object):
                                 cr = csv.reader(g)
                                 for sr in cr:
                                     if doheader and s.colheader is None:
-                                        if type(s) is preformat_text:
+                                        if isinstance(s, preformat_text):
                                             s.colheader = sr[0]
                                         else:
                                             s.colheader = sr
                                     else:
-                                        if type(s) is preformat_text:
+                                        if isinstance(s, preformat_text):
                                             s.lines.append(sr[0])
-                                        elif type(s) in [sprintround,
-                                                         sprintfinal]:
+                                        elif isinstance(s, (sprintround,
+                                                         sprintfinal)):
                                             # ignore data for sprint rounds
                                             pass	# TODO for now
                                         else:
@@ -3715,7 +3715,7 @@ class printrep(object):
 
         ## output all the sections...
         #for s in self.sections:
-            #if type(s) is not pagebreak:
+            #if not isinstance(s, pagebreak):
                 #s.draw_xls(self, ws)	# call into section to draw
         # 
         #wb.save(file)
@@ -3826,7 +3826,7 @@ class printrep(object):
 
         # output all the sections...
         for s in self.sections:
-            if type(s) is not pagebreak:
+            if not isinstance(s, pagebreak):
                 s.draw_text(self, cw, htmlxtn)	# call into section
 
         cw.write('\n')
@@ -4068,7 +4068,7 @@ class printrep(object):
         for r in self.sections:
             s = r
             while s is not None:
-                if type(s) is pagebreak:
+                if isinstance(s, pagebreak):
                     bpoint = s.get_threshold()
                     if bpoint is None:
                         bpoint = self.minbreak
@@ -4077,7 +4077,7 @@ class printrep(object):
                     s = None
                 else:
                     (o, s) = s.truncate(self.pagerem(), self)
-                    if type(o) is pagebreak:
+                    if isinstance(o, pagebreak):
                         curpage = self.newpage() # mandatory break
                     else:
                         curpage.append(o)
@@ -4359,7 +4359,7 @@ class printrep(object):
         tcnt = 0
         if len(hvec) > 3:	# got a front straight
             self.ittt_lane([hvec[1], hvec[2]], self.body_left, h)
-            if type(hvec[3]) is list:	# additional 'team' rows
+            if isinstance(hvec[3], list): # additional 'team' rows
                 tcnt = len(hvec[3])
                 tof = h + self.line_height
                 for t in hvec[3]:
@@ -4370,7 +4370,7 @@ class printrep(object):
             if hvec[5] is not None:
                 self.text_cent(self.midpagew, h, 'v', self.fonts['subhead'])
             self.ittt_lane([hvec[5], hvec[6]], self.midpagew+mm2pt(5), h)
-            if type(hvec[7]) is list:	# additional 'team' rows
+            if isinstance(hvec[7], list): # additional 'team' rows
                 tcnt = max(tcnt, len(hvec[7]))
                 tof = h + self.line_height
                 for t in hvec[7]:

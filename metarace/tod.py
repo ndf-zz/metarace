@@ -73,7 +73,8 @@ def dec2str(dectod=None, places=4, zeros=False, hoursep='h', minsep=':'):
         if zeros or dectod >= 3600:	# NOTE: equal compares fine w/decimal
             fmt = '{0}'+hoursep+'{1:02}'+minsep+'{2:0{3}}' # 'HHhMM:SS.dcmz'
             if zeros:
-                fmt = '{0:02}'+hoursep+'{1:02}'+minsep+'{2:0{3}}'# '00h00:0S.dcmz' (specialcase)
+                fmt = '{0:02}'+hoursep+'{1:02}'+minsep+'{2:0{3}}'
+                    # '00h00:0S.dcmz' (specialcase)
             strtod = fmt.format(int(dectod)//3600,
                 (int(dectod)%3600)//60,
                 dectod.quantize(QUANT[places],
@@ -474,4 +475,3 @@ class todlist():
                 i += 1
             if not found:
                 self.__store.append(rt)
-
