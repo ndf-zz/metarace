@@ -19,10 +19,10 @@ from metarace import tod
 from metarace import htlib
 from metarace import jsonconfig
 
-# JSON report API versioning
+# JSON report API version
 APIVERSION = '1.0.3'
 
-# xls cell styles (old styles)
+# xls cell styles
 #XS_LEFT = xlwt.easyxf()
 #XS_RIGHT = xlwt.easyxf('align: horiz right')
 #XS_TITLE = xlwt.easyxf('font: bold on')
@@ -1620,13 +1620,12 @@ class bullet_text(object):
                 self.h += report.section_height
             if self.subheading:
                 self.h += report.line_height
-###!!!
             if self.footer:
                 self.h += report.line_height
             for line in self.lines:
                 bh = report.line_height
                 ph = 0
-                if line[1] and report.p is not None:	# empty or none not drawn
+                if line[1] and report.p is not None:
                     ph = report.paragraph_height(line[1], self.width)
                 self.h += max(bh, ph)	# enforce a minimum item height
             self.lcount = len(self.lines)
@@ -3079,7 +3078,7 @@ class image_elem(object):
             self.xof = self.x1 + xoft
             self.yof = self.y1 + yoft
 
-    def draw(self, c, p):
+    def draw(self, c):
         if self.source is not None:
             c.save()
             c.translate(self.xof, self.yof)
@@ -3100,7 +3099,7 @@ class arc_elem(object):
         self.width = width
         self.colour = colour
         self.dash = dash
-    def draw(self, c, p):
+    def draw(self, c):
         c.save()
         #c.move_to(self.cx, self.cy)
         c.new_sub_path()
@@ -3136,7 +3135,7 @@ class box_elem(object):
         self.colour = colour
         self.dash = dash
 
-    def draw(self, c, p):
+    def draw(self, c):
         c.save()
         c.move_to(self.x1, self.y1)
         c.line_to(self.x2, self.y1)
@@ -3173,7 +3172,7 @@ class line_elem(object):
         self.colour = colour
         self.dash = dash
 
-    def draw(self, c, p):
+    def draw(self, c):
         c.save()
         if self.width is not None:
             c.set_line_width(self.width)
@@ -3197,7 +3196,7 @@ class text_elem(object):
         self.colour = colour
         self.source = source
         self.report = report
-    def draw(self, c, p):
+    def draw(self, c):
         msg = None
         if self.source:
             if self.source in self.report.strings:
@@ -3207,16 +3206,16 @@ class text_elem(object):
                 msg = self.source
         if msg:
             c.save()
-            l = p.create_layout()
+            l = PangoCairo.create_layout(c)
             if self.font is not None:
                 l.set_font_description(self.font)
             if self.colour is not None:
                 c.set_source_rgb(self.colour[0], self.colour[1], self.colour[2])
-            l.set_text(msg)
+            l.set_text(msg, -1)
             (tw,th) = l.get_pixel_size()
             c.move_to(self.x-(self.align * tw), self.y)
-            p.update_layout(l)
-            p.show_layout(l)
+            PangoCairo.update_layout(c, l)
+            PangoCairo.show_layout(c, l)
             c.restore()
 
 class group_elem(object):
@@ -3225,14 +3224,14 @@ class group_elem(object):
         self.report = report
         self.elems = elems
         self.indraw = False
-    def draw(self, c, p):
+    def draw(self, c):
         if self.indraw:
             return	# Ignore recursion
         self.indraw = True
         c.save()
         for e in self.elems:
             if e in self.report.elements:
-                self.report.elements[e].draw(c,p)
+                self.report.elements[e].draw(c)
         c.restore()
         self.indraw = False
 
@@ -3263,7 +3262,6 @@ class printrep(object):
         self.pagemarks = False
         self.s = None
         self.c = None
-        self.p = None	# these are filled as required by the caller
         self.h = None		# position on page during write
         self.curpage = None	# current page in report
         self.sections = []	# source section data
@@ -3836,13 +3834,11 @@ class printrep(object):
     def set_context(self, context):
         self.s = None
         self.c = context
-        self.p = PangoCairo.CairoContext(self.c)
 
     def start_gtkprint(self, context):
         """Prepare document for a gtkPrint output."""
         self.s = None
         self.c = context
-        self.p = PangoCairo.CairoContext(self.c)
 
         # break report into pages as required
         self.paginate()
@@ -3856,22 +3852,18 @@ class printrep(object):
         # save current vars temp
         os = self.s
         oc = self.c
-        op = self.p
 
         # draw page template into a temporary surface
         self.s = cairo.PDFSurface(None, self.pagew, self.pageh)
         self.c = cairo.Context(self.s)
-        self.p = PangoCairo.CairoContext(self.c)
         for e in self.header:
             self.draw_element(e)
         self.s.flush()
         self.template = self.s	# save for re-use
-        #self.template = cairo.SurfacePattern(self.s)	# save for re-use
 
         # restore 'env' vars
         self.s = os
         self.c = oc
-        self.p = op
 
     def output_pdf(self, file=None, docover=False):
         """Prepare document and then output to a PDF surface."""
@@ -3879,7 +3871,6 @@ class printrep(object):
         # create output cairo surface and save contexts
         self.s = cairo.PDFSurface(file, self.pagew, self.pageh)
         self.c = cairo.Context(self.s)
-        self.p = PangoCairo.CairoContext(self.c)
 
         # break report into pages as required
         self.paginate()
@@ -3907,7 +3898,7 @@ class printrep(object):
     def draw_element(self, elem):
         """Draw the named element if it is defined."""
         if elem in self.elements:
-            self.elements[elem].draw(self.c, self.p)
+            self.elements[elem].draw(self.c)
         else:
             pass
 
@@ -3936,7 +3927,7 @@ class printrep(object):
             self.draw_provisional()
 
         # place cover image
-        self.coverpage.draw(self.c, self.p)
+        self.coverpage.draw(self.c)
 
         # if requested, overlay page marks
         if self.pagemarks:
@@ -3965,8 +3956,6 @@ class printrep(object):
         if self.provisional:
             self.draw_provisional()
         self.draw_template()
-        #for e in self.header:
-            #self.draw_element(e)
 
         # draw page content
         if self.get_pages() > page_nr:
@@ -3986,13 +3975,13 @@ class printrep(object):
         ret = 0
         if width is None:
             width = self.body_width
-        l = self.p.create_layout()
+        l = PangoCairo.create_layout(self.c)
         if self.fonts['body'] is not None:
             l.set_font_description(self.fonts['body'])
         l.set_width(int(Pango.SCALE * width + 1))
         l.set_wrap(Pango.WrapMode.WORD_CHAR)
         l.set_alignment(Pango.Alignment.LEFT)
-        l.set_text(text)
+        l.set_text(text, -1)
         (tw,th) = l.get_pixel_size()
         ret = th
         return ret
@@ -4002,10 +3991,10 @@ class printrep(object):
         ret = 0
         if len(rows) > 0:
             ostr = 'M' + 'L\n'*(len(rows)-1) + 'LM'
-            l = self.p.create_layout()
+            l = PangoCairo.create_layout(self.c)
             if self.fonts['monospace'] is not None:
                 l.set_font_description(self.fonts['monospace'])
-            l.set_text(ostr)
+            l.set_text(ostr, -1)
             (tw,th) = l.get_pixel_size()
             ret = th
         return ret
@@ -4018,10 +4007,10 @@ class printrep(object):
             nval = 'M'
             rvec.append(nval)
         if len(rvec) > 0:
-            l = self.p.create_layout()
+            l = PangoCairo.create_layout(self.c)
             if self.fonts['body'] is not None:
                 l.set_font_description(self.fonts['body'])
-            l.set_text('\n'.join(rvec))
+            l.set_text('\n'.join(rvec), -1)
             (tw,th) = l.get_pixel_size()
             ret = th
         return ret
@@ -4448,15 +4437,15 @@ class printrep(object):
 
     def text_right(self, w, h, msg, font=None,
                          strikethrough=False, maxwidth=None):
-        l = self.p.create_layout()
+        l = PangoCairo.create_layout(self.c)
         l.set_alignment(Pango.Alignment.RIGHT)
         if font is not None:
             l.set_font_description(font)
-        l.set_text(msg)
+        l.set_text(msg, -1)
         (tw,th) = l.get_pixel_size()
         self.c.move_to(w-tw, h)
-        self.p.update_layout(l)
-        self.p.show_layout(l)
+        PangoCairo.update_layout(self.c, l)
+        PangoCairo.show_layout(self.c, l)
         return (tw,th)
 
     def drawbox(self, x1, y1, x2, y2, alpha=0.1):
@@ -4482,11 +4471,11 @@ class printrep(object):
                        strikethrough=False):
         if msg is not None:
             self.c.save()
-            l = self.p.create_layout()
+            l = PangoCairo.create_layout(self.c)
             l.set_alignment(Pango.Alignment.LEFT)	# superfluous?
             if font is not None:
                 l.set_font_description(font)
-            l.set_text(msg)
+            l.set_text(msg, -1)
             (tw,th) = l.get_pixel_size()
             oft = 0.0
             if align != 0 and tw < maxwidth:
@@ -4495,8 +4484,8 @@ class printrep(object):
             if tw > maxwidth:
                 self.c.scale(float(maxwidth)/float(tw),1.0)
                 tw = maxwidth
-            self.p.update_layout(l)
-            self.p.show_layout(l)
+            PangoCairo.update_layout(self.c, l)
+            PangoCairo.show_layout(self.c, l)
             if strikethrough:
                 self.drawline(w, h+(0.85*th), w+tw, h+(0.15*th))
             self.c.restore()
@@ -4504,15 +4493,15 @@ class printrep(object):
 
     def text_left(self, w, h, msg, font=None,
                         strikethrough=False, maxwidth=None):
-        l = self.p.create_layout()
+        l = PangoCairo.create_layout(self.c)
         l.set_alignment(Pango.Alignment.LEFT)
         if font is not None:
             l.set_font_description(font)
-        l.set_text(msg)
+        l.set_text(msg, -1)
         (tw,th) = l.get_pixel_size()
         self.c.move_to(w, h)
-        self.p.update_layout(l)
-        self.p.show_layout(l)
+        PangoCairo.update_layout(self.c, l)
+        PangoCairo.show_layout(self.c, l)
         if strikethrough:
             self.drawline(w, h+(th/2), w+tw, h+(th/2))
         return (tw,th)
@@ -4520,40 +4509,40 @@ class printrep(object):
     def text_para(self, w, h, text, font=None, width=None):
         if width is None:
             width = self.body_width
-        l = self.p.create_layout()
+        l = PangoCairo.create_layout(self.c)
         if font is not None:
             l.set_font_description(font)
         l.set_width(int(Pango.SCALE * width + 1))
         l.set_wrap(Pango.WrapMode.WORD_CHAR)
         l.set_alignment(Pango.Alignment.LEFT)
-        l.set_text(text)
+        l.set_text(text, -1)
         (tw,th) = l.get_pixel_size()
         self.c.move_to(w, h)
-        self.p.update_layout(l)
-        self.p.show_layout(l)
+        PangoCairo.update_layout(self.c, l)
+        PangoCairo.show_layout(self.c, l)
         return (tw,th)
 
     def text_cent(self, w, h, msg, font=None, halign=Pango.Alignment.CENTER):
-        l = self.p.create_layout()
+        l = PangoCairo.create_layout(self.c)
         l.set_alignment(halign)
         if font is not None:
             l.set_font_description(font)
-        l.set_text(msg)
+        l.set_text(msg, -1)
         (tw,th) = l.get_pixel_size()
         self.c.move_to(w-(0.5 * tw), h)
-        self.p.update_layout(l)
-        self.p.show_layout(l)
+        PangoCairo.update_layout(self.c, l)
+        PangoCairo.show_layout(self.c, l)
         return (tw,th)
 
     def text_path(self, w, h, msg, font=None):
-        l = self.p.create_layout()
+        l = PangoCairo.create_layout(self.c)
         if font is not None:
             l.set_font_description(font)
-        l.set_text(msg)
+        l.set_text(msg, -1)
         (tw,th) = l.get_pixel_size()
         self.c.move_to(w-(0.5 * tw), h)
-        self.p.update_layout(l)
-        self.p.layout_path(l)
+        PangoCairo.update_layout(self.c, l)
+        PangoCairo.layout_path(self.c, l)
         self.c.fill()
         return (tw,th)
 

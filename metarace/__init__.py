@@ -7,6 +7,7 @@ from tempfile import NamedTemporaryFile
 from pkg_resources import resource_filename, resource_exists
 from metarace import jsonconfig
 
+VERSION = '2.0.1'
 DATA_PATH = os.path.realpath(os.path.expanduser(
                              os.path.join('~', 'Documents', 'metarace')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, '.default')
