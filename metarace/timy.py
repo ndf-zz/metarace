@@ -23,21 +23,12 @@ import logging
 import metarace
 from metarace import tod
 from metarace import strops
-from functools import reduce
 
-# System default timy serial port
-DEFPORT = '/dev/ttyS0'
-TIMYPORT = '/dev/ttyS0'
-MAINPORT = '/dev/ttyUSB0'
-BACKUPPORT = '/dev/ttyUSB1'
-ENCODING = 'cp437'	# Timy serial interface encoding
-
-# TIMY serial baudrate
+# Fallback Configuration defaults
+TIMY_PORT = '/dev/ttyS0'
+TIMY_ENCODING = 'cp437'	# Timy serial interface encoding
 TIMY_BAUD = 38400	# baudrate
 TIMY_CTSRTS = False	# hardware flow override in default config
-
-# thread queue commands -> private to timy thread
-TCMDS = ('EXIT', 'PORT', 'MSG', 'TRIG', 'RCLR')
 
 # timing channels
 CHAN_START = 0
@@ -76,12 +67,14 @@ CHANDELAY = {
     8:tod.ZERO, 9:tod.ZERO
 }
 
+# thread queue commands -> private to timy thread
+TCMDS = ('EXIT', 'PORT', 'MSG', 'TRIG', 'RCLR')
+
 CR = chr(0x0d)
 LF = chr(0x0a)
 
 TIMER_LOG_LEVEL = 25
 logging.addLevelName(TIMER_LOG_LEVEL, 'TIMER')
-
 
 def make_sectormap(layout=None):
     """Return a track configuration for the provided layout."""
@@ -112,8 +105,10 @@ def make_sectormap(layout=None):
                 
 def timy_checksum(msg):
     """Return the character sum for the Timy message string."""
-    adder = lambda sum, ch: sum + ord(ch)
-    return reduce(adder, msg, 0) & 0xff		# deprecated reduce function
+    ret = 0
+    for ch in msg:
+        ret = ret + ord(ch)
+    return ret & 0xff
 
 def timy_getsum(chkstr):
     """Convert Timy 'checksum' string to an integer."""
@@ -171,15 +166,21 @@ class timy(threading.Thread):
         self.log.setLevel(logging.DEBUG)
         self.__rdbuf = ''	# should be bytestr?
         self.setcb()	# init but allow overwrite after loadconf
+        self.setqcb()	# init but allow overwrite after loadconf
         if port is not None:
             self.setport(port)
         self.chandelay = {}
         for c in CHANDELAY:
             self.chandelay[c] = CHANDELAY[c]
 
+    def __queuecallback(self, evt=None):
+        """Default method to queue a callback function."""
+        self.__cb(evt)
+        return False
+
     def __defcallback(self, evt=None):
         """Default callback is a tod log entry."""
-        self.log.debug(' ' + str(evt))
+        self.log.debug('CB ' + str(evt))
         return False
 
     def setcb(self, func=None):
@@ -189,6 +190,13 @@ class timy(threading.Thread):
             self.__cb = func
         else:
             self.__cb = self.__defcallback
+
+    def setqcb(self, func=None):
+        """Set of clear the queue callback function."""
+        if func is not None:
+            self.__qcb = func
+        else:
+            self.__qcb = self.__queuecallback
 
     def printline(self, msg=''):
         """Print msg to Timy printer, stripped and truncated."""
@@ -422,8 +430,8 @@ class timy(threading.Thread):
         channo = chan2id(st.chan)
         if channo != CHAN_UNKNOWN:
             if self.arms[channo]:
-                #self.log.debug(u'Queueing ToD: ' + str(st))
-                # !! #glib.idle_add(self.__cb, st)
+                # send the tod to the callback queue function
+                self.__qcb(st)
                 if not self.armlocked:
                     self.arms[channo] = False
             if st.index.isdigit():
@@ -532,7 +540,7 @@ class timy(threading.Thread):
                 if self.port is not None:
                     self.port.close()
                     self.port = None
-                self.errstr = "Serial port error."
+                self.errstr = 'Serial port error.'
                 self.error = True
                 self.log.error('Closed serial port: ' + str(type(e)) + str(e))
             except Exception as e:
@@ -544,12 +552,12 @@ class timy(threading.Thread):
             self.port = None
         self.log.info('Exiting')
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     import metarace
     import time
     import random
     metarace.init()
-    t = timy(TIMYPORT)
+    t = timy(TIMY_PORT)
     lh = logging.StreamHandler()
     lh.setLevel(logging.DEBUG)
     lh.setFormatter(logging.Formatter(
