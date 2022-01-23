@@ -1,14 +1,34 @@
+
+"""JSON Configuration module.
+
+  Provides a thin wrapper on a dictionary-based configuration
+  with JSON export and import. The structure for a configuration
+  is a dictionary of sections, each of which contains a dictionary
+  of key/value pairs, where the key is a unicode string and the
+  value may be any base type supported by python & JSON.
+"""
+
 import json
 
 class config(object):
     def __init__(self, default={}):
         self.__store = dict(default)
-  
+
+    def __str__(self):
+        return json.dumps(self.__store)
+
+    def __unicode__(self):
+        return str(self.__str__())
+
+    def __repr__(self):
+        return 'config({})'.format(repr(self.__store))
+
     def add_section(self, section):
-        if not isinstance(section, str):
-            raise TypeError('Section key must be str: ' + repr(section))
-        if section not in self.__store:
-            self.__store[section] = dict()
+        if isinstance(section, str):
+            if section not in self.__store:
+                self.__store[section] = dict()
+        else:
+            raise TypeError('Invalid section key: ' + repr(section))
 
     def has_section(self, section):
         return section in self.__store
@@ -28,16 +48,16 @@ class config(object):
         return self.__store[section][key]
 
     def set(self, section, key, value):
-        if not isinstance(key, str):
-            raise TypeError('Option key must be str: '
-                             + repr(section)+ ':' + repr(key))
-        self.__store[section][key] = value
-
+        if isinstance(key, str):
+            self.__store[section][key] = value
+        else:
+            raise TypeError('Invalid option key: ' + repr(key))
+ 
     def write(self, file):
-        json.dump(self.__store, file, indent=2, sort_keys=True)
+        json.dump(self.__store, file, indent=1)
 
     def dumps(self):
-        return json.dumps(self.__store)
+        return json.dumps(self.__store, indent=1)
 
     def dictcopy(self):
         """Return a copy of the configuration as a dictionary object."""
@@ -47,11 +67,11 @@ class config(object):
         """Merge values from otherconfig into self."""
         if not isinstance(otherconfig, config):
             raise TypeError('Merge expects jsonconfig object.')
-        if key is not None and section is not None:     # single value import
+        if key is not None and section is not None:	# single value import
             if otherconfig.has_option(section, key):
                 self.set(section, key, otherconfig.get(section, key))
         elif section is not None:
-            self.add_section(section)   # force even if not already loaded
+            self.add_section(section)	# force even if not already loaded
             if otherconfig.has_section(section):
                 for opt in otherconfig.options(section):
                     self.set(section, opt, otherconfig.get(section, opt))
@@ -65,12 +85,13 @@ class config(object):
     def read(self, file):
         addconf = json.load(file)
         if not isinstance(addconf, dict):
-            raise TypeError('Configuration file is not dict')
+            raise TypeError('Configuration file is not dict: ' +
+                            addconf.__class__.__name__)
         for sec in addconf:
             thesec = addconf[sec]
             if not isinstance(thesec, dict):
-                raise TypeError('Configuration section is not dict')
+                raise TypeError('Configuration section is not dict: ' +
+                                thesec.__type__.__name__)
             self.add_section(sec)
             for k in thesec:
                 self.set(sec, k, thesec[k])
-

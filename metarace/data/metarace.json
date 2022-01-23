@@ -1,8 +1,31 @@
 {
+  "export":{
+    "command": "echo",
+    "arguments":[
+      "{srcdir}",
+      "{dstdir}"
+    ]
+  },
   "sender":{
-    "protocol":"dhi",
-    "encoding":"utf-8",
-    "linelen": 24,
-    "pagelen": 7
+    "portspec": "/dev/ttyUSB0",
+    "serialbaud": 115200,
+    "encoding": "utf-8",
+    "pagelen": 8,
+    "linelen": 32,
+    "protocol": "dhi"
+  },
+  "telegraph":{
+    "host": null,
+    "usetls": false,
+    "debug": false,
+    "username": null,
+    "password": null,
+    "deftopic": null,
+    "qos": 0
+  },
+  "timy":{
+    "baudrate":38400,
+    "ctsrts":false,
+    "chandelay":{}
   }
 }
