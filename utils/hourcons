@@ -112,7 +112,7 @@ class hourcons(Gtk.Window):
         else:
             if self.curspeed is not None:
                 if self.projection is not None:
-                    self.botlabel.set_text('{0}\u2006km/h  Est: {1:0.1f}\u2006km'.format(self.curspeed, self.projection/1000))
+                    self.botlabel.set_text('{0}\u2006km/h  Est: {1:0.2f}\u2006km'.format(self.curspeed, self.projection/1000))
                 else:
                     self.botlabel.set_text('{}\u2006km/h'.format(self.curspeed))
             else:
