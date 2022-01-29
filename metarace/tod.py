@@ -99,6 +99,24 @@ def _dec2hm(dectod=None):
             strtod = '{0}'.format(int(dectod)//60)
     return strtod
 
+def _dec2ms(dectod=None, places=0, minsep=':'):
+    """Return stopwatch type string M:SS[.dcmz]."""
+    strtod = None
+    if dectod is not None:
+        sign = ''
+        # quantize first to preserve down rounding
+        dv = dectod.quantize(QUANT[places], rounding=decimal.ROUND_FLOOR)
+        if dv < 0:
+            dv = dv.copy_negate()
+            sign = '-'
+        # '-M:SS.dcmz'
+        strtod = '{0}{1}{2}{3:0{4}}'.format(sign,
+                         int(dv)//60,
+                         minsep,
+                         dv%60,
+                         QUANT_FW[places])
+    return strtod
+
 def _dec2str(dectod=None, places=4, zeros=False, hoursep='h', minsep=':'):
     """Return formatted string for given tod decimal value.
 
@@ -244,6 +262,10 @@ class tod(object):
         return '{0: >{1}}{2}'.format(_dec2str(self.timeval, places, zeros,
                                              hoursep, minsep),
             QUANT_TWID[places], QUANT_OPAD[places])
+
+    def minsec(self, places=0, minsep=':'):
+        """Return a stopwatch type string m:ss.[dcmz]."""
+        return _dec2ms(self.timeval, places, minsep)
 
     def meridian(self, mstr=None, secs=True):
         """Return a 12hour time of day string with meridian."""
