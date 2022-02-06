@@ -25,6 +25,9 @@ LOG.setLevel(logging.DEBUG)
 TOPLBLFONT = b'* { font-size: 240px; font-weight: bold; font-family: "Tex Gyre Heros Cn"; }'
 BOTLBLFONT = b'* { font-size: 100px; font-weight: bold; font-family: "Tex Gyre Heros Cn"; }'
 
+# topics to subscribe to
+DATAKEYS = [ 'lapcount', 'elapsed', 'curspeed', 'projection', 'distance', ]
+
 # main window object
 class hourcons(Gtk.Window):
     def __init__(self):
@@ -67,8 +70,9 @@ class hourcons(Gtk.Window):
         self.projection = None
         self.distance = None
 
-        # subscribe to datakey source
-        self.t.subscribe('metarace/#')
+        # subscribe to datakey sources
+        for t in DATAKEYS:
+            self.t.subscribe('/'.join(['metarace',t]))
 
         # clear display
         self.settoptext()
@@ -77,7 +81,7 @@ class hourcons(Gtk.Window):
     def io_msg(self, topic, msg):
         """Receive message from telegraph and dispatch to main loop."""
         datakey = topic.split('/')[-1]
-        LOG.debug('new message %r: %r', datakey, msg)
+        #LOG.debug('new message %r: %r', datakey, msg)
         if datakey == 'lapcount':
             GLib.idle_add(self.setlap,msg)
         elif datakey == 'elapsed':
@@ -89,7 +93,8 @@ class hourcons(Gtk.Window):
         elif datakey == 'distance':
             GLib.idle_add(self.setdistance,msg)
         else:
-            LOG.debug('ignore unknown datakey: %r', datakey)
+            pass
+            #LOG.debug('ignore unknown datakey: %r', datakey)
 
     def settoptext(self):
         """Use data keys to set topline text."""
