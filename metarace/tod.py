@@ -267,10 +267,10 @@ class tod(object):
         """Return a stopwatch type string m:ss.[dcmz]."""
         return _dec2ms(self.timeval, places, minsep)
 
-    def meridian(self, mstr=None, secs=True):
-        """Return a 12hour time of day string with meridian."""
+    def meridiem(self, mstr=None, secs=True):
+        """Return a 12hour time of day string with meridiem."""
         ret = None
-        med = 'am'
+        med = '\u2006am'
         # unwrap timeval into a single 24hr period
         tv = self.timeval
         if tv >= 86400:
@@ -278,9 +278,9 @@ class tod(object):
         elif tv < 0:
             tv = 86400 - (tv.copy_abs() % 86400)
 
-        # determine meridian and adjust for display
+        # determine meridiem and adjust for display
         if tv >= 43200:
-            med = 'pm'
+            med = '\u2006pm'
         if mstr is not None:
             med = mstr
         tv = tv % 43200
@@ -299,8 +299,8 @@ class tod(object):
     def speedstr(self, dist=200):
         """Return average speed estimate string for the provided distance."""
         if self.timeval == 0:
-            return '---.- km/h'
-        return '{0:5.1f} km/h'.format(3.6 * float(dist) / float(self.timeval))
+            return '---.-\u2006km/h'
+        return '{0:5.1f}\u2006km/h'.format(3.6 * float(dist) / float(self.timeval))
 
     def rawspeed(self, dist=200):
         """Return an average speed estimate string without unit."""
