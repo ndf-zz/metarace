@@ -1,4 +1,3 @@
-
 """Telegraph - MQTT backed message exchange service.
 
  Configuration via metarace system config metarace.json, keys:
@@ -27,9 +26,11 @@ QUEUE_TIMEOUT = 2
 LOG = logging.getLogger('metarace.telegraph')
 LOG.setLevel(logging.DEBUG)
 
+
 def defcallback(topic=None, msg=None):
     """Default message receive callback function."""
     LOG.debug('RCV %r: %r', topic, msg)
+
 
 class telegraph(threading.Thread):
     """Metarace telegraph server thread."""
@@ -103,7 +104,7 @@ class telegraph(threading.Thread):
 
     def __init__(self):
         """Constructor."""
-        threading.Thread.__init__(self, daemon=True) 
+        threading.Thread.__init__(self, daemon=True)
         self.__queue = queue.Queue()
         self.__cb = defcallback
         self.__subscriptions = set()
@@ -122,8 +123,8 @@ class telegraph(threading.Thread):
             # note: this may be overidden by application
             self.__deftopic = metarace.sysconf.get('telegraph', 'deftopic')
         if metarace.sysconf.has_option('telegraph', 'qos'):
-            self.__qos = strops.confopt_posint(metarace.sysconf.get(
-                                  'telegraph', 'qos'),0)
+            self.__qos = strops.confopt_posint(
+                metarace.sysconf.get('telegraph', 'qos'), 0)
             if self.__qos > 2:
                 LOG.info('Invalid QOS %r set to %r', self.__qos, 2)
                 self.__qos = 2
@@ -131,8 +132,7 @@ class telegraph(threading.Thread):
         # create mqtt client
         self.__client = mqtt.Client()
         if metarace.sysconf.has_option('telegraph', 'debug'):
-            if strops.confopt_bool(metarace.sysconf.get('telegraph',
-                                                        'debug')):
+            if strops.confopt_bool(metarace.sysconf.get('telegraph', 'debug')):
                 LOG.debug('Enabling mqtt/paho debug')
                 mqlog = logging.getLogger('metarace.telegraph.mqtt')
                 mqlog.setLevel(logging.DEBUG)
@@ -169,7 +169,7 @@ class telegraph(threading.Thread):
     # PAHO methods
     def __on_connect(self, client, userdata, flags, rc):
         LOG.debug('Connect %r: %r/%r', client._client_id, flags, rc)
-        s = [(t,self.__qos) for t in self.__subscriptions]
+        s = [(t, self.__qos) for t in self.__subscriptions]
         if len(s) > 0:
             LOG.debug('Subscribe: %r', s)
             self.__client.subscribe(s)
@@ -199,21 +199,20 @@ class telegraph(threading.Thread):
                 if self.__host and self.__doreconnect:
                     self.__doreconnect = False
                     if not self.__connect_pending:
-                        self.__reconnect()    
+                        self.__reconnect()
                 # Process command queue
                 while True:
                     m = self.__queue.get(timeout=QUEUE_TIMEOUT)
                     self.__queue.task_done()
                     if m[0] == 'PUBLISH':
                         ntopic = self.__deftopic
-                        if m[1] is not None:	# topic is set
+                        if m[1] is not None:  # topic is set
                             ntopic = m[1]
                         if ntopic:
                             msg = None
                             if m[2] is not None:
                                 msg = m[2].encode('utf-8')
-                            self.__client.publish(ntopic, msg,
-                                                  m[3], m[4])
+                            self.__client.publish(ntopic, msg, m[3], m[4])
                         else:
                             #LOG.debug(u'No topic, msg ignored: %r', m[1])
                             pass
@@ -227,7 +226,7 @@ class telegraph(threading.Thread):
                         self.__connect_pending = False
                         self.__doreconnect = True
                     elif m[0] == 'EXIT':
-                        LOG.debug('Request to close: %r',m[1])
+                        LOG.debug('Request to close: %r', m[1])
                         self.__running = False
             except queue.Empty:
                 pass

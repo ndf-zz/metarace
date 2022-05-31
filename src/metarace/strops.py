@@ -1,4 +1,3 @@
-
 """String filtering, truncation and padding."""
 
 # Note: These functions consider unicode string length and
@@ -13,39 +12,44 @@ from random import randint
 # replace codepoints 0->255 with space unless overridden
 # "protective" against unencoded ascii strings and control chars
 SPACEBLOCK = ''
-for i in range(0,256):
+for i in range(0, 256):
     SPACEBLOCK += chr(i)
+
 
 # unicode translation 'map' class
 class unicodetrans(object):
-  def __init__(self, keep='', replace=SPACEBLOCK, replacechar=' '):
-    self.comp = dict((ord(c),replacechar) for c in replace)
-    for c in keep:
-        self.comp[ord(c)] = c
-  def __getitem__(self, k):	# override to return a None
-    return self.comp.get(k)
+
+    def __init__(self, keep='', replace=SPACEBLOCK, replacechar=' '):
+        self.comp = dict((ord(c), replacechar) for c in replace)
+        for c in keep:
+            self.comp[ord(c)] = c
+
+    def __getitem__(self, k):  # override to return a None
+        return self.comp.get(k)
+
 
 INTEGER_UTRANS = unicodetrans('-0123456789')
 NUMERIC_UTRANS = unicodetrans('-0123456789.e')
 PLACELIST_UTRANS = unicodetrans(
-'-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
+    '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
 PLACESERLIST_UTRANS = unicodetrans(
-'-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
+    '-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
 BIBLIST_UTRANS = unicodetrans(
-'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
+    '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
 RIDERNO_UTRANS = unicodetrans(
-'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz','','')
+    '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', '', '')
 BIBSERLIST_UTRANS = unicodetrans(
-'.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
+    '.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
 WEBFILE_UTRANS = unicodetrans(
-'_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz','.','_')
+    '_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', '.',
+    '_')
 # special case: map controls and spaces, but keep everything else
 PRINT_UTRANS = {}
-for cp in range(0,0x20):
+for cp in range(0, 0x20):
     PRINT_UTRANS[cp] = ' '
-for cp in range(0x7f,0xa1):
+for cp in range(0x7f, 0xa1):
     PRINT_UTRANS[cp] = ' '
-for cp in range(0x2000,0x200B):
+for cp in range(0x2000, 0x200B):
     PRINT_UTRANS[cp] = ' '
 PRINT_UTRANS[0x1680] = ' '
 PRINT_UTRANS[0x180e] = ' '
@@ -61,27 +65,24 @@ CHAN_UNKNOWN = -1
 
 # running number comparisons
 RUNNER_NOS = {
- 'red': 0,
- 'whi': 1,
- 'blu': 2,
- 'yel': 3,
- 'grn': 4,
- 'pin': 5,
- 'bla': 6,
- 'gry': 7,
- 'ora': 8,
- 'pur': 9,
- 'rdw': 10,
- 'blw': 11,
- 'ylw': 12,
- 'grw': 13
+    'red': 0,
+    'whi': 1,
+    'blu': 2,
+    'yel': 3,
+    'grn': 4,
+    'pin': 5,
+    'bla': 6,
+    'gry': 7,
+    'ora': 8,
+    'pur': 9,
+    'rdw': 10,
+    'blw': 11,
+    'ylw': 12,
+    'grw': 13
 }
 
-DNFCODEMAP = { 'hd': 0,
-               'dsq': 1,
-               'dnf': 3,
-               'dns': 4,
-               '': 2}
+DNFCODEMAP = {'hd': 0, 'dsq': 1, 'dnf': 3, 'dns': 4, '': 2}
+
 
 def cmp_no(x, y):
     """Replicate py2 cmp() for numeric quantities."""
@@ -92,6 +93,7 @@ def cmp_no(x, y):
     else:
         return 1
 
+
 def cmp_dnf(x, y):
     """Comparison func for two dnf codes."""
     if x not in DNFCODEMAP:
@@ -99,21 +101,25 @@ def cmp_dnf(x, y):
     if y not in DNFCODEMAP:
         y = ''
     return cmp_no(DNFCODEMAP[x], DNFCODEMAP[y])
-    
+
+
 def riderno_key(bib):
     """Return a comparison key for sorting rider number strings."""
     return bibstr_key(bib)
+
 
 def dnfcode_key(code):
     """Return a rank/dnf code sorting key."""
     # rank [rel] '' dsq hd|otl dnf dns
     dnfordmap = {
-                 'rel':8000,
-                 '':8500,
-                 'hd':8800,'otl':8800,
-                 'dnf':9000,
-                 'dns':9500,
-                 'dsq':10000,}
+        'rel': 8000,
+        '': 8500,
+        'hd': 8800,
+        'otl': 8800,
+        'dnf': 9000,
+        'dns': 9500,
+        'dsq': 10000,
+    }
     ret = 0
     if code is not None:
         code = code.lower()
@@ -124,6 +130,7 @@ def dnfcode_key(code):
             if code.isdigit():
                 ret = int(code)
     return ret
+
 
 def bibstr_key(bibstr=''):
     """Return a comparison key for sorting rider bib.ser strings."""
@@ -142,12 +149,14 @@ def bibstr_key(bibstr=''):
                 bval = id(bib)
     sval = 0
     if ser != '':
-        sval = ord(ser[0])<<12
-    return sval | (bval&0xfff)
+        sval = ord(ser[0]) << 12
+    return sval | (bval & 0xfff)
+
 
 def randstr():
     """Return a string of random digits."""
-    return str(randint(10000,99999))
+    return str(randint(10000, 99999))
+
 
 def promptstr(prompt='', value=''):
     """Prefix a non-empty string with a prompt, or return empty."""
@@ -156,6 +165,7 @@ def promptstr(prompt='', value=''):
         ret = prompt + ' ' + value
     return ret
 
+
 def listsplit(liststr=''):
     """Return a split and stripped list."""
     ret = []
@@ -163,13 +173,15 @@ def listsplit(liststr=''):
         ret.append(e.strip())
     return ret
 
+
 def heatsplit(heatstr):
     """Return a failsafe heat/lane pair for the supplied heat string."""
     hv = heatstr.split('.')
     while len(hv) < 2:
         hv.append('0')
-    return(riderno_key(hv[0]), riderno_key(hv[1]))
-    
+    return (riderno_key(hv[0]), riderno_key(hv[1]))
+
+
 def fitname(first, last, width, trunc=False):
     """Return a truncated name field for fixed-width display.
 
@@ -210,10 +222,11 @@ def fitname(first, last, width, trunc=False):
     ret = ' '.join([fstr, lstr]).strip()
     if trunc and len(ret) > width:
         if width > 4:
-            ret = ret[0:(width - 1)] + '\u2026' # Ellipsis
+            ret = ret[0:(width - 1)] + '\u2026'  # Ellipsis
         else:
             ret = ret[0:width]
     return ret
+
 
 def drawno_encirc(drawstr=''):
     ret = ''
@@ -222,61 +235,68 @@ def drawno_encirc(drawstr=''):
             ret = drawstr
             ival = int(drawstr)
             if ival > 0 and ival <= 10:
-                ret = ('\u00a0' + 	# nbsp to get full line height
-                       chr(0x245f + ival)) # CP U+2460 "Circled digit"
+                ret = (
+                    '\u00a0' +  # nbsp to get full line height
+                    chr(0x245f + ival))  # CP U+2460 "Circled digit"
     except Exception:
         pass
     return ret
 
+
 def rank2ord(place):
     """Return ordinal for the given place."""
-    omap = { '1' : 'st',
-             '2' : 'nd',
-             '3' : 'rd',
-             '11' : 'th',
-             '12' : 'th',
-             '13' : 'th' }
+    omap = {
+        '1': 'st',
+        '2': 'nd',
+        '3': 'rd',
+        '11': 'th',
+        '12': 'th',
+        '13': 'th'
+    }
     ret = place
     if place.isdigit():
         if len(place) > 1 and place[-2:] in omap:
             ret = place + omap[place[-2:]]
         else:
-            if len(place) > 1 and place[-1] in omap: # last digit 1,2,3
+            if len(place) > 1 and place[-1] in omap:  # last digit 1,2,3
                 ret = place + omap[place[-1]]
             else:
                 ret = place + 'th'
     return ret
 
+
 def rank2int(rank):
     """Convert a rank/placing string into an integer."""
     ret = None
     try:
-        ret = int(rank.replace('.',''))
+        ret = int(rank.replace('.', ''))
     except Exception:
         pass
     return ret
 
+
 def mark2int(handicap):
     """Convert a handicap string into an integer number of metres."""
     handicap = handicap.strip().lower()
-    ret = None				# not recognised as handicap
+    ret = None  # not recognised as handicap
     if handicap != '':
-        if handicap[0:3] == 'scr':		# 'scr{atch}'
+        if handicap[0:3] == 'scr':  # 'scr{atch}'
             ret = 0
-        else:				# try [number]m form
-           handicap = handicap.translate(INTEGER_UTRANS).strip()
-           try:
-               ret = int(handicap)
-           except Exception:
-               pass
+        else:  # try [number]m form
+            handicap = handicap.translate(INTEGER_UTRANS).strip()
+            try:
+                ret = int(handicap)
+            except Exception:
+                pass
     return ret
-       
+
+
 def truncpad(srcline, length, align='l', ellipsis=True):
     """Return srcline truncated and padded to length, aligned as requested."""
     # truncate
     if len(srcline) > length:
         if ellipsis and length > 4:
-            ret = srcline[0:(length-1)] + '\u2026' # Ellipsis
+            ret = srcline[0:(length - 1)] + '\u2026'  # Ellipsis
         else:
             ret = srcline[0:length]
     else:
@@ -292,50 +312,57 @@ def truncpad(srcline, length, align='l', ellipsis=True):
             ret = srcline
     return ret
 
+
 def resname_bib(bib, first, last, club):
     """Return rider name formatted for results with bib."""
     ret = [bib, ' ', fitname(first, last, 64)]
     if club is not None and club != '':
         if len(club) < 4:
-            club=club.upper()
+            club = club.upper()
         ret.extend([' (', club, ')'])
     return ''.join(ret)
+
 
 def resname(first, last=None, club=None):
     """Return rider name formatted for results."""
     ret = fitname(first, last, 64)
     if club is not None and club != '':
         if len(club) < 4:
-            club=club.upper()
+            club = club.upper()
         ret = ''.join([ret, ' (', club, ')'])
     return ret
+
 
 def listname(first, last=None, club=None):
     """Return a rider name summary field for non-edit lists."""
     ret = fitname(first, last, 32)
     if club:
         if len(club) < 4:
-            club=club.upper()
+            club = club.upper()
         ret = ''.join([ret, ' (', club, ')'])
     return ret
+
 
 def reformat_bibserlist(bibserstr):
     """Filter and return a bib.ser start list."""
     return ' '.join(bibserstr.translate(BIBSERLIST_UTRANS).split())
 
+
 def reformat_bibserplacelist(placestr):
     """Filter and return a canonically formatted bib.ser place list."""
-    if '-' not in placestr:		# This is the 'normal' case!
+    if '-' not in placestr:  # This is the 'normal' case!
         return reformat_bibserlist(placestr)
     # otherwise, do the hard substitutions...
     placestr = placestr.translate(PLACESERLIST_UTRANS).strip()
-    placestr = re.sub(r'\s*\-\s*', r'-', placestr)	# remove surrounds
-    placestr = re.sub(r'\-+', r'-', placestr)		# combine dupes
+    placestr = re.sub(r'\s*\-\s*', r'-', placestr)  # remove surrounds
+    placestr = re.sub(r'\-+', r'-', placestr)  # combine dupes
     return ' '.join(placestr.strip('-').split())
+
 
 def reformat_biblist(bibstr):
     """Filter and return a canonically formatted start list."""
     return ' '.join(bibstr.translate(BIBLIST_UTRANS).split())
+
 
 def riderlist_split(riderstr, rdb=None, series=''):
     """Filter, search and return a list of matching riders for entry."""
@@ -348,7 +375,7 @@ def riderlist_split(riderstr, rdb=None, series=''):
         for r in rdb:
             if r[5] == series:
                 ret.append(r[0])
-    
+
     # pass 1: search for categories
     if rdb is not None:
         for cat in sorted(rdb.listcats(series), key=len, reverse=True):
@@ -381,11 +408,12 @@ def riderlist_split(riderstr, rdb=None, series=''):
                 else:
                     pass
                 l = r
-            if l is not None: # catch final value
+            if l is not None:  # catch final value
                 ret.append(l)
         else:
             ret.append(nr)
     return ret
+
 
 def placeset(spec=''):
     """Convert a place spec into an ordered set of place ints."""
@@ -414,14 +442,14 @@ def placeset(spec=''):
                                 ret.append(str(c))
                                 c += 1
                         else:
-                            ret.append(l)	# give up on last val
+                            ret.append(l)  # give up on last val
                     else:
                         # one or both not ints
                         ret.append(l)
                 else:
                     pass
                 l = r
-            if l is not None: # catch final value
+            if l is not None:  # catch final value
                 ret.append(l)
         else:
             ret.append(nr)
@@ -434,15 +462,17 @@ def placeset(spec=''):
                 rset.append(ival)
     return rset
 
+
 def reformat_placelist(placestr):
     """Filter and return a canonically formatted place list."""
     if '-' not in placestr:
         return reformat_biblist(placestr)
     # otherwise, do the hard substitutions...
     placestr = placestr.translate(PLACELIST_UTRANS).strip()
-    placestr = re.sub(r'\s*\-\s*', r'-', placestr)	# remove surrounds
-    placestr = re.sub(r'\-+', r'-', placestr)		# combine dupes
+    placestr = re.sub(r'\s*\-\s*', r'-', placestr)  # remove surrounds
+    placestr = re.sub(r'\-+', r'-', placestr)  # combine dupes
     return ' '.join(placestr.strip('-').split())
+
 
 def confopt_bool(confstr):
     """Check and return a boolean option from config."""
@@ -454,6 +484,7 @@ def confopt_bool(confstr):
     else:
         return bool(confstr)
 
+
 def plural(count=0):
     """Return plural extension for provided count."""
     ret = 's'
@@ -461,9 +492,11 @@ def plural(count=0):
         ret = ''
     return ret
 
+
 def confopt_riderno(confstr, default=''):
     """Check and return rider number, filtered only."""
     return confstr.translate(RIDERNO_UTRANS).strip()
+
 
 def confopt_float(confstr, default=None):
     """Check and return a floating point number."""
@@ -474,12 +507,14 @@ def confopt_float(confstr, default=None):
         pass
     return ret
 
+
 def confopt_distunits(confstr):
     """Check and return a valid unit from metres or laps."""
     if 'lap' in confstr.lower():
         return 'laps'
     else:
-        return 'metres' 
+        return 'metres'
+
 
 def confopt_int(confstr, default=None):
     """Check and return a valid integer."""
@@ -489,6 +524,7 @@ def confopt_int(confstr, default=None):
     except Exception:
         pass
     return ret
+
 
 def confopt_posint(confstr, default=None):
     """Check and return a valid positive integer."""
@@ -501,15 +537,17 @@ def confopt_posint(confstr, default=None):
         pass
     return ret
 
+
 def confopt_dist(confstr, default=None):
     """Check and return a valid distance unit."""
     return confopt_posint(confstr, default)
 
+
 def chan2id(chanstr='0'):
     """Return a channel ID for the provided string, without fail."""
     ret = CHAN_UNKNOWN
-    if (isinstance(chanstr, str) and len(chanstr) > 1
-        and chanstr[0] == 'C' and chanstr[1].isdigit()):
+    if (isinstance(chanstr, str) and len(chanstr) > 1 and chanstr[0] == 'C'
+            and chanstr[1].isdigit()):
         ret = int(chanstr[1])
     else:
         try:
@@ -520,12 +558,14 @@ def chan2id(chanstr='0'):
         ret = CHAN_UNKNOWN
     return ret
 
+
 def id2chan(chanid=0):
     """Return a normalised channel string for the provided channel id."""
     ret = 'C?'
     if isinstance(chanid, int) and chanid >= CHAN_START and chanid <= CHAN_INT:
         ret = 'C' + str(chanid)
     return ret
+
 
 def confopt_chan(confstr, default=None):
     """Check and return a valid timing channel id string."""
@@ -534,12 +574,14 @@ def confopt_chan(confstr, default=None):
         ret = chan2id(default)
     return ret
 
+
 def confopt_pair(confstr, value, default=None):
     """Return value or the default."""
     ret = default
     if confstr.lower() == value.lower():
         ret = value
     return ret
+
 
 def confopt_list(confstr, list=[], default=None):
     """Return an element from list or default."""
@@ -548,6 +590,7 @@ def confopt_list(confstr, list=[], default=None):
     if look in list:
         ret = look
     return ret
+
 
 def bibstr2bibser(bibstr=''):
     """Split a bib.series string and return bib and series."""
@@ -560,6 +603,7 @@ def bibstr2bibser(bibstr=''):
         ret_ser = a[1]
     return (ret_bib, ret_ser)
 
+
 def lapstring(lapcount=None):
     lapstr = ''
     if lapcount:
@@ -568,12 +612,14 @@ def lapstring(lapcount=None):
             lapstr += 's'
     return lapstr
 
+
 def bibser2bibstr(bib='', ser=''):
     """Return a valid bib.series string."""
     ret = bib
     if ser != '':
         ret += '.' + ser
     return ret
+
 
 def titlesplit(src='', linelen=24):
     """Split a string on word boundaries to try and fit into 3 fixed lines."""

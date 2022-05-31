@@ -1,7 +1,4 @@
-
 """A collection of tools for preparing cycle race results."""
-
-from __future__ import (division, absolute_import)
 
 import os
 import logging
@@ -13,8 +10,8 @@ from importlib_resources import files
 from metarace import jsonconfig
 
 VERSION = '2.0.1'
-DATA_PATH = os.path.realpath(os.path.expanduser(
-                             os.path.join('~', 'Documents', 'metarace')))
+DATA_PATH = os.path.realpath(
+    os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, '.default')
 RESOURCE_PKG = 'metarace.data'
 LOGO = 'metarace_icon.svg'
@@ -23,12 +20,13 @@ PDF_TEMPLATE = 'pdf_template.json'
 HTML_TEMPLATE = 'html_template.json'
 LOGFILEFORMAT = '%(asctime)s %(levelname)s:%(name)s: %(message)s'
 LOGFORMAT = '%(levelname)s:%(name)s: %(message)s'
-LOGLEVEL = logging.DEBUG	# default console log level
-sysconf = jsonconfig.config() # system-defaults, populated by init() method
+LOGLEVEL = logging.DEBUG  # default console log level
+sysconf = jsonconfig.config()  # system-defaults, populated by init() method
 LOG = logging.getLogger('metarace')
 LOG.setLevel(logging.DEBUG)
 
-def init(withgtk=False):
+
+def init():
     """Shared metarace program initialisation."""
     copyconf = mk_data_path()
 
@@ -51,14 +49,14 @@ def init(withgtk=False):
                 sysconf.read(f)
             copyconf = True
     except Exception as e:
-        LOG.error('%s reading system config: %s',
-                   e.__class__.__name__, e)
+        LOG.error('%s reading system config: %s', e.__class__.__name__, e)
 
     # if required, create a new system default file
     if copyconf:
         LOG.info('Creating default system config %s', SYSCONF)
-        with savefile(os.path.join(DEFAULTS_PATH,SYSCONF)) as f:
+        with savefile(os.path.join(DEFAULTS_PATH, SYSCONF)) as f:
             sysconf.write(f)
+
 
 def mk_data_path():
     """Create a shared data path if it does not yet exist."""
@@ -69,8 +67,9 @@ def mk_data_path():
     if not os.path.exists(DEFAULTS_PATH):
         LOG.info('Creating system defaults directory: %r', DEFAULTS_PATH)
         os.makedirs(DEFAULTS_PATH)
-        ret = True # flag copy of config back to defaults path
+        ret = True  # flag copy of config back to defaults path
     return ret
+
 
 def config_path(configpath=None):
     """Clean and check argument for a writeable meet configuration path."""
@@ -79,7 +78,7 @@ def config_path(configpath=None):
         # sanitise into expected config path
         ret = configpath
         if not os.path.isdir(ret):
-            ret = os.path.dirname(ret) # assume dangling path contains file
+            ret = os.path.dirname(ret)  # assume dangling path contains file
         ret = os.path.realpath(ret)
         LOG.debug('Checking for meet %r using %r', configpath, ret)
         # then check if the path exists
@@ -100,6 +99,7 @@ def config_path(configpath=None):
                 LOG.error('Unable to access meet folder %r: %s', ret, e)
                 ret = None
     return ret
+
 
 def default_file(filename=''):
     """Return a path to the named file.
@@ -125,20 +125,27 @@ def default_file(filename=''):
             LOG.debug('%s: %s', e.__class__.__name__, e)
     return ret
 
+
 class savefile(object):
     """Tempfile-backed save file contextmanager."""
+
     def __init__(self, filename, mode='t', encoding='utf-8', tempdir='.'):
         self.__sfile = filename
         self.__path = tempdir
-        self.__tfile = NamedTemporaryFile(mode='w'+mode, suffix='.tmp',
-                                prefix='sav_', dir=self.__path,
-                                encoding=encoding,  delete=False)
+        self.__tfile = NamedTemporaryFile(mode='w' + mode,
+                                          suffix='.tmp',
+                                          prefix='sav_',
+                                          dir=self.__path,
+                                          encoding=encoding,
+                                          delete=False)
+
     def __enter__(self):
         return self.__tfile
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.__tfile.close()
         if exc_type is not None:
-            return False        # raise exception
+            return False  # raise exception
         # otherwise, file is saved ok in temp file
         os.chmod(self.__tfile.name, 0o644)
         try:
@@ -151,13 +158,14 @@ class savefile(object):
             os.unlink(self.__tfile.name)
         return True
 
+
 def lockpath(configpath):
     """Open an advisory lock file in the meet config path."""
     lf = None
     lfn = os.path.join(configpath, '.lock')
     try:
         lf = open(lfn, 'a+b')
-        fcntl.flock(lf, fcntl.LOCK_EX|fcntl.LOCK_NB) 
+        fcntl.flock(lf, fcntl.LOCK_EX | fcntl.LOCK_NB)
         LOG.debug('Config lock %r acquired', lfn)
     except Exception as e:
         if lf is not None:
@@ -165,6 +173,7 @@ def lockpath(configpath):
             lf = None
         LOG.error('Unable to acquire config lock %r: %s', lfn, e)
     return lf
+
 
 def unlockpath(configpath, lockfile):
     """Release advisory lock and remove lock file."""
@@ -174,7 +183,8 @@ def unlockpath(configpath, lockfile):
     LOG.debug('Config lock %r released', lfn)
     return None
 
-LICENSETEXT="""
+
+LICENSETEXT = """
 MIT License
 
 Copyright (c) 2012-2022 Nathan Fraser and contributors

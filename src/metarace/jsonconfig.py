@@ -1,4 +1,3 @@
-
 """JSON Configuration module.
 
   Provides a thin wrapper on a dictionary-based configuration
@@ -10,7 +9,9 @@
 
 import json
 
+
 class config(object):
+
     def __init__(self, default={}):
         self.__store = dict(default)
 
@@ -52,7 +53,7 @@ class config(object):
             self.__store[section][key] = value
         else:
             raise TypeError('Invalid option key: ' + repr(key))
- 
+
     def write(self, file):
         json.dump(self.__store, file, indent=1)
 
@@ -67,11 +68,11 @@ class config(object):
         """Merge values from otherconfig into self."""
         if not isinstance(otherconfig, config):
             raise TypeError('Merge expects jsonconfig object.')
-        if key is not None and section is not None:	# single value import
+        if key is not None and section is not None:  # single value import
             if otherconfig.has_option(section, key):
                 self.set(section, key, otherconfig.get(section, key))
         elif section is not None:
-            self.add_section(section)	# force even if not already loaded
+            self.add_section(section)  # force even if not already loaded
             if otherconfig.has_section(section):
                 for opt in otherconfig.options(section):
                     self.set(section, opt, otherconfig.get(section, opt))
