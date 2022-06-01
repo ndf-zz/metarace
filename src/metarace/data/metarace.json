@@ -7,12 +7,11 @@
     ]
   },
   "sender":{
-    "portspec": "/dev/ttyUSB0",
-    "serialbaud": 115200,
     "encoding": "utf-8",
-    "pagelen": 8,
     "linelen": 32,
-    "protocol": "dhi"
+    "pagelen": 8,
+    "portspec": "/dev/ttyUSB0",
+    "serialbaud": 115200
   },
   "telegraph":{
     "host": null,

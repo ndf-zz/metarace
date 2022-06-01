@@ -79,7 +79,12 @@ class tableau(threading.Thread):
 
     def __place_char(self, c=' ', xx=0, yy=0):
         if xx < self.__cols and yy < self.__rows:
-            self.t[yy][xx] = c
+            ov = ord(c)
+            if ov < 0x20 or (ov >= 0x7f and ov < 0xa0):
+                # suppress C0 and C1 control characters
+                self.t[yy][xx] = ' '
+            else:
+                self.t[yy][xx] = c
         else:
             pass
             #print('error: invalid offsets')
