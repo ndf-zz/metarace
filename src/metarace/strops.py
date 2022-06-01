@@ -81,7 +81,7 @@ RUNNER_NOS = {
     'grw': 13
 }
 
-DNFCODEMAP = {'hd': 0, 'dsq': 1, 'dnf': 3, 'dns': 4, '': 2}
+DNFCODEMAP = {'otl': 0, 'dsq': 1, 'dnf': 3, 'dns': 4, '': 2}
 
 
 def cmp_no(x, y):
@@ -103,6 +103,11 @@ def cmp_dnf(x, y):
     return cmp_no(DNFCODEMAP[x], DNFCODEMAP[y])
 
 
+def rand_key(data=None):
+    """Return a random integer key for shuffling."""
+    return randint(0,0xffffffff)
+
+
 def riderno_key(bib):
     """Return a comparison key for sorting rider number strings."""
     return bibstr_key(bib)
@@ -114,7 +119,6 @@ def dnfcode_key(code):
     dnfordmap = {
         'rel': 8000,
         '': 8500,
-        'hd': 8800,
         'otl': 8800,
         'dnf': 9000,
         'dns': 9500,
@@ -153,7 +157,7 @@ def bibstr_key(bibstr=''):
     return sval | (bval & 0xfff)
 
 
-def randstr():
+def randstr(data=None):
     """Return a string of random digits."""
     return str(randint(10000, 99999))
 
@@ -194,7 +198,7 @@ def fitname(first, last, width, trunc=False):
 	3: Both ->		'F. Lasttwo'
 
     If trunc is set, truncate and replace final char with
-    ellipsis u'\\u2026':		'F. Lastt...'
+    ellipsis '\u2026':		'F. Lastt...'
     """
     ret = ''
     fstr = first.strip().title()
