@@ -143,7 +143,8 @@ class unt4(object):
             if self.prefix is not None:
                 head = chr(self.prefix) + head
             if self.xx is not None and self.yy is not None:
-                text += chr(DLE[0]) + '{0:02d}{1:02d}'.format(self.xx, self.yy)
+                text += chr(DLE[0]) + '{0:02d}{1:02d}'.format(
+                    self.xx % 100, self.yy % 100)
             if self.text:
                 text += self.text
             if self.erl:
