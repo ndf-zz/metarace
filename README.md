@@ -9,7 +9,21 @@ application might require eg report, tod, decoder.
 Unlike version 1, application-level modules are not contained in
 the library, they are available separately as standalone projects.
 
-## Progress
+## TODO
+
+### namebank: Rider Information Storage
+
+### htlib: HTML Generation
+
+### report: Report Generation
+
+### decoder: Transponder Decoders
+
+### timy: Alge Timy Chronometer
+
+### gemini: Numeric Line Scoreboard Interface
+
+## Working Modules
 
 ### metarace: Base Library
 
@@ -85,22 +99,11 @@ Represent a countback of places and allow for simple comparisons:
 	>>> str(a+b)
 	'-,4,1,1'
 
-
-## TODO
-
 ### export: Result Export and Mirroring
 
-### namebank: Rider Information Storage
+Provides a means to execute a process on the host system, to
+mirror result files to a remote server, or to run a script.
 
-### htlib: HTML Generation
-
-### report: Report Generation
-
-### decoder: Transponder Decoders
-
-### timy: Alge Timy Chronometer
-
-### gemini: Numeric Line Scoreboard Interface
 
 ## Requirements
 

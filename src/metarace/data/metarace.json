@@ -4,7 +4,8 @@
     "arguments":[
       "{srcdir}",
       "{dstdir}"
-    ]
+    ],
+    "timeout": 30
   },
   "sender":{
     "encoding": "utf-8",
