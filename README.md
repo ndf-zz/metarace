@@ -65,9 +65,28 @@ communications.
 Thread object for drawing text on a Caprica or Galactice DHI
 scoreboard over TCP, UDP and serial connections.
 
-## TODO
-
 ### countback: Aggregate and Compare Count of Places
+
+Represent a countback of places and allow for simple comparisons:
+
+	>>> from metarace import countback
+	>>> a=countback.countback('-,2')
+	>>> b=countback.countback('-,1,1')
+	>>> a>b
+	True
+	>>> a[3]+=1
+	>>> b[1]+=1
+	>>> a>b
+	False
+	>>> str(a)
+	'-,2,-,1'
+	>>> str(b)
+	'-,2,1'
+	>>> str(a+b)
+	'-,4,1,1'
+
+
+## TODO
 
 ### export: Result Export and Mirroring
 
