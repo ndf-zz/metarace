@@ -17,8 +17,6 @@ the library, they are available separately as standalone projects.
 
 ### report: Report Generation
 
-### decoder: Transponder Decoders
-
 ### timy: Alge Timy Chronometer
 
 ### gemini: Numeric Line Scoreboard Interface
@@ -57,7 +55,7 @@ Represent timing measurements and calculations for short intervals
 ### strops: Common String Manipulations
 
 Commonly used functions for formatting competitor names,
-rankings and procesing user inputs. Example:
+rankings and processing user inputs. Example:
 
 	>>> strops.lapstring(3)
 	'3 Laps'
@@ -74,10 +72,20 @@ MQTT backed message exchange service.
 Swiss Timing UNT4 protocol wrapper, for legacy devices and DHI
 communications.
 
+### decoder: Transponder Decoders
+
+Standardised interfaces for transponder readers from Race Result
+and Chronelec:
+
+   - rrs : Race Result System Decoder (passive and active)
+   - rru : Race Result USB Timing Box (active)
+   - thbc : Chronelec (Tag Heuer) Protime/Elite RC and LS
+
 ### sender: Legacy DHI Scoreboard Interface
 
-Thread object for drawing text on a Caprica or Galactice DHI
-scoreboard over TCP, UDP and serial connections.
+Thread object for drawing text on a
+[Caprica](https://github.com/ndf-zz/caprica)
+or Galactica DHI scoreboard over TCP, UDP and serial connections.
 
 ### countback: Aggregate and Compare Count of Places
 
