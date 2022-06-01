@@ -1,6 +1,6 @@
 # metarace
 
-A collection of Python libraries to assist cycle race timekeeping
+A collection of Python libraries to assist with cycle race timekeeping
 and official result preparation. Version 2 of Metarace is a
 re-write for Python 3, which removes static pyGTK/glib dependencies.
 
@@ -11,17 +11,22 @@ the library, they are available separately as standalone projects.
 
 ## TODO
 
-### namebank: Rider Information Storage
-
 ### htlib: HTML Generation
 
 ### report: Report Generation
 
 ### timy: Alge Timy Chronometer
 
-### gemini: Numeric Line Scoreboard Interface
+### eventdb: CSV Event List
 
-## Working Modules
+### riderdb: CSV Rider and Category list
+
+### uiutil: Shared User Interface Utils
+
+### timerpane: On-screen Timer Widget
+
+
+## Module Overview
 
 ### metarace: Base Library
 
@@ -52,6 +57,15 @@ value may be any base type supported by python & JSON. For example:
 Represent timing measurements and calculations for short intervals 
 (<24 hours) and aggregates.
 
+### decoder: Transponder Decoders
+
+Standardised interfaces for transponder readers from Race Result
+and Chronelec:
+
+   - rrs : Race Result System Decoder (passive and active)
+   - rru : Race Result USB Timing Box (active)
+   - thbc : Chronelec (Tag Heuer) Protime/Elite RC and LS
+
 ### strops: Common String Manipulations
 
 Commonly used functions for formatting competitor names,
@@ -72,20 +86,16 @@ MQTT backed message exchange service.
 Swiss Timing UNT4 protocol wrapper, for legacy devices and DHI
 communications.
 
-### decoder: Transponder Decoders
-
-Standardised interfaces for transponder readers from Race Result
-and Chronelec:
-
-   - rrs : Race Result System Decoder (passive and active)
-   - rru : Race Result USB Timing Box (active)
-   - thbc : Chronelec (Tag Heuer) Protime/Elite RC and LS
-
 ### sender: Legacy DHI Scoreboard Interface
 
 Thread object for drawing text on a
 [Caprica](https://github.com/ndf-zz/caprica)
 or Galactica DHI scoreboard over TCP, UDP and serial connections.
+
+### gemini: Numeric LED Scoreboard Interface
+
+Thread object for writing to a pair of Swiss Timing Gemini
+numeric LED boards, and lap count displays.
 
 ### countback: Aggregate and Compare Count of Places
 
