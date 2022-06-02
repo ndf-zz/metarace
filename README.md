@@ -13,8 +13,6 @@ the library, they are available separately as standalone projects.
 
 ### report: Report Generation
 
-### timy: Alge Timy Chronometer
-
 ### eventdb: CSV Event List
 
 ### riderdb: CSV Rider and Category list
@@ -54,6 +52,12 @@ value may be any base type supported by python & JSON. For example:
 
 Represent timing measurements and calculations for short intervals 
 (<24 hours) and aggregates.
+
+
+### timy: Alge Timy Chronometer
+
+Read time of day measurements from an attached Alge Timy.
+
 
 ### decoder: Transponder Decoders
 

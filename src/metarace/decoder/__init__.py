@@ -88,8 +88,7 @@ class decoder(threading.Thread):
 
     # Private Methods
     def __init__(self):
-        threading.Thread.__init__(self)
-        self.daemon = True
+        threading.Thread.__init__(self, daemon=True)
         self._cqueue = queue.Queue()
         self._running = False
         self._cb = self._defcallback

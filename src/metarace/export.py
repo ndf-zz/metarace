@@ -26,8 +26,7 @@ class mirror(threading.Thread):
                  arguments=None,
                  data=None):
         """Construct mirror thread object."""
-        threading.Thread.__init__(self)
-        self.daemon = True
+        threading.Thread.__init__(self, daemon=True)
         self.__cb = None
         if callback is not None:
             self.__cb = callback
