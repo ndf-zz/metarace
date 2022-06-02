@@ -11,8 +11,6 @@ the library, they are available separately as standalone projects.
 
 ## TODO
 
-### report: Report Generation
-
 ### eventdb: CSV Event List
 
 ### riderdb: CSV Rider and Category list
@@ -23,6 +21,11 @@ the library, they are available separately as standalone projects.
 
 
 ## Module Overview
+
+For details on module contents, methods and properties, use
+pydoc:
+
+	$ pydoc metarace.tod
 
 ### metarace: Base Library
 
@@ -128,6 +131,11 @@ Functional primitives for HTML generation.
 	...                    htlib.a('website', {'href':'#website'}),
 	...                    'for more.')))
 	'<div><p>Check the\n<a href="#website">website</a>\nfor more.</p></div>'
+
+
+### report: Report Generation
+
+Create sectioned reports and save to PDF, HTML, XLS and JSON.
 
 
 ### export: Result Export and Mirroring
