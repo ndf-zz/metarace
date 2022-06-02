@@ -11,8 +11,6 @@ the library, they are available separately as standalone projects.
 
 ## TODO
 
-### htlib: HTML Generation
-
 ### report: Report Generation
 
 ### timy: Alge Timy Chronometer
@@ -97,7 +95,7 @@ or Galactica DHI scoreboard over TCP, UDP and serial connections.
 Thread object for writing to a pair of Swiss Timing Gemini
 numeric LED boards, and lap count displays.
 
-### countback: Aggregate and Compare Count of Places
+### countback: Accumulate and Compare Count of Places
 
 Represent a countback of places and allow for simple comparisons:
 
@@ -116,6 +114,17 @@ Represent a countback of places and allow for simple comparisons:
 	'-,2,1'
 	>>> str(a+b)
 	'-,4,1,1'
+
+
+### htlib: HTML Generation
+
+Functional primitives for HTML generation.
+
+	>>> htlib.div(htlib.p(('Check the',
+	...                    htlib.a('website', {'href':'#website'}),
+	...                    'for more.')))
+	'<div><p>Check the\n<a href="#website">website</a>\nfor more.</p></div>'
+
 
 ### export: Result Export and Mirroring
 
