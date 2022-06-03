@@ -6,7 +6,7 @@ import fcntl
 import errno
 from tempfile import NamedTemporaryFile
 from shutil import copyfile
-from importlib_resources import files
+from importlib_resources import files, as_file
 from metarace import jsonconfig
 
 VERSION = '2.0.1'
@@ -45,7 +45,7 @@ def init():
         else:
             LOG.info('System defaults not present, using package defaults')
             ref = files(RESOURCE_PKG).joinpath(SYSCONF)
-            with open(ref) as f:
+            with ref.open('r', encoding='utf-8') as f:
                 sysconf.read(f)
             copyconf = True
     except Exception as e:
@@ -126,8 +126,53 @@ def default_file(filename=''):
     return ret
 
 
+def resource_text(name=''):
+    """Return a string from the contents of the named resource."""
+    basefile = os.path.basename(name)
+    if basefile in ['..', '.', '', None]:
+        raise FileNotFoundError('Invalid resource name: ' + repr(name))
+    t = files(RESOURCE_PKG).joinpath(basefile)
+    LOG.debug('Fetching %r from resource %r', basefile, t)
+    if t is not None and t.is_file():
+        return t.read_text(encoding='utf-8')
+    else:
+        raise FileNotFoundError('Named resource not found: ' + repr(name))
+
+
+def resource_file(name=''):
+    """Return a temporary filename context manager for a named resource.
+
+    Note: This returns a context manager for a (potentially) temporary
+          filename on the filesystem, it must be used in a with statement
+          eg:
+
+          with resource_file('resource.svg') as r:
+              Gtk.Image.new_from_file(r)
+    """
+
+    basefile = os.path.basename(name)
+    if basefile in ['..', '.', '', None]:
+        raise FileNotFoundError('Invalid resource name: ' + repr(name))
+    t = files(RESOURCE_PKG).joinpath(basefile)
+    LOG.debug('Fetching %r from resource %r', basefile, t)
+    if t is not None and t.is_file():
+        return as_file(t)
+    else:
+        raise FileNotFoundError('Named resource not found: ' + repr(name))
+
+
 class savefile(object):
-    """Tempfile-backed save file contextmanager."""
+    """Tempfile-backed save file contextmanager.
+
+       Creates a temporary file with the desired mode and encoding
+       and returns a context manager and writable file handle.
+
+       On close, the temp file is atomically moved to the provided
+       filename (if possible).
+
+       Note: This function will log a warning if the file could not be
+       moved atomically.
+    """
 
     def __init__(self, filename, mode='t', encoding='utf-8', tempdir='.'):
         self.__sfile = filename
