@@ -15,8 +15,6 @@ the library, they are available separately as standalone projects.
 
 ### riderdb: CSV Rider and Category list
 
-### uiutil: Shared User Interface Utils
-
 ### timerpane: On-screen Timer Widget
 
 
@@ -82,14 +80,22 @@ rankings and processing user inputs. Example:
 	['1', '2', '6', '7', '8', '9', '10', '22']
 
 
+### uiutil: Shared User Interface Utils
+
+Includes small often-used user interface components shared between 
+trackmeet and roadmeet - may be removed in a future release.
+
+
 ### telegraph: Interprocess Communication
 
 MQTT backed message exchange service. 
+
 
 ### unt4: Legacy Timing Protocol
 
 Swiss Timing UNT4 protocol wrapper, for legacy devices and DHI
 communications.
+
 
 ### sender: Legacy DHI Scoreboard Interface
 
@@ -97,10 +103,12 @@ Thread object for drawing text on a
 [Caprica](https://github.com/ndf-zz/caprica)
 or Galactica DHI scoreboard over TCP, UDP and serial connections.
 
+
 ### gemini: Numeric LED Scoreboard Interface
 
 Thread object for writing to a pair of Swiss Timing Gemini
 numeric LED boards, and lap count displays.
+
 
 ### countback: Accumulate and Compare Count of Places
 
@@ -146,8 +154,22 @@ mirror result files to a remote server, or to run a script.
 
 ## Requirements
 
-   - paho-mqtt
-   - importlib-resources
+Python packages:
+
+   - pyserial: Serial port interface
+   - pycairo: 2D graphics library
+   - xlwt: XLS file writer
+   - PyGObject: gi.repository
+   - libscrc: 16 bit CRC for thbc
+   - paho-mqtt: MQTT interface
+   - importlib-resources: Package data files() interface (transitional)
+
+GObject bindings:
+
+   - Pango
+   - PangoCairo
+   - Rsvg
+   - GTK+
 
 
 ## Installation
