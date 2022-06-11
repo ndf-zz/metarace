@@ -1,17 +1,15 @@
 # metarace
 
-A collection of Python libraries to assist with cycle race timekeeping
+A collection of Python modules to assist with cycle race timekeeping
 and official result preparation. Version 2 of Metarace is a
 re-write for Python 3, which removes static pyGTK/glib dependencies.
 
-This library includes common shared elements that a metarace
+This package includes common shared elements that a metarace
 application might require eg report, tod, decoder.
 Unlike version 1, application-level modules are not contained in
 the library, they are available separately as standalone projects.
 
 ## TODO
-
-### eventdb: CSV Event List
 
 ### riderdb: CSV Rider and Category list
 
@@ -72,7 +70,7 @@ and Chronelec:
 ### strops: Common String Manipulations
 
 Commonly used functions for formatting competitor names,
-rankings and processing user inputs. Example:
+rankings and user inputs. Example:
 
 	>>> strops.lapstring(3)
 	'3 Laps'
@@ -150,6 +148,11 @@ Create sectioned reports and save to PDF, HTML, XLS and JSON.
 
 Provides a means to execute a process on the host system, to
 mirror result files to a remote server, or to run a script.
+
+
+### eventdb: CSV Event List
+
+Mainly for trackmeet, a CSV event listing object.
 
 
 ## Requirements

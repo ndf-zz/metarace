@@ -2,8 +2,10 @@
 
 import os
 import gi
+
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
+
 gi.require_version('Pango', '1.0')
 from gi.repository import Pango
 import metarace
@@ -400,7 +402,8 @@ def edit_times_dlg(window,
                    bonus=False,
                    penalty=False):
     """Display times edit dialog and return updated time strings."""
-    b = Gtk.Builder.new_from_string(metarace.resource_text('edit_times.ui'),-1)
+    b = Gtk.Builder.new_from_string(metarace.resource_text('edit_times.ui'),
+                                    -1)
     dlg = b.get_object('timing')
     dlg.set_transient_for(window)
 
