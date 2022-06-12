@@ -12,7 +12,7 @@ from metarace import jsonconfig
 VERSION = '2.0.1'
 DATA_PATH = os.path.realpath(
     os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
-DEFAULTS_PATH = os.path.join(DATA_PATH, '.default')
+DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
 RESOURCE_PKG = 'metarace.data'
 LOGO = 'metarace_icon.svg'
 SYSCONF = 'metarace.json'
