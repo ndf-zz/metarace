@@ -345,8 +345,8 @@ class thbc(decoder):
         for c in msg[43:47]:
             self._boxname += chr(c + ord('0'))
         self._version = str(hexval2val(ibuf[47]))
-        stalvl = hex(msg[25])  # ? question this
-        boxlvl = hex(msg[26])
+        stalvl = hexval2val(msg[25])
+        boxlvl = hexval2val(msg[26])
         LOG.info('Info Decoder ID: %s', self._boxname)
         LOG.debug('Info Firmware Version: %r', self._version)
         LOG.debug('Levels: STA=%r, BOX=%r', stalvl, boxlvl)
