@@ -505,12 +505,14 @@ class todlist(object):
         self.__store = []
         return 0
 
-    def remove(self, bib, series=''):
+    def remove(self, bib, series='', once=False):
         i = 0
         while i < len(self.__store):
             if (self.__store[i][0].refid == bib
                     and self.__store[i][0].index == series):
                 del self.__store[i]
+                if once:
+                    break;
             else:
                 i += 1
         return i
@@ -519,7 +521,7 @@ class todlist(object):
         """Insert primary tod and secondary tod into ordered list."""
         ret = None
         trunc = True
-        if pri in FAKETIMES:  # re-assign a coded 'finish'
+        if isinstance(pri, str) and pri in FAKETIMES:
             pri = FAKETIMES[pri]
             trunc = False  # retain precision for primary comparison
 
