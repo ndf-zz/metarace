@@ -98,7 +98,7 @@ class telegraph(threading.Thread):
     def publish_json(self, obj=None, topic=None, qos=None, retain=False):
         """Pack the provided object into JSON and publish to topic."""
         try:
-            self.publish(str(json.dumps(obj)), topic, qos, retain)
+            self.publish(json.dumps(obj), topic, qos, retain)
         except Exception as e:
             LOG.error('Error publishing object %r: %s', obj, e)
 

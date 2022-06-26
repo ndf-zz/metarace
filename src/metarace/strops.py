@@ -497,6 +497,14 @@ def plural(count=0):
     return ret
 
 
+def confopt_str(confob, default=None):
+    """Check and return a plain string for the provided value."""
+    ret = default
+    if isinstance(confob, str):
+        ret = confob
+    return ret
+
+
 def confopt_riderno(confstr, default=''):
     """Check and return rider number, filtered only."""
     return confstr.translate(RIDERNO_UTRANS).strip()
