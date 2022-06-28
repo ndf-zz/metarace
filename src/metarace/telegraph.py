@@ -113,6 +113,7 @@ class telegraph(threading.Thread):
         self.__connected = False
         self.__connect_pending = False
         self.__host = None
+        self.__port = 1883
         self.__qos = 0
         self.__doreconnect = True  # if host set, try to connect on startup
 
@@ -141,6 +142,7 @@ class telegraph(threading.Thread):
             if strops.confopt_bool(metarace.sysconf.get('telegraph',
                                                         'usetls')):
                 LOG.debug('Enabling TLS connection')
+                self.__port = 8883
                 self.__client.tls_set()
         username = None
         password = None
@@ -150,6 +152,12 @@ class telegraph(threading.Thread):
             password = metarace.sysconf.get('telegraph', 'password')
         if username and password:
             self.__client.username_pw_set(username, password)
+        # override automatic port selection if provided
+        if metarace.sysconf.has_option('telegraph', 'port'):
+            np = strops.confopt_posint(metarace.sysconf.get('telegraph', 'port'))
+            if np is not None:
+                self.__port = np
+                LOG.debug('Set port to %r', self.__port)
         self.__client.reconnect_delay_set(2, 16)
         self.__client.on_message = self.__on_message
         self.__client.on_connect = self.__on_connect
@@ -162,9 +170,9 @@ class telegraph(threading.Thread):
                 LOG.debug('Disconnecting client')
                 self.__client.disconnect()
             if self.__host:
-                LOG.debug('Connecting to %s', self.__host)
+                LOG.debug('Connecting to %s:%d', self.__host, self.__port)
                 self.__connect_pending = True
-                self.__client.connect_async(self.__host)
+                self.__client.connect_async(self.__host, self.__port)
 
     # PAHO methods
     def __on_connect(self, client, userdata, flags, rc):

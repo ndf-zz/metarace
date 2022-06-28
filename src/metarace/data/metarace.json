@@ -16,6 +16,7 @@
   },
   "telegraph":{
     "host": null,
+    "port": null,
     "usetls": false,
     "debug": false,
     "username": null,
