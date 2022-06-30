@@ -177,6 +177,8 @@ class savefile(object):
     def __init__(self, filename, mode='t', encoding='utf-8', tempdir='.'):
         self.__sfile = filename
         self.__path = tempdir
+        if mode == 'b':
+            encoding = None
         self.__tfile = NamedTemporaryFile(mode='w' + mode,
                                           suffix='.tmp',
                                           prefix='sav_',

@@ -157,26 +157,34 @@ Mainly for trackmeet, a CSV event listing object.
 
 ## Requirements
 
-Python packages:
+System requirements:
 
-   - pyserial: Serial port interface
-   - pycairo: 2D graphics library
-   - xlwt: XLS file writer
-   - PyGObject: gi.repository
-   - libscrc: 16 bit CRC for thbc
-   - paho-mqtt: MQTT interface
-   - importlib-resources: Package data files() interface (transitional)
-
-GObject bindings:
-
+   - Cairo
    - Pango
    - PangoCairo
    - Rsvg
    - GTK+
+   - Python gi
+   - Python gi cairo
+   - tex-gyre fonts
+
+Python packages:
+
+   - pyserial: Serial port interface
+   - xlwt: XLS file writer
+   - libscrc: 16 bit CRC for thbc
+   - paho-mqtt: MQTT interface
+   - importlib-resources: Package data files() interface (transitional)
 
 
 ## Installation
 
-	$ pip install metarace
+For a Debian-ish system, install the system requirements first:
+
+	# apt-get install gir1.2-rsvg-2.0 gir1.2-pango-1.0 tex-gyre python3-cairo gir1.2-gtk-3.0 python3-gi python3-gi-cairo python3-pip
+
+Then use pip3 to install metarace:
+
+	$ pip3 install metarace
 
 
