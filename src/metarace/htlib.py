@@ -32,10 +32,13 @@ from xml.sax.saxutils import escape, quoteattr
 import sys
 
 
-def html(headlist=(), bodylist=()):
+def html(headlist=(), bodylist=(), attrs=None):
     """Emit HTML document."""
+    bodyattrs = {'onload': 'ud();'}
+    if attrs is not None:
+        bodyattrs = attrs
     return '\n'.join((preamble(), '<html lang="en">', head(headlist),
-                      body(bodylist, {'onload': 'ud();'}), '</html>'))
+                      body(bodylist, bodyattrs), '</html>'))
 
 
 def preamble():
@@ -119,6 +122,11 @@ setattr(sys.modules[__name__], 'forminput', emptyfunc)
 for nonempty in (
         'head',
         'body',
+        'header',
+        'main',
+        'section',
+        'article',
+        'footer',
         'title',
         'div',
         'nav',
@@ -160,6 +168,7 @@ for nonempty in (
         'big',
         'small',
         'label',
+        'meter',
         'form',
         'select',
         'optgroup',
