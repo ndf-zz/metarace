@@ -35,17 +35,17 @@ def defcallback(topic=None, msg=None):
 class telegraph(threading.Thread):
     """Metarace telegraph server thread."""
 
-    def subscribe(self, topic=None):
+    def subscribe(self, topic=None, qos=None):
         """Add topic to the set of subscriptions."""
         if topic:
-            self.__subscriptions.add(topic)
+            self.__subscriptions[topic] = qos
             if self.__connected:
-                self.__queue.put_nowait(('SUBSCRIBE', topic))
+                self.__queue.put_nowait(('SUBSCRIBE', topic, qos))
 
     def unsubscribe(self, topic=None):
         """Remove topic from the set of subscriptions."""
         if topic and topic in self.__subscriptions:
-            self.__subscriptions.remove(topic)
+            del self.__subscriptions[topic]
             if self.__connected:
                 self.__queue.put_nowait(('UNSUBSCRIBE', topic))
 
@@ -107,15 +107,15 @@ class telegraph(threading.Thread):
         threading.Thread.__init__(self, daemon=True)
         self.__queue = queue.Queue()
         self.__cb = defcallback
-        self.__subscriptions = set()
+        self.__subscriptions = {}
         self.__curov = None
         self.__deftopic = None
         self.__connected = False
         self.__connect_pending = False
-        self.__host = None
+        self.__host = '127.0.0.1'
         self.__port = 1883
         self.__qos = 0
-        self.__doreconnect = True  # if host set, try to connect on startup
+        self.__doreconnect = False
 
         # check system config for overrides
         if metarace.sysconf.has_option('telegraph', 'host'):
@@ -162,6 +162,8 @@ class telegraph(threading.Thread):
         self.__client.on_message = self.__on_message
         self.__client.on_connect = self.__on_connect
         self.__client.on_disconnect = self.__on_disconnect
+        if self.__host:
+            self.__doreconnect = True
         self.__running = False
 
     def __reconnect(self):
@@ -169,15 +171,22 @@ class telegraph(threading.Thread):
             if self.__connected:
                 LOG.debug('Disconnecting client')
                 self.__client.disconnect()
+                self.__client.loop_stop()
             if self.__host:
                 LOG.debug('Connecting to %s:%d', self.__host, self.__port)
                 self.__connect_pending = True
                 self.__client.connect_async(self.__host, self.__port)
+                self.__client.loop_start()
 
     # PAHO methods
     def __on_connect(self, client, userdata, flags, rc):
         LOG.debug('Connect %r: %r/%r', client._client_id, flags, rc)
-        s = [(t, self.__qos) for t in self.__subscriptions]
+        s = []
+        for t in self.__subscriptions:
+            nqos = self.__subscriptions[t]
+            if nqos is None:
+                nqos = self.__qos
+            s.append((t, nqos))
         if len(s) > 0:
             LOG.debug('Subscribe: %r', s)
             self.__client.subscribe(s)
@@ -200,7 +209,6 @@ class telegraph(threading.Thread):
             LOG.debug('Starting')
         else:
             LOG.debug('Not connected')
-        self.__client.loop_start()
         while self.__running:
             try:
                 # Check connection status
@@ -228,8 +236,11 @@ class telegraph(threading.Thread):
                             #LOG.debug(u'No topic, msg ignored: %r', m[1])
                             pass
                     elif m[0] == 'SUBSCRIBE':
-                        LOG.debug('Subscribe topic: %r', m[1])
-                        self.__client.subscribe(m[1], self.__qos)
+                        LOG.debug('Subscribe topic: %r q=%r', m[1], m[2])
+                        nqos = m[2]
+                        if nqos is None:
+                            nqos = self.__qos
+                        self.__client.subscribe(m[1], npos)
                     elif m[0] == 'UNSUBSCRIBE':
                         LOG.debug('Un-subscribe topic: %r', m[1])
                         self.__client.unsubscribe(m[1])
