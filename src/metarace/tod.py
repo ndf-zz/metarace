@@ -55,6 +55,9 @@ QUANT_PAD = ['     ', '   ', '  ', ' ', '', '']
 QUANT_OPAD = ['    ', '  ', ' ', '', '', '']
 MILL = decimal.Decimal(1000000)
 
+# default rounding is toward zero
+ROUNDING = decimal.ROUND_DOWN
+
 
 def now(index='', chan='CLK', refid='', source='host'):
     """Return a tod set to the current local time."""
@@ -108,9 +111,8 @@ def _dec2ms(dectod=None, places=0, minsep=':'):
     strtod = None
     if dectod is not None:
         sign = ''
-        # quantize first to preserve down rounding
-        dv = dectod.quantize(QUANT[places], rounding=decimal.ROUND_FLOOR)
-        if dv < 0:
+        dv = dectod.quantize(QUANT[places], rounding=ROUNDING)
+        if dv.is_signed():
             dv = dv.copy_negate()
             sign = '-'
         # '-M:SS.dcmz'
@@ -132,9 +134,8 @@ def _dec2str(dectod=None, places=4, zeros=False, hoursep='h', minsep=':'):
     strtod = None
     if dectod is not None:
         sign = ''
-        # quantize first to preserve down rounding
-        dv = dectod.quantize(QUANT[places], rounding=decimal.ROUND_FLOOR)
-        if dv < 0:
+        dv = dectod.quantize(QUANT[places], rounding=ROUNDING)
+        if dv.is_signed():
             dv = dv.copy_negate()
             sign = '-'
         if zeros or dv >= 3600:  # '-HhMM:SS.dcmz'
@@ -243,23 +244,23 @@ class tod(object):
     def truncate(self, places=4):
         """Return a new truncated time value."""
         return self.__class__(timeval=self.timeval.quantize(
-            QUANT[places], rounding=decimal.ROUND_FLOOR),
+            QUANT[places], rounding=ROUNDING),
                               chan='TRUNC')
 
     def as_hours(self, places=0):
         """Return decimal value in hours, truncated to the desired places."""
         return (self.timeval / 3600).quantize(QUANT[places],
-                                              rounding=decimal.ROUND_FLOOR)
+                                              rounding=ROUNDING)
 
     def as_minutes(self, places=0):
         """Return decimal value in minutes, truncated to the desired places."""
         return (self.timeval / 60).quantize(QUANT[places],
-                                            rounding=decimal.ROUND_FLOOR)
+                                            rounding=ROUNDING)
 
     def as_seconds(self, places=0):
         """Return decimal value in seconds, truncated to the desired places."""
         return self.timeval.quantize(QUANT[places],
-                                     rounding=decimal.ROUND_FLOOR)
+                                     rounding=ROUNDING)
 
     def timestr(self, places=4, zeros=False, hoursep='h', minsep=':'):
         """Return time string component of the tod, whitespace padded."""
@@ -283,8 +284,8 @@ class tod(object):
         """Return a 12hour time of day string with meridiem."""
         ret = None
         med = '\u2006am'
-        # unwrap timeval into a single 24hr period
         tv = self.timeval
+        # unwrap timeval into a single 24hr period
         if tv >= 86400:
             tv = tv % 86400
         elif tv < 0:
