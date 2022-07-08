@@ -240,7 +240,7 @@ class telegraph(threading.Thread):
                         nqos = m[2]
                         if nqos is None:
                             nqos = self.__qos
-                        self.__client.subscribe(m[1], npos)
+                        self.__client.subscribe(m[1], nqos)
                     elif m[0] == 'UNSUBSCRIBE':
                         LOG.debug('Un-subscribe topic: %r', m[1])
                         self.__client.unsubscribe(m[1])
