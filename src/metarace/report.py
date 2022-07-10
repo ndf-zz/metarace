@@ -2,10 +2,13 @@
 
 import os
 import gi
+
 gi.require_version('Rsvg', '2.0')
 from gi.repository import Rsvg
+
 gi.require_version('Pango', '1.0')
 from gi.repository import Pango
+
 gi.require_version('PangoCairo', '1.0')
 from gi.repository import PangoCairo
 import cairo
@@ -271,9 +274,9 @@ def vec2htmllinkrow(vec=[], xtn='', rep=None):
     # link
     rowmap = vecmapstr(vec, 7)
     cols = []
-    cols.append(htlib.td(htlib.escapetext(rowmap[0])))
+    cols.append(htlib.td(rowmap[0]))
     if rowmap[6]:  # Startlist/Result links
-        cols.append(htlib.td(htlib.escapetext(rowmap[2])))  # DESCR
+        cols.append(htlib.td(rowmap[2]))  # DESCR
         bstyle = rep.buttonstyle
         stxt = ''
         if rowmap[4]:  # startlist is present
@@ -295,46 +298,38 @@ def vec2htmllinkrow(vec=[], xtn='', rep=None):
         cols.append(htlib.td(rtxt))
     else:  # Old-style trackmeet event index
         if rowmap[4]:
-            cols.append(
-                htlib.td(
-                    htlib.a(htlib.escapetext(rowmap[2]),
-                            {'href': rowmap[4] + xtn})))
+            cols.append(htlib.td(htlib.a(rowmap[2],
+                                         {'href': rowmap[4] + xtn})))
         else:
-            cols.append(htlib.td(htlib.escapetext(rowmap[2])))
-        cols.append(htlib.td(htlib.escapetext(rowmap[3])))
-        cols.append(htlib.td(htlib.escapetext(rowmap[5])))
+            cols.append(htlib.td(rowmap[2]))
+        cols.append(htlib.td(rowmap[3]))
+        cols.append(htlib.td(rowmap[5]))
     return htlib.tr(cols)
 
 
 def vec2htmlrow(vec=[]):
     rowmap = vecmapstr(vec, 7)
     cols = []
-    cols.append(htlib.td(htlib.escapetext(rowmap[0])))  # Rank (left)
-    cols.append(htlib.td(htlib.escapetext(rowmap[1]),
-                         {'class': 'text-end'}))  # No (right)
-    cols.append(htlib.td(htlib.escapetext(rowmap[2])))  # Name (left)
-    cols.append(htlib.td(htlib.escapetext(rowmap[3])))  # Cat/Code (left)
-    cols.append(htlib.td(htlib.escapetext(rowmap[4]),
-                         {'class': 'text-end'}))  # time/gap (right)
-    cols.append(htlib.td(htlib.escapetext(rowmap[5]),
-                         {'class': 'text-end'}))  # time/gap (right)
-    cols.append(htlib.td(htlib.escapetext(rowmap[6])))  # Units (left)
+    cols.append(htlib.td(rowmap[0]))  # Rank (left)
+    cols.append(htlib.td(rowmap[1], {'class': 'text-end'}))  # No (right)
+    cols.append(htlib.td(rowmap[2]))  # Name (left)
+    cols.append(htlib.td(rowmap[3]))  # Cat/Code (left)
+    cols.append(htlib.td(rowmap[4], {'class': 'text-end'}))  # time/gap (right)
+    cols.append(htlib.td(rowmap[5], {'class': 'text-end'}))  # time/gap (right)
+    cols.append(htlib.td(rowmap[6]))  # Units (left)
     return htlib.tr(cols)
 
 
 def vec2htmlhead(vec=[]):
     rowmap = vecmapstr(vec, 7)
     cols = []
-    cols.append(htlib.th(htlib.escapetext(rowmap[0])))  # Rank (left)
-    cols.append(htlib.th(htlib.escapetext(rowmap[1]),
-                         {'class': 'text-end'}))  # No (right)
-    cols.append(htlib.th(htlib.escapetext(rowmap[2])))  # Name (left)
-    cols.append(htlib.th(htlib.escapetext(rowmap[3])))  # Cat/Code (left)
-    cols.append(htlib.th(htlib.escapetext(rowmap[4]),
-                         {'class': 'text-end'}))  # time/gap (right)
-    cols.append(htlib.th(htlib.escapetext(rowmap[5]),
-                         {'class': 'text-end'}))  # time/gap (right)
-    cols.append(htlib.th(htlib.escapetext(rowmap[6])))  # Units (left)
+    cols.append(htlib.th(rowmap[0]))  # Rank (left)
+    cols.append(htlib.th(rowmap[1], {'class': 'text-end'}))  # No (right)
+    cols.append(htlib.th(rowmap[2]))  # Name (left)
+    cols.append(htlib.th(rowmap[3]))  # Cat/Code (left)
+    cols.append(htlib.th(rowmap[4], {'class': 'text-end'}))  # time/gap (right)
+    cols.append(htlib.th(rowmap[5], {'class': 'text-end'}))  # time/gap (right)
+    cols.append(htlib.th(rowmap[6]))  # Units (left)
     return htlib.tr(cols)
 
 
@@ -586,11 +581,9 @@ class dual_ittt_startlist(object):
     def draw_text(self, report, f, xtn):
         """Output program element in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         dual = False
         if self.bslbl:
             dual = True
@@ -810,11 +803,9 @@ class signon_list(object):
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
             rows = []
             for r in self.lines:
@@ -1006,11 +997,9 @@ class twocol_startlist(object):
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
             rows = []
             for r in self.lines:
@@ -1186,11 +1175,9 @@ class sprintround(object):
     def draw_text(self, report, f, xtn):
         """Output program element in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
             rows = []
             for c in self.lines:  # each row is a pair/contest
@@ -1399,11 +1386,9 @@ class sprintfinal(object):
     def draw_text(self, report, f, xtn):
         """Output program element in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
             rows = []
             rows.append([None, None, None, 'Heat 1', 'Heat 2', 'Heat 3'])
@@ -1602,11 +1587,9 @@ class rttstartlist(object):
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
             rows = []
             if self.colheader:
@@ -1803,11 +1786,9 @@ class bullet_text(object):
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
             ol = []
             for l in self.lines:
@@ -1969,18 +1950,16 @@ class preformat_text(object):
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
-            ptxt = ''
+            prelines = []
             if self.colheader:
-                ptxt += htlib.escapetext(self.colheader.rstrip()) + '\n'
+                prelines.append(self.colheader.rstrip())
             for row in self.lines:
-                ptxt += htlib.escapetext(row.rstrip() + '\n')
-            f.write(htlib.pre(ptxt) + '\n')
+                prelines.append(row.rstrip())
+            f.write(htlib.pre('\n'.join(prelines)))
 
 
 class event_index(object):
@@ -2158,11 +2137,9 @@ class event_index(object):
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
         if len(self.lines) > 0:
             hdr = ''
@@ -2182,9 +2159,8 @@ class event_index(object):
             for l in rows:
                 trows.append(vec2htmllinkrow(l, xtn, report))
             f.write(
-                htlib.table([hdr, htlib.tbody(trows)],
+                htlib.table((hdr, htlib.tbody(trows)),
                             {'class': report.tablestyle}))
-            f.write('\n')
         return None
 
 
@@ -2407,11 +2383,9 @@ class judge24rep(object):
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
         if len(self.lines) > 0:
             hdr = ''
@@ -2429,7 +2403,7 @@ class judge24rep(object):
             for l in rows:
                 trows.append(vec2htmlrow(l))
             f.write(
-                htlib.table([hdr, htlib.tbody(trows)],
+                htlib.table((hdr, htlib.tbody(trows)),
                             {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
@@ -2667,11 +2641,9 @@ class judgerep(object):
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
         if len(self.lines) > 0:
             hdr = ''
@@ -2689,7 +2661,7 @@ class judgerep(object):
             for l in rows:
                 trows.append(vec2htmlrow(l))
             f.write(
-                htlib.table([hdr, htlib.tbody(trows)],
+                htlib.table((hdr, htlib.tbody(trows)),
                             {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
@@ -2924,27 +2896,22 @@ class teampage(object):
         """Write out a section in html."""
         # These are not normally output on team page - but left as option
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if self.footer:
-            f.write(htlib.p(htlib.small(htlib.escapetext(
-                self.footer.strip()))))
+            f.write(htlib.p(htlib.small(self.footer.strip())))
         rcount = 0
         if len(self.lines) > 0:
             for t in self.lines:
                 f.write(
-                    htlib.h3([
-                        htlib.span(htlib.escapetext(t[1]),
-                                   {'class': 'badge bg-primary'}),
-                        htlib.escapetext(t[2])
-                    ]))
+                    htlib.h3(
+                        (htlib.span(t[1],
+                                    {'class': 'badge bg-primary'}), t[2])))
                 if t[1] in self.teammap:
                     dat = self.teammap[t[1]]
                     if 'ds' in dat and dat['ds']:
-                        f.write(htlib.p(htlib.escapetext('DS: ' + dat['ds'])))
+                        f.write(htlib.p('DS: ' + dat['ds']))
                     rows = []
                     for r in dat['riders']:
                         nv = r[0:6]
@@ -2956,14 +2923,11 @@ class teampage(object):
                     for l in rows:
                         trows.append(vec2htmlrow(l))
                     f.write(
-                        htlib.table([htlib.tbody(trows)],
+                        htlib.table(htlib.tbody(trows),
                                     {'class': report.tablestyle}))
                     f.write('\n')
         if rcount > 0:
-            f.write(
-                htlib.p(
-                    htlib.small(htlib.escapetext(
-                        '{} starters.'.format(rcount)))))
+            f.write(htlib.p(htlib.small('{} starters.'.format(rcount))))
         return None
 
 
@@ -3124,11 +3088,9 @@ class gamut(object):
         """Write out a section in html."""
         return None  # Skip section on web output
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
         if len(self.lines) > 0:
             pass
@@ -3332,11 +3294,9 @@ class threecol_section(object):
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
         if len(self.lines) > 0:
             hdr = ''
@@ -3357,7 +3317,7 @@ class threecol_section(object):
             for l in rows:
                 trows.append(vec2htmlrow(l))
             f.write(
-                htlib.table([hdr, htlib.tbody(trows)],
+                htlib.table((hdr, htlib.tbody(trows)),
                             {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
@@ -3566,11 +3526,9 @@ class section(object):
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(htlib.escapetext(self.heading.strip())) + '\n')
+            f.write(htlib.h3(self.heading.strip()))
         if self.subheading:
-            f.write(
-                htlib.p(htlib.escapetext(self.subheading.strip()),
-                        {'class': 'lead'}) + '\n')
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
         if len(self.lines) > 0:
             hdr = ''
@@ -3591,7 +3549,7 @@ class section(object):
             for l in rows:
                 trows.append(vec2htmlrow(l))
             f.write(
-                htlib.table([hdr, htlib.tbody(trows)],
+                htlib.table((hdr, htlib.tbody(trows)),
                             {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
@@ -3853,7 +3811,7 @@ class text_elem(object):
             if self.colour is not None:
                 c.set_source_rgb(self.colour[0], self.colour[1],
                                  self.colour[2])
-            l.set_text(msg,-1)
+            l.set_text(msg, -1)
             (tw, th) = l.get_pixel_size()
             c.move_to(self.x - (self.align * tw), self.y)
             PangoCairo.update_context(c, p)
@@ -4365,13 +4323,13 @@ class report(object):
         navbar = []
         for link in self.customlinks:  # to build custom toolbars
             navbar.append(
-                htlib.a(htlib.escapetext(link[0]), {
+                htlib.a(link[0], {
                     'href': link[1] + '.html',
                     'class': 'nav-link'
                 }))
         if self.prevlink:
             navbar.append(
-                htlib.a(htlib.escapetext('\u2190 Previous'), {
+                htlib.a('\u2190 Previous', {
                     'href': self.prevlink + '.html',
                     'class': 'nav-link'
                 }))
@@ -4380,20 +4338,20 @@ class report(object):
             if hrf == 'index.html':
                 hrf = './'
             navbar.append(
-                htlib.a(htlib.escapetext('\u2191 Index'), {
+                htlib.a('\u2191 Index', {
                     'href': hrf,
                     'class': 'nav-link'
                 }))
         if self.provisional:  # add refresh button
             navbar.append(
-                htlib.a(htlib.escapetext('Reload \u21bb'), {
+                htlib.a('Reload \u21bb', {
                     'href': '#',
                     'class': 'nav-link',
                     'onclick': 'return rl();'
                 }))
         if self.nextlink:
             navbar.append(
-                htlib.a(htlib.escapetext('Next \u2192'), {
+                htlib.a('Next \u2192', {
                     'href': self.nextlink + '.html',
                     'class': 'nav-link'
                 }))
@@ -4426,8 +4384,7 @@ class report(object):
         metalist = []
         for s in ['datestr', 'docstr', 'diststr', 'commstr', 'orgstr']:
             if s in self.strings and self.strings[s]:
-                metalist.append(
-                    (ICONMAP[s], htlib.escapetext(self.strings[s].strip())))
+                metalist.append((ICONMAP[s], self.strings[s].strip()))
         if len(linktypes) > 0:
             linkmsg = 'Download as:'
             for xtn in linktypes:
@@ -4450,7 +4407,7 @@ class report(object):
                 if pmark is not None:
                     litext += pmark
                 itemstr += htlib.li(
-                    [htlib.i('', {'class': li[0]}), litext],
+                    (htlib.i('', {'class': li[0]}), litext),
                     {'class': 'list-group-item list-group-item-secondary'})
                 pmark = None
             cw.write(

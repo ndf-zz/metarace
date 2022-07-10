@@ -1,49 +1,28 @@
 """HTML output library.
 
-Cheap and nasty functional primitives for HTML output. Each primitive
-returns a single string. No checking is performed on the structure of
-the document produced. All elements take a named parameter 'attrs'
-which is a dict of key/value attributes. Non-empty elements take a
-parameter 'clist' which is a list of other constructed elements.
+Cheap and nasty functional primitives for generating loosely
+compliant HTML output. Each element primitive returns a single
+escaped string.
 
-Note: <input> is provided by forminput()
+No checking is performed on the structure of the document produced.
 
-Example for an empty element:
-
-    hr(attrs={'id':'thehr'}) => <hr id="thehr">
-
-Example for an element with content:
-
-    a(['link text'], attrs={'href':'#target'}) => 
-
-	<a href="#target">link text</a>
-
-Example paragraph:
-
-    p(('Check the',
-       a(('website'), attrs={'href':'#website'}),
-       'for more.')) => 
-
-	<p>Check the\n<a href="#website">website</a>\nfor more.</p>
-
+All elements take a named parameter 'attrs' which is a dict of
+key/value attributes. Non-empty elements take a parameter 'elements'
+which is a list of child elements or a plain string.
 """
 
 from xml.sax.saxutils import escape, quoteattr
 import sys
 
 
-def html(headlist=(), bodylist=(), attrs=None):
-    """Emit HTML document."""
-    bodyattrs = {'onload': 'ud();'}
-    if attrs is not None:
-        bodyattrs = attrs
-    return '\n'.join((preamble(), '<html lang="en">', head(headlist),
-                      body(bodylist, bodyattrs), '</html>'))
+class element(str):
+    """String wrapper for serialised HTML text"""
+    pass
 
 
-def preamble():
-    """Emit HTML preamble."""
-    return '<!doctype html>'
+def doctype():
+    """HTML doctype pseudo-element"""
+    return element('<!doctype html>')
 
 
 def attrlist(attrs):
@@ -60,138 +39,196 @@ def attrlist(attrs):
 
 def escapetext(text=''):
     """Return escaped copy of text."""
-    return escape(text, {'"': '&quot;'})
+    return element(escape(text, {'"': '&quot;'}))
 
 
-def comment(commentstr=''):
-    """Insert comment."""
-    return '<!-- ' + commentstr.replace('--', '') + ' -->'
+def serialise(elements=()):
+    """Concatenate element list into an escaped string."""
+    if isinstance(elements, str):
+        elements = (elements, )
+    elist = []
+    for j in elements:
+        if type(j) is element:
+            elist.append(j)
+        else:
+            elist.append(escapetext(j))
+    return '\n'.join(elist)
 
 
-# output a valid but empty html templatye
+def comment(elements=(' ', )):
+    """Wrap elements with a comment marker"""
+    text = serialise(elements).replace('<!--',
+                                       '').replace('-->',
+                                                   '').replace('--!>',
+                                                               '').lstrip('>')
+    if text.endswith('<!-'):
+        text = text.rstrip('-')
+    return element(''.join(('<!--', text, '-->')))
+
+
+# return a valid but empty html template
 def emptypage():
-    return html((
-        meta(attrs={'charset': 'utf-8'}),
-        meta(attrs={
-            'name': 'viewport',
-            'content': 'width=device-width, initial-scale=1'
-        }),
-        title('__REPORT_TITLE__'),
-        link(
-            attrs={
-                'href':
-                'https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css',
-                'integrity':
-                'sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC',
-                'crossorigin': 'anonymous',
-                'rel': 'stylesheet'
-            }),
-        link(
-            attrs={
-                'href':
-                'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.3/font/bootstrap-icons.css',
-                'rel': 'stylesheet'
-            }),
-        script((
-            'function ud(){null!==document.querySelector("#pgre")&&setTimeout("history.go(0);",55329)}function rl(){return setTimeout("history.go(0);",10),!1}',
-        )),
-    ), ('__REPORT_NAV__',
-        div((
-            h1('__REPORT_TITLE__'),
-            '__REPORT_CONTENT__',
-        ),
-            attrs={'class': 'container'})))
+    return ''.join((
+        doctype(),
+        html((
+            head((
+                meta(attrs={'charset': 'utf-8'}),
+                meta(
+                    attrs={
+                        'name': 'viewport',
+                        'content': 'width=device-width, initial-scale=1'
+                    }),
+                title('__REPORT_TITLE__'),
+                link(
+                    attrs={
+                        'href':
+                        'https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css',
+                        'integrity':
+                        'sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor',
+                        'crossorigin': 'anonymous',
+                        'rel': 'stylesheet'
+                    }),
+                link(
+                    attrs={
+                        'href':
+                        'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.3/font/bootstrap-icons.css',
+                        'rel': 'stylesheet'
+                    }),
+                script(
+                    element(
+                        'function ud(){null!==document.querySelector("#pgre")&&setTimeout("history.go(0);",55329)}function rl(){return setTimeout("history.go(0);",10),!1}'
+                    ), ),
+            )),
+            body((
+                '__REPORT_NAV__',
+                div((
+                    h1('__REPORT_TITLE__'),
+                    '__REPORT_CONTENT__',
+                ),
+                    attrs={'class': 'container'}),
+            ),
+                 attrs={'onload': 'ud();'}),
+        ), {'lang': 'en'})))
 
 
 # Declare all the empty types
-for empty in ('meta', 'link', 'base', 'param', 'hr', 'br', 'img', 'col'):
+for empty in ('base', 'link', 'meta', 'hr', 'br', 'wbr', 'source', 'img',
+              'embed', 'track', 'area', 'col', 'param', 'hr', 'br', 'img',
+              'col'):
 
     def emptyfunc(attrs={}, tag=empty):
-        return '<' + tag + attrlist(attrs) + '>'
+        return element(''.join(('<', tag, attrlist(attrs), '>')))
 
     setattr(sys.modules[__name__], empty, emptyfunc)
 
 
-def emptyfunc(attrs={}):
-    return '<input' + attrlist(attrs) + '>'
+def forminput(attrs={}):
+    return element(''.join(('<input', attrlist(attrs), '>')))
 
 
-setattr(sys.modules[__name__], 'forminput', emptyfunc)
-
-# Declare all the non-empties
+# Declare all the non-empty elements (except specials defined above)
 for nonempty in (
+        'html',
         'head',
-        'body',
-        'header',
-        'main',
-        'section',
-        'article',
-        'footer',
         'title',
-        'div',
-        'nav',
         'style',
-        'script',
-        'p',
+        'body',
+        'article',
+        'section',
+        'nav',
+        'aside',
         'h1',
         'h2',
         'h3',
         'h4',
         'h5',
         'h6',
-        'ul',
+        'hgroup',
+        'header',
+        'footer',
+        'address',
+        'p',
+        'pre',
+        'blockquote',
         'ol',
+        'ul',
+        'menu',
         'li',
         'dl',
         'dt',
         'dd',
-        'address',
-        'pre',
-        'blockquote',
+        'figure',
+        'figcaption',
+        'main',
+        'div',
         'a',
-        'span',
         'em',
         'strong',
+        'small',
+        's',
+        'cite',
+        'q',
         'dfn',
+        'abbr',
+        'ruby',
+        'rt',
+        'rp',
+        'data',
+        'time',
         'code',
+        'var',
         'samp',
         'kbd',
-        'var',
-        'cite',
-        'abbr',
-        'acronym',
-        'q',
         'sub',
         'sup',
-        'tt',
         'i',
-        'big',
-        'small',
-        'label',
-        'meter',
+        'b',
+        'u',
+        'mark',
+        'bdi',
+        'bdo',
+        'span',
+        'ins',
+        'del',
+        'picture',
+        'object',
+        'video',
+        'audio',
+        'map',
+        'math',
+        'svg',
+        'table',
+        'caption',
+        'colgroup',
+        'tbody',
+        'thead',
+        'tfoot',
+        'tr',
+        'td',
+        'th',
         'form',
+        'label',
+        'button',
         'select',
+        'datalist',
         'optgroup',
         'option',
         'textarea',
+        'output',
+        'progress',
+        'meter',
         'fieldset',
         'legend',
-        'button',
-        'table',
-        'caption',
-        'thead',
-        'tfoot',
-        'tbody',
-        'colgroup',
-        'tr',
-        'th',
-        'td',
+        'details',
+        'summary',
+        'dialog',
+        'script',
+        'slot',
+        'canvas',
 ):
 
-    def nonemptyfunc(clist=(), attrs={}, elem=nonempty):
-        if isinstance(clist, str):
-            clist = (clist, )
-        return ('<' + elem + attrlist(attrs) + '>' + '\n'.join(clist) + '</' +
-                elem + '>')
+    def nonemptyfunc(elements=(), attrs={}, elem=nonempty):
+        return element(''.join(('<', elem, attrlist(attrs), '>',
+                                serialise(elements), '</', elem, '>')))
 
     setattr(sys.modules[__name__], nonempty, nonemptyfunc)
