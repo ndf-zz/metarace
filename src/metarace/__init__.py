@@ -9,7 +9,7 @@ from shutil import copyfile
 from importlib_resources import files, as_file
 from metarace import jsonconfig
 
-VERSION = '2.0.1'
+VERSION = '2.0.2'
 DATA_PATH = os.path.realpath(
     os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
@@ -42,6 +42,8 @@ def init():
             LOG.debug('Loading system defaults from %r', conffile)
             with open(conffile) as f:
                 sysconf.read(f)
+            # don't copy path-specific config into defaults
+            copyconf = False
         else:
             LOG.info('System defaults not present, using package defaults')
             ref = files(RESOURCE_PKG).joinpath(SYSCONF)
