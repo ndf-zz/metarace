@@ -4,8 +4,6 @@ Cheap and nasty functional primitives for generating loosely
 compliant HTML output. Each element primitive returns a single
 escaped string.
 
-No checking is performed on the structure of the document produced.
-
 All elements take a named parameter 'attrs' which is a dict of
 key/value attributes. Non-empty elements take a parameter 'elements'
 which is a list of child elements or a plain string.
@@ -68,7 +66,7 @@ def comment(elements=(' ', )):
 
 # return a valid but empty html template
 def emptypage():
-    return ''.join((
+    return '\n'.join((
         doctype(),
         html((
             head((
