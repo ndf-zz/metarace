@@ -54,6 +54,48 @@ class config(object):
         else:
             raise TypeError('Invalid option key: ' + repr(key))
 
+    def get_float(self, section, key, default=None):
+        ret = default
+        try:
+            ret = float(self.get(section, key))
+        except Exception:
+            pass
+        return ret
+
+    def get_posint(self, section, key, default=None):
+        ret = default
+        try:
+            ret = int(self.get(section, key))
+            if ret < 0:
+                ret = default
+        except Exception:
+            pass
+        return ret
+
+    def get_int(self, section, key, default=None):
+        ret = default
+        try:
+            ret = int(self.get(section, key))
+        except Exception:
+            pass
+        return ret
+
+    def get_str(self, section, key, default=None):
+        ret = self.get(section, key)
+        if not isinstance(ret, str):
+            ret = default
+        return ret
+
+    def get_bool(self, section, key):
+        temp = self.get(section, key)
+        if isinstance(temp, str):
+            if temp.lower() in ['yes', 'true', '1']:
+                return True
+            else:
+                return False
+        else:
+            return bool(temp)
+
     def write(self, file):
         json.dump(self.__store, file, indent=1)
 
