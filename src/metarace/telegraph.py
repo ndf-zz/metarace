@@ -1,14 +1,20 @@
 """Telegraph - MQTT backed message exchange service.
 
- Configuration via metarace system config metarace.json, keys:
+ Configuration via metarace system config (metarace.json), under
+ section 'telegraph':
 
-  host : (string) hostname or IP of MQTT server, or None to disable
-  usetls : (bool) if True, connect to server over TLS
-  debug : (bool) if True, enable logging in MQTT library
-  username : (string) username or None to disable
-  password : (string) password or None to disable
-  deftopic : (string) a default publish topic or None to disable
-  qos : (int) QOS to use for topic subscriptions
+  key: (type) Description [default]
+  --
+  host : (string) MQTT broker, None to disable ['localhost']
+  port: (int) MQTT port [1883/8883]
+  usetls : (bool) if True, connect to server over TLS [False]
+  debug : (bool) if True, enable logging in MQTT library [False]
+  username : (string) username [None]
+  password : (string) password [None]
+  deftopic : (string) a default publish topic [None]
+  persist : (bool) if true, open a persistent connection to broker [False]
+  clientid : (string) provide an explicit client id [None]
+  qos : (int) default QOS to use for subscribe and publish [0]
 
 """
 
@@ -17,19 +23,19 @@ import queue
 import logging
 import json
 import paho.mqtt.client as mqtt
+from uuid import uuid4
 import metarace
-from metarace import strops
 
 QUEUE_TIMEOUT = 2
 
 # module logger
-LOG = logging.getLogger('metarace.telegraph')
-LOG.setLevel(logging.DEBUG)
+_log = logging.getLogger('metarace.telegraph')
+_log.setLevel(logging.DEBUG)
 
 
 def defcallback(topic=None, msg=None):
     """Default message receive callback function."""
-    LOG.debug('RCV %r: %r', topic, msg)
+    _log.debug('RCV %r: %r', topic, msg)
 
 
 class telegraph(threading.Thread):
@@ -62,24 +68,14 @@ class telegraph(threading.Thread):
             self.__deftopic = topic
         else:
             self.__deftopic = None
-        LOG.debug('Default publish topic set to: %r', self.__deftopic)
-
-    def set_clientid(self, clientid=None):
-        """Set or clear the MQTT Client ID."""
-        if isinstance(clientid, str) and clientid:
-            self.__client._client_id = clientid
-        else:
-            self.__client.__client_id = ''
-        LOG.debug('MQTT client ID set to: %r', self.__client._client_id)
-        if self.__connected:
-            self.reconnect()
+        _log.debug('Default publish topic set to: %r', self.__deftopic)
 
     def connected(self):
         """Return true if connected."""
         return self.__connected
 
     def reconnect(self):
-        """Request re-connection to relay."""
+        """Request re-connection to broker."""
         self.__queue.put_nowait(('RECONNECT', True))
 
     def exit(self, msg=None):
@@ -100,7 +96,7 @@ class telegraph(threading.Thread):
         try:
             self.publish(json.dumps(obj), topic, qos, retain)
         except Exception as e:
-            LOG.error('Error publishing object %r: %s', obj, e)
+            _log.error('Error publishing object %r: %s', obj, e)
 
     def __init__(self):
         """Constructor."""
@@ -112,52 +108,62 @@ class telegraph(threading.Thread):
         self.__deftopic = None
         self.__connected = False
         self.__connect_pending = False
-        self.__host = '127.0.0.1'
+        self.__host = 'localhost'
         self.__port = 1883
+        self.__cid = None
+        self.__persist = False
+        self.__resub = True
         self.__qos = 0
         self.__doreconnect = False
 
         # check system config for overrides
         if metarace.sysconf.has_option('telegraph', 'host'):
-            self.__host = metarace.sysconf.get('telegraph', 'host')
+            self.__host = metarace.sysconf.get_str('telegraph', 'host')
         if metarace.sysconf.has_option('telegraph', 'deftopic'):
             # note: this may be overidden by application
-            self.__deftopic = metarace.sysconf.get('telegraph', 'deftopic')
+            self.__deftopic = metarace.sysconf.get_str('telegraph', 'deftopic')
         if metarace.sysconf.has_option('telegraph', 'qos'):
-            self.__qos = strops.confopt_posint(
-                metarace.sysconf.get('telegraph', 'qos'), 0)
+            self.__qos = metarace.sysconf.get_posint('telegraph', 'qos', 0)
             if self.__qos > 2:
-                LOG.info('Invalid QOS %r set to %r', self.__qos, 2)
+                _log.info('Invalid QOS %r set to %r', self.__qos, 2)
                 self.__qos = 2
+        if metarace.sysconf.has_option('telegraph', 'clientid'):
+            self.__cid = metarace.sysconf.get_str('telegraph', 'clientid')
+        if not self.__cid:
+            self.__cid = str(uuid4())
+        _log.debug('Using client id: %r', self.__cid)
+        if metarace.sysconf.has_option('telegraph', 'persist'):
+            self.__persist = metarace.sysconf.get_bool('telegraph', 'persist')
+        _log.debug('Persistent connection: %r', self.__persist)
 
         # create mqtt client
-        self.__client = mqtt.Client()
+        self.__client = mqtt.Client(client_id=self.__cid,
+                                    clean_session=not self.__persist)
         if metarace.sysconf.has_option('telegraph', 'debug'):
-            if strops.confopt_bool(metarace.sysconf.get('telegraph', 'debug')):
-                LOG.debug('Enabling mqtt/paho debug')
+            if metarace.sysconf.get_bool('telegraph', 'debug'):
+                _log.debug('Enabling mqtt/paho debug')
                 mqlog = logging.getLogger('metarace.telegraph.mqtt')
                 mqlog.setLevel(logging.DEBUG)
                 self.__client.enable_logger(mqlog)
         if metarace.sysconf.has_option('telegraph', 'usetls'):
-            if strops.confopt_bool(metarace.sysconf.get('telegraph',
-                                                        'usetls')):
-                LOG.debug('Enabling TLS connection')
+            if metarace.sysconf.get_bool('telegraph', 'usetls'):
+                _log.debug('Enabling TLS connection')
                 self.__port = 8883
                 self.__client.tls_set()
         username = None
         password = None
         if metarace.sysconf.has_option('telegraph', 'username'):
-            username = metarace.sysconf.get('telegraph', 'username')
+            username = metarace.sysconf.get_str('telegraph', 'username')
         if metarace.sysconf.has_option('telegraph', 'password'):
-            password = metarace.sysconf.get('telegraph', 'password')
+            password = metarace.sysconf.get_str('telegraph', 'password')
         if username and password:
             self.__client.username_pw_set(username, password)
         # override automatic port selection if provided
         if metarace.sysconf.has_option('telegraph', 'port'):
-            np = strops.confopt_posint(metarace.sysconf.get('telegraph', 'port'))
+            np = metarace.sysconf.get_posint('telegraph', 'port')
             if np is not None:
                 self.__port = np
-                LOG.debug('Set port to %r', self.__port)
+                _log.debug('Set port to %r', self.__port)
         self.__client.reconnect_delay_set(2, 16)
         self.__client.on_message = self.__on_message
         self.__client.on_connect = self.__on_connect
@@ -169,46 +175,62 @@ class telegraph(threading.Thread):
     def __reconnect(self):
         if not self.__connect_pending:
             if self.__connected:
-                LOG.debug('Disconnecting client')
+                _log.debug('Disconnecting client')
                 self.__client.disconnect()
                 self.__client.loop_stop()
             if self.__host:
-                LOG.debug('Connecting to %s:%d', self.__host, self.__port)
+                _log.debug('Connecting to %s:%d', self.__host, self.__port)
                 self.__connect_pending = True
                 self.__client.connect_async(self.__host, self.__port)
                 self.__client.loop_start()
 
     # PAHO methods
     def __on_connect(self, client, userdata, flags, rc):
-        LOG.debug('Connect %r: %r/%r', client._client_id, flags, rc)
-        s = []
-        for t in self.__subscriptions:
-            nqos = self.__subscriptions[t]
-            if nqos is None:
-                nqos = self.__qos
-            s.append((t, nqos))
-        if len(s) > 0:
-            LOG.debug('Subscribe: %r', s)
-            self.__client.subscribe(s)
+        if rc == 0:
+            _log.debug('Connect %r: %r/%r', client._client_id, flags, rc)
+            if not self.__resub and self.__persist and flags['session present']:
+                _log.debug('Resumed existing session for %r',
+                           client._client_id)
+                # question: are subscriptions still active?
+            else:
+                _log.debug('Assuming Clean session for %r', client._client_id)
+                s = []
+                for t in self.__subscriptions:
+                    nqos = self.__subscriptions[t]
+                    if nqos is None:
+                        nqos = self.__qos
+                    s.append((t, nqos))
+                if len(s) > 0:
+                    _log.debug('Subscribe topics: %r', s)
+                    self.__client.subscribe(s)
+                self.__resub = False
+            self.__connected = True
+        else:
+            _log.info('Connect failed with error %r: %r', rc,
+                      mqtt.connack_string(rc))
+            self.__connected = False
         self.__connect_pending = False
-        self.__connected = True
 
     def __on_disconnect(self, client, userdata, rc):
-        LOG.debug('Disconnect %r: %r', client._client_id, rc)
+        _log.debug('Disconnect %r: %r', client._client_id, rc)
         self.__connected = False
         # Note: PAHO lib will attempt re-connection automatically
 
     def __on_message(self, client, userdata, message):
-        #LOG.debug(u'Message from %r: %r', client._client_id, message)
-        self.__cb(message.topic, message.payload.decode('utf-8'))
+        #_log.debug(u'Message from %r: %r', client._client_id, message)
+        if message.topic in self.__subscriptions:
+            self.__cb(message.topic, message.payload.decode('utf-8'))
+        else:
+            _log.info('Spurious message on topic: %r', message.topic)
+            self.__client.unsubscribe(message.topic)
 
     def run(self):
         """Called via threading.Thread.start()."""
         self.__running = True
         if self.__host:
-            LOG.debug('Starting')
+            _log.debug('Starting')
         else:
-            LOG.debug('Not connected')
+            _log.debug('Not connected')
         while self.__running:
             try:
                 # Check connection status
@@ -233,29 +255,29 @@ class telegraph(threading.Thread):
                                 msg = m[2].encode('utf-8')
                             self.__client.publish(ntopic, msg, nqos, m[4])
                         else:
-                            #LOG.debug(u'No topic, msg ignored: %r', m[1])
+                            #_log.debug(u'No topic, msg ignored: %r', m[1])
                             pass
                     elif m[0] == 'SUBSCRIBE':
-                        LOG.debug('Subscribe topic: %r q=%r', m[1], m[2])
+                        _log.debug('Subscribe topic: %r q=%r', m[1], m[2])
                         nqos = m[2]
                         if nqos is None:
                             nqos = self.__qos
                         self.__client.subscribe(m[1], nqos)
                     elif m[0] == 'UNSUBSCRIBE':
-                        LOG.debug('Un-subscribe topic: %r', m[1])
+                        _log.debug('Un-subscribe topic: %r', m[1])
                         self.__client.unsubscribe(m[1])
                     elif m[0] == 'RECONNECT':
                         self.__connect_pending = False
                         self.__doreconnect = True
                     elif m[0] == 'EXIT':
-                        LOG.debug('Request to close: %r', m[1])
+                        _log.debug('Request to close: %r', m[1])
                         self.__running = False
             except queue.Empty:
                 pass
             except Exception as e:
-                LOG.error('%s: %s', e.__class__.__name__, e)
+                _log.error('%s: %s', e.__class__.__name__, e)
                 self.__connect_pending = False
                 self.__doreconnect = False
         self.__client.disconnect()
         self.__client.loop_stop()
-        LOG.info('Exiting')
+        _log.info('Exiting')
