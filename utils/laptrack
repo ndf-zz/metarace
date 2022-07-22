@@ -120,12 +120,12 @@ class laptrack(Gtk.Window):
         self.label.set_text(msg)
         self.lu = tod.now()
 
-    def io_msg(self, topic, msg):
+    def io_msg(self, topic, message):
         """Receive message from telegraph and dispatch to main loop."""
         if topic == self.datakey:
             ntxt = ''
-            if msg:
-                ntxt = msg
+            if message:
+                ntxt = message
             GLib.idle_add(self.update_label,ntxt)
     
     def start_io(self):

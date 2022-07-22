@@ -78,7 +78,7 @@ class hourcons(Gtk.Window):
         self.settoptext()
         self.setbottext()
 
-    def io_msg(self, topic, msg):
+    def io_msg(self, topic, message):
         """Receive message from telegraph and dispatch to main loop."""
         datakey = topic.split('/')[-1]
         #LOG.debug('new message %r: %r', datakey, msg)

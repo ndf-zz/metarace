@@ -9,8 +9,8 @@
 	from metarace import telegraph
 	metarace.init()
 	
-	def messagecb(topic, msg):
-	    obj = telegraph.from_json(msg)
+	def messagecb(topic, message):
+	    obj = telegraph.from_json(message)
 	    ...
 	
 	t = telegraph.telegraph()
@@ -22,7 +22,7 @@
 	t.publish_json({'example':[1,2,3]}, 'thetopic')
 
  Message callback functions receive two named parameters 'topic' and
- 'msg' which are both unicode strings. The message callback is run in
+ 'message' which are both unicode strings. The message callback is run in
  the telegraph thread context. Use the convenience function "from_json"
  to convert a message from json into a python object. See defcallback
  for an example.
@@ -71,13 +71,13 @@ def from_json(payload=None):
     return ret
 
 
-def defcallback(topic=None, msg=None):
+def defcallback(topic=None, message=None):
     """Default message receive callback function."""
-    ob = from_json(msg)
+    ob = from_json(message)
     if ob is not None:
         _log.debug('RCV %r: %r', topic, ob)
     else:
-        _log.debug('RCV %r: %r', topic, msg)
+        _log.debug('RCV %r: %r', topic, message)
 
 
 class telegraph(threading.Thread):
@@ -119,7 +119,7 @@ class telegraph(threading.Thread):
         except Exception as e:
             _log.error('Error setting will object %r: %s', obj, e)
 
-    def set_will(self, msg=None, topic=None, qos=None, retain=False):
+    def set_will(self, message=None, topic=None, qos=None, retain=False):
         """Set or clear the last will with the broker."""
         if not self.__connect_pending and not self.__connected:
             if topic is not None:
@@ -127,8 +127,8 @@ class telegraph(threading.Thread):
                 if nqos is None:
                     nqos = self.__qos
                 payload = None
-                if msg is not None:
-                    payload = msg.encode('utf-8')
+                if message is not None:
+                    payload = message.encode('utf-8')
                 self.__client.will_set(topic, payload, nqos, retain)
                 _log.debug('Will set on topic %r', topic)
             else:
@@ -154,9 +154,9 @@ class telegraph(threading.Thread):
         """Suspend calling thread until command queue is processed."""
         self.__queue.join()
 
-    def publish(self, msg=None, topic=None, qos=None, retain=False):
-        """Publish the provided msg to topic."""
-        self.__queue.put_nowait(('PUBLISH', topic, msg, qos, retain))
+    def publish(self, message=None, topic=None, qos=None, retain=False):
+        """Publish the provided message to topic."""
+        self.__queue.put_nowait(('PUBLISH', topic, message, qos, retain))
 
     def publish_json(self, obj=None, topic=None, qos=None, retain=False):
         """Pack the provided object into JSON and publish to topic."""
@@ -285,7 +285,7 @@ class telegraph(threading.Thread):
 
     def __on_message(self, client, userdata, message):
         #_log.debug(u'Message from %r: %r', client._client_id, message)
-        self.__cb(topic=message.topic, msg=message.payload.decode('utf-8'))
+        self.__cb(topic=message.topic, message=message.payload.decode('utf-8'))
 
     def run(self):
         """Called via threading.Thread.start()."""
