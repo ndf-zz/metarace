@@ -1,6 +1,33 @@
-"""Telegraph - MQTT backed message exchange service.
+"""Telegraph
 
- Configuration via metarace system config (metarace.json), under
+ Telegraph is a thin wrapper over paho.mqtt.client, which provides
+ a MQTT pub/sub interface, altered for use with metarace applications.
+
+ Example:
+
+	import metarace
+	from metarace import telegraph
+	metarace.init()
+	
+	def messagecb(topic, msg):
+	    obj = telegraph.from_json(msg)
+	    ...
+	
+	t = telegraph.telegraph()
+	t.set_will_json({'example':[]}, 'thetopic')
+	t.subscribe('thetopic')
+	t.setcb(messagecb)
+	t.start()
+	...
+	t.publish_json({'example':[1,2,3]}, 'thetopic')
+
+ Message callback functions receive two named parameters 'topic' and
+ 'msg' which are both unicode strings. The message callback is run in
+ the telegraph thread context. Use the convenience function "from_json"
+ to convert a message from json into a python object. See defcallback
+ for an example.
+
+ Configuration is via metarace system config (metarace.json), under
  section 'telegraph':
 
   key: (type) Description [default]
@@ -15,6 +42,7 @@
   persist : (bool) if true, open a persistent connection to broker [False]
   clientid : (string) provide an explicit client id [None]
   qos : (int) default QOS to use for subscribe and publish [0]
+
 
 """
 
@@ -33,16 +61,30 @@ _log = logging.getLogger('metarace.telegraph')
 _log.setLevel(logging.DEBUG)
 
 
+def from_json(payload=None):
+    """Return message payload decoded from json, or None."""
+    ret = None
+    try:
+        ret = json.loads(payload)
+    except Exception as e:
+        _log.warning('%s decoding JSON payload: %s', e.__class__.__name__, e)
+    return ret
+
+
 def defcallback(topic=None, msg=None):
     """Default message receive callback function."""
-    _log.debug('RCV %r: %r', topic, msg)
+    ob = from_json(msg)
+    if ob is not None:
+        _log.debug('RCV %r: %r', topic, ob)
+    else:
+        _log.debug('RCV %r: %r', topic, msg)
 
 
 class telegraph(threading.Thread):
     """Metarace telegraph server thread."""
 
     def subscribe(self, topic=None, qos=None):
-        """Add topic to the set of subscriptions."""
+        """Add topic to the set of subscriptions with optional qos."""
         if topic:
             self.__subscriptions[topic] = qos
             if self.__connected:
@@ -70,6 +112,31 @@ class telegraph(threading.Thread):
             self.__deftopic = None
         _log.debug('Default publish topic set to: %r', self.__deftopic)
 
+    def set_will_json(self, obj=None, topic=None, qos=None, retain=False):
+        """Pack the provided object into JSON and set as will."""
+        try:
+            self.set_will(json.dumps(obj), topic, qos, retain)
+        except Exception as e:
+            _log.error('Error setting will object %r: %s', obj, e)
+
+    def set_will(self, msg=None, topic=None, qos=None, retain=False):
+        """Set or clear the last will with the broker."""
+        if not self.__connect_pending and not self.__connected:
+            if topic is not None:
+                nqos = qos
+                if nqos is None:
+                    nqos = self.__qos
+                payload = None
+                if msg is not None:
+                    payload = msg.encode('utf-8')
+                self.__client.will_set(topic, payload, nqos, retain)
+                _log.debug('Will set on topic %r', topic)
+            else:
+                self.__client.will_clear()
+                _log.debug('Cleared will')
+        else:
+            _log.error('Unable to set will, already connected')
+
     def connected(self):
         """Return true if connected."""
         return self.__connected
@@ -88,7 +155,7 @@ class telegraph(threading.Thread):
         self.__queue.join()
 
     def publish(self, msg=None, topic=None, qos=None, retain=False):
-        """Publish the provided msg to topic or deftopic if None."""
+        """Publish the provided msg to topic."""
         self.__queue.put_nowait(('PUBLISH', topic, msg, qos, retain))
 
     def publish_json(self, obj=None, topic=None, qos=None, retain=False):
@@ -218,11 +285,7 @@ class telegraph(threading.Thread):
 
     def __on_message(self, client, userdata, message):
         #_log.debug(u'Message from %r: %r', client._client_id, message)
-        if message.topic in self.__subscriptions:
-            self.__cb(message.topic, message.payload.decode('utf-8'))
-        else:
-            _log.info('Spurious message on topic: %r', message.topic)
-            self.__client.unsubscribe(message.topic)
+        self.__cb(topic=message.topic, msg=message.payload.decode('utf-8'))
 
     def run(self):
         """Called via threading.Thread.start()."""
