@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Transponder 'decoder' interface."""
 
 import threading

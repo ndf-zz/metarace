@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """HTML output library.
 
 Cheap and nasty functional primitives for generating loosely

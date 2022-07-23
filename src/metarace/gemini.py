@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Gemini (numeric) scoreboard sender.
 
  Output information to a pair of numeric, 9 character Gemini boards.

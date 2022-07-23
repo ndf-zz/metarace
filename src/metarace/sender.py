@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """DHI scoreboard sender class.
 
 This module provides a thread object which collects

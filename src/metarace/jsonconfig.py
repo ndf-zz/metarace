@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """JSON Configuration module.
 
   Provides a thin wrapper on a dictionary-based configuration

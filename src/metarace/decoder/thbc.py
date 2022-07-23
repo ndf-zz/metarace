@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Tag Heuer/Chronelec Decoder Interface."""
 
 # For connections to multiple decoders, use thbchub

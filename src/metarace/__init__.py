@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """A collection of tools for preparing cycle race results."""
 
 import os

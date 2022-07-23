@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """String filtering, truncation and padding."""
 
 # Note: These functions consider unicode string length and

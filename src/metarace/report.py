@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Report generation and printing support."""
 
 import os
@@ -11,6 +12,7 @@ from gi.repository import Pango
 
 gi.require_version('PangoCairo', '1.0')
 from gi.repository import PangoCairo
+
 import cairo
 import datetime
 import math

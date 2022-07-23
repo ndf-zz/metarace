@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Race Result System decoder interface."""
 
 import queue

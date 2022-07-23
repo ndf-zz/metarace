@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Shared UI helper functions."""
 
 import os

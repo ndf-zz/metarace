@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """UNT4 Packet Wrapper."""
 
 # UNT4 mode 1 constants

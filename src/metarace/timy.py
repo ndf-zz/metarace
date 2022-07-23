@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Alge Timy I/O helper.
 
 This module provides an interface to an Alge Timy connected

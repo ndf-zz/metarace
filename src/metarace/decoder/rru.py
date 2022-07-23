@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Race Result USB Decoder interface."""
 
 import threading

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """export result files in a thread"""
 
 import threading

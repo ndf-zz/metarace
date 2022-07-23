@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Telegraph
 
  Telegraph is a thin wrapper over paho.mqtt.client, which provides

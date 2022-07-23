@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Time of Day types and functions.
 
 Time of Day (tod) records are used to compute net times,
