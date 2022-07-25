@@ -387,7 +387,8 @@ class timy(threading.Thread):
             if ch == CR:
                 # Return ends the current 'message'
                 self.__rdbuf += ch  # include trailing <cr>
-                t = self.__parse_message(self.__rdbuf.decode(ENCODING, 'replace'))
+                t = self.__parse_message(
+                    self.__rdbuf.decode(ENCODING, 'replace'))
                 if t is not None:
                     self.__proc_impulse(t)
                 self.__rdbuf = b''

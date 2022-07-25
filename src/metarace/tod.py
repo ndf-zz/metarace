@@ -244,24 +244,21 @@ class tod(object):
 
     def truncate(self, places=4):
         """Return a new truncated time value."""
-        return self.__class__(timeval=self.timeval.quantize(
-            QUANT[places], rounding=ROUNDING),
+        return self.__class__(timeval=self.timeval.quantize(QUANT[places],
+                                                            rounding=ROUNDING),
                               chan='TRUNC')
 
     def as_hours(self, places=0):
         """Return decimal value in hours, truncated to the desired places."""
-        return (self.timeval / 3600).quantize(QUANT[places],
-                                              rounding=ROUNDING)
+        return (self.timeval / 3600).quantize(QUANT[places], rounding=ROUNDING)
 
     def as_minutes(self, places=0):
         """Return decimal value in minutes, truncated to the desired places."""
-        return (self.timeval / 60).quantize(QUANT[places],
-                                            rounding=ROUNDING)
+        return (self.timeval / 60).quantize(QUANT[places], rounding=ROUNDING)
 
     def as_seconds(self, places=0):
         """Return decimal value in seconds, truncated to the desired places."""
-        return self.timeval.quantize(QUANT[places],
-                                     rounding=ROUNDING)
+        return self.timeval.quantize(QUANT[places], rounding=ROUNDING)
 
     def timestr(self, places=4, zeros=False, hoursep='h', minsep=':'):
         """Return time string component of the tod, whitespace padded."""
@@ -514,7 +511,7 @@ class todlist(object):
                     and self.__store[i][0].index == series):
                 del self.__store[i]
                 if once:
-                    break;
+                    break
             else:
                 i += 1
         return i

@@ -13,8 +13,6 @@ the library, they are available separately as standalone projects.
 
 ### riderdb: CSV Rider and Category list
 
-### timerpane: On-screen Timer Widget
-
 
 ## Module Overview
 
@@ -67,6 +65,7 @@ and Chronelec:
    - rru : Race Result USB Timing Box (active)
    - thbc : Chronelec (Tag Heuer) Protime/Elite RC and LS
 
+
 ### strops: Common String Manipulations
 
 Commonly used functions for formatting competitor names,
@@ -76,12 +75,6 @@ rankings and user inputs. Example:
 	'3 Laps'
 	>>> strops.riderlist_split('1+2  6-10, 22')
 	['1', '2', '6', '7', '8', '9', '10', '22']
-
-
-### uiutil: Shared User Interface Utils
-
-Includes small often-used user interface components shared between 
-trackmeet and roadmeet - may be removed in a future release.
 
 
 ### telegraph: Interprocess Communication
@@ -163,7 +156,6 @@ System requirements:
    - Pango
    - PangoCairo
    - Rsvg
-   - GTK+
    - Python gi
    - Python gi cairo
    - tex-gyre fonts
@@ -181,7 +173,7 @@ Python packages:
 
 For a Debian-ish system, install the system requirements first:
 
-	# apt-get install gir1.2-rsvg-2.0 gir1.2-pango-1.0 tex-gyre python3-cairo gir1.2-gtk-3.0 python3-gi python3-gi-cairo python3-pip
+	# apt-get install gir1.2-rsvg-2.0 gir1.2-pango-1.0 tex-gyre python3-cairo python3-gi python3-gi-cairo python3-pip
 
 Then use pip3 to install metarace:
 

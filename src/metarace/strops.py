@@ -106,7 +106,7 @@ def cmp_dnf(x, y):
 
 def rand_key(data=None):
     """Return a random integer key for shuffling."""
-    return randint(0,0xffffffff)
+    return randint(0, 0xffffffff)
 
 
 def riderno_key(bib):
