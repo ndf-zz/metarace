@@ -172,7 +172,6 @@ class telegraph(threading.Thread):
         self.__queue = queue.Queue()
         self.__cb = defcallback
         self.__subscriptions = {}
-        self.__curov = None
         self.__deftopic = None
         self.__connected = False
         self.__connect_pending = False
@@ -259,7 +258,6 @@ class telegraph(threading.Thread):
             if not self.__resub and self.__persist and flags['session present']:
                 _log.debug('Resumed existing session for %r',
                            client._client_id)
-                # question: are subscriptions still active?
             else:
                 _log.debug('Assuming Clean session for %r', client._client_id)
                 s = []

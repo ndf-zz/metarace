@@ -1,37 +1,40 @@
 # SPDX-License-Identifier: MIT
-"""Alge Timy I/O helper.
+"""Alge Timy Interface
 
-This module provides an interface to an Alge Timy connected
-via serial port. Methods are provided to read timing events
-as tod objects and to write commands to the Timy. 
+ Interface an Alge Timy chronoprinter via serial port.
 
-A calling thread creates a timy thread and configures it via the
-public methods. Timing events are delivered via callback function.
+ Example:
 
-Timing events are only returned if the corresponding channel
-is armed. The channel is then de-armed automatically unless
-the armlock has been set by the calling thread.
+	import metarace
+	from metarace import timy
+	metarace.init()
 
-For example:
+	def timercb(impulse):
+	    print(impulse)
 
-	Calling thread		Cmd Thread		Timy
-						<-	C0 1:23.4567
-				C0 not armed
-	response is None
-	arm(3)		->
-				C3 armed
-						<-	C3 1:24.4551
-				C3 queued
-	C3 1:24.4551	<-
-				C3 dearmed
-						<-	C3 1:24.4901
-				C3 not armed
-	response is None
+	t = timy.timy()
+	t.setport('/dev/ttyS0')
+	t.setcb(timercb)
+	t.start()
+	t.sane()
+	t.arm('C0')
+	t.armlock()
+	...
 
-When a calling thread sets the arming lock with timy.armlock(True),
-a channel remains armed until explicitly dearmed by a calling thread.
+ Configuration is read from metarace system config (metarace.json),
+ under section 'timy':
 
-Notes:
+  key: (type) Description [default]
+  --
+  baudrate: (int) serial port speed [38400]
+  ctsrts: (bool) if True, use hardware flow control [False]
+  chandelay: (dict) map of channel ids to delay time in seconds [{}]
+             example: {'C2':'0.200'}
+
+ Notes:
+
+	- Callback function is only called for impulses received
+	  while channel is armed.
 
 	- ALL timing impulses correctly read from an attached
 	  Timy will be logged by the command thread with the log
@@ -40,6 +43,11 @@ Notes:
 	- It is assumed that messages are received over the serial
 	  connection in the same order as they are measured by
 	  the Timy.
+
+	- Channel delay config compensates for wireless impulse
+	  or relay sytems with a fixed processing time. To adjust
+	  channel blocking delay times, instead use method timy.delaytime()
+
 """
 
 import threading
@@ -49,49 +57,35 @@ import logging
 
 from metarace import sysconf
 from metarace import tod
-from metarace import strops
+from metarace.strops import chan2id, id2chan
 
-# System default timy serial port
-DEFPORT = '/dev/ttyS0'
-ENCODING = 'cp437'  # Timy serial interface encoding
+# Configuration defaults
+_DEFBAUD = 38400
+_DEFCTSRTS = False
 
-# TIMY serial baudrate
-TIMY_BAUD = 38400  # default baudrate
-TIMY_CTSRTS = False  # default hardware flow control
+# Internal constants
+_ENCODING = 'cp437'
+_CHAN_UNKNOWN = -1
+_CR = b'\x0d'
+_TCMDS = ('EXIT', 'PORT', 'MSG', 'TRIG', 'RCLR')
 
-# thread queue commands
-TCMDS = ('EXIT', 'PORT', 'MSG', 'TRIG', 'RCLR')
-
-# timing channel ids
-CHAN_UNKNOWN = -1
-CHAN_START = 0
-CHAN_FINISH = 1
-CHAN_PA = 2
-CHAN_PB = 3
-CHAN_200 = 4
-CHAN_100 = 5
-CHAN_AUX = 6
-CHAN_7 = 7
-CHAN_8 = 8
-CHAN_INT = 9
-
-CR = b'\x0d'
-LOG = logging.getLogger('metarace.timy')
-LOG.setLevel(logging.DEBUG)
-TIMER_LOG_LEVEL = 25
-logging.addLevelName(TIMER_LOG_LEVEL, 'TIMER')
+# Logging
+_log = logging.getLogger('metarace.timy')
+_log.setLevel(logging.DEBUG)
+_TIMER_LOG_LEVEL = 25
+logging.addLevelName(_TIMER_LOG_LEVEL, 'TIMER')
 
 
-def timy_checksum(msg):
-    """Return the checksum for the Timy message string."""
+def _timy_checksum(msg):
+    """Return a checksum for the Timy message string."""
     ret = 0
     for ch in msg:
         ret = ret + ord(ch)
-    LOG.debug('checksum calc = %r', ret)
+    _log.debug('checksum calc = %r', ret)
     return ret & 0xff
 
 
-def timy_getsum(chkstr):
+def _timy_getsum(chkstr):
     """Convert Timy checksum string to an integer."""
     ret = -1
     try:
@@ -99,46 +93,20 @@ def timy_getsum(chkstr):
         ls = (ord(chkstr[1]) - 0x30) & 0xf
         ret = ms << 4 | ls
     except Exception as e:
-        LOG.debug('error collecting timy checksum: %s', e)
+        _log.debug('error collecting timy checksum: %s', e)
     return ret
 
 
-def chan2id(chanstr='0'):
-    """Return ID for the provided channel string."""
-    ret = CHAN_UNKNOWN
-    if (isinstance(chanstr, str) and len(chanstr) > 1
-            and chanstr[0].upper() == 'C' and chanstr[1].isdigit()):
-        ret = int(chanstr[1])
-    else:
-        try:
-            ret = int(chanstr)
-        except Exception:
-            pass
-    if ret < CHAN_UNKNOWN or ret > CHAN_INT:
-        ret = CHAN_UNKNOWN
-    return ret
-
-
-def id2chan(chanid=0):
-    """Return normalised channel string for the provided channel id."""
-    ret = 'C?'
-    if isinstance(chanid, int) and chanid >= CHAN_START and chanid <= CHAN_INT:
-        ret = 'C' + str(chanid)
-    return ret
+def _defcallback(impulse=None):
+    """Default impulse callback."""
+    _log.debug('Unhandled impulse: %r', impulse)
 
 
 class timy(threading.Thread):
     """Timy thread object class."""
 
-    def __init__(self, port=None, name='timy'):
-        """Construct timy thread object.
-
-        Named parameters:
-
-          port -- serial port
-          name -- text identifier for attached unit
-
-        """
+    def __init__(self):
+        """Construct Timy thread object."""
         threading.Thread.__init__(self, daemon=True)
         self.__port = None
         self.__cqueue = queue.Queue()  # command queue
@@ -149,29 +117,42 @@ class timy(threading.Thread):
         ]
         self.__clearing = False
         self.__armlocked = False
-        self.__chandelay = {}  # filled in from sysconf
-        self.__cb = self.__defcallback
-        self.name = name
+        self.__chandelay = {}
+        self.__cb = _defcallback
+        self.__baudrate = _DEFBAUD
+        self.__ctsrts = _DEFCTSRTS
+        self.name = 'timy'
         self.error = False
-        if port is not None:
-            self.setport(port)
-
-    def __defcallback(self, evt=None):
-        """Default callback is a tod log entry."""
-        LOG.debug(evt)
-        return False
+        if sysconf.has_option('timy', 'baudrate'):
+            self.__baudrate = sysconf.get_posint('timy', 'baudrate', _DEFBAUD)
+            _log.debug('Set serial baudrate to: %d', self.__baudrate)
+        if sysconf.has_option('timy', 'ctsrts'):
+            self.__ctsrts = sysconf.get_bool('timy', 'ctsrts')
+            _log.debug('Set serial CTSRTS to: %s', self.__ctsrts)
+        if sysconf.has_option('timy', 'chandelay'):
+            nd = sysconf.get('timy', 'chandelay')
+            if isinstance(nd, dict):
+                for cv in nd:
+                    c = chan2id(cv)
+                    if c != _CHAN_UNKNOWN:
+                        nv = tod.mktod(nd[cv])
+                        self.__chandelay[c] = nv
+                        _log.debug('Set channel delay %s: %s', c,
+                                   nv.rawtime(4))
+            else:
+                _log.debug('Invalid channel delay setting: %r', nd)
 
     def setcb(self, func=None):
-        """Set or clear the event callback."""
+        """Set or clear impulse callback function."""
         if func is not None:
             self.__cb = func
         else:
-            self.__cb = self.__defcallback
+            self.__cb = _defcallback
 
     def printline(self, msg=''):
         """Print msg to Timy printer, stripped and truncated."""
         lmsg = msg[0:32]
-        LOG.log(TIMER_LOG_LEVEL, lmsg)
+        _log.log(_TIMER_LOG_LEVEL, lmsg)
         self.__cqueue.put_nowait(('MSG', 'DTP' + lmsg + '\r'))
 
     def linefeed(self):
@@ -183,16 +164,16 @@ class timy(threading.Thread):
         self.__cqueue.put_nowait(('MSG', 'CLR\r'))
 
     def status(self):
-        """Request status and current program."""
+        """Request status and current program from Timy."""
         self.__cqueue.put_nowait(('MSG', 'NSF\r'))
         self.__cqueue.put_nowait(('MSG', 'PROG?\r'))
 
     def dumpall(self):
-        """Request a dump of all times to host."""
+        """Request a dump of all recorded impulses to host."""
         self.__cqueue.put_nowait(('MSG', 'RSM\r'))
 
-    def delaytime(self, newdelay):
-        """Update the timy hardware channel delays."""
+    def delaytime(self, newdelay='2.0'):
+        """Update blocking delay time for all channels."""
         dt = tod.mktod(newdelay)
         if dt is not None:
             if dt > tod.ZERO and dt < tod.tod('99.99'):
@@ -200,26 +181,26 @@ class timy(threading.Thread):
                 self.__cqueue.put_nowait(('MSG', 'DTS' + nt + '\r'))
                 self.__cqueue.put_nowait(('MSG', 'DTF' + nt + '\r'))
             else:
-                LOG.info('Ignoring invalid delay time: %s', dt.rawtime())
+                _log.info('Ignoring invalid delay time: %s', dt.rawtime())
         else:
-            LOG.info('Ignoring invalid delay time')
+            _log.info('Ignoring invalid delay time')
 
     def printer(self, enable=False):
-        """Enable or disable printer."""
+        """Enable or disable Timy printer."""
         cmd = '0'
         if enable:
             cmd = '1'
         self.__cqueue.put_nowait(('MSG', 'PRINTER' + cmd + '\r'))
 
     def printimp(self, doprint=True):
-        """Enable or disable internal print of timing impulses."""
+        """Enable or disable automatic printing of timing impulses."""
         cmd = '1'
         if doprint:
             cmd = '0'
         self.__cqueue.put_nowait(('MSG', 'PRIIGN' + cmd + '\r'))
 
     def keylock(self, setlock=True):
-        """Set or clear the timy keypad lock function."""
+        """Set or clear Timy keypad lock function."""
         cmd = '1'
         if not setlock:
             cmd = '0'
@@ -235,33 +216,30 @@ class timy(threading.Thread):
         self.__cqueue.put_nowait(('EXIT', msg))
 
     def setport(self, device=None):
-        """Request (re)opening port as specified.
+        """Request (re)opening serial port as specified.
 
-        Device is passed unchanged to serial.Serial constructor.
-
-        Call setport with no argument, None, or an empty string
-        to close an open port or to run the timy thread with no
-        external device.
+        Call setport with None or an empty string to close an open port
+        or to run the Timy thread with no external device.
 
         """
         self.__cqueue.put_nowait(('PORT', device))
 
     def arm(self, channel=0):
-        """Arm timing channel 0 - 8 for response through rqueue."""
+        """Arm channel 0 - 8 for timing impulses."""
         chan = chan2id(channel)
-        LOG.debug('Arming channel %s', id2chan(chan))
+        _log.debug('Arming channel %s', id2chan(chan))
         self.__arms[chan] = True
 
     def dearm(self, channel=0):
-        """Disarm timing channel 0 - 8 for response through rqueue."""
+        """Disarm channel 0 - 8."""
         chan = chan2id(channel)
-        LOG.debug('De-arm channel %s', id2chan(chan))
+        _log.debug('De-arm channel %s', id2chan(chan))
         self.__arms[chan] = False
 
     def armlock(self, lock=True):
-        """Set or clear the arming lock - flag only."""
+        """Set or clear the arming lock."""
         self.__armlocked = bool(lock)
-        LOG.debug('Armlock is now %s', self.__armlocked)
+        _log.debug('Armlock is now %s', self.__armlocked)
 
     def sane(self):
         """Initialise Timy to 'sane' values.
@@ -291,9 +269,8 @@ class timy(threading.Thread):
     
         Note: "sane" here comes from use at track meets with the
               trackmeet program. It may not always make sense eg, to
-              have all channel delays set to 2 hundredths of a
-              second, or to have the internal impulse print off
-              by default.
+              have all channel delays set to 2 seconds, or to have
+              the internal impulse print off by default.
 
         """
         for msg in [
@@ -303,18 +280,13 @@ class timy(threading.Thread):
         ]:
             self.write(msg)
 
-    def trig(self, impulse):
-        """Queue a fake timing event."""
-        impulse.chan = id2chan(chan2id(impulse.chan))
-        self.__cqueue.put_nowait(('TRIG', impulse))
-
     def wait(self):
-        """Suspend caller until the command queue is empty."""
+        """Wait for Timy thread to finish processing any queued commands."""
         self.__cqueue.join()
 
     def __parse_message(self, msg):
         """Return tod object from timing msg or None."""
-        LOG.debug('TIMY raw msg: %r', msg)
+        _log.debug('TIMY raw msg: %r', msg)
         ret = None
         msg = msg.rstrip()  # remove cr/lf if present
         tsum = 0
@@ -340,17 +312,17 @@ class timy(threading.Thread):
                         ret.refid = ''
                         ret.source = self.name
                     else:
-                        LOG.error('Invalid message: %s', msg)
+                        _log.error('Invalid message: %s', msg)
                 else:
-                    LOG.error('Invalid message: %s', msg)
+                    _log.error('Invalid message: %s', msg)
             else:
-                LOG.error('Corrupt message: %s', msg)
-                LOG.error('Checksum fail: 0x%02X != 0x%02X', tsum, csum)
+                _log.error('Corrupt message: %s', msg)
+                _log.error('Checksum fail: 0x%02X != 0x%02X', tsum, csum)
         else:
             msg = msg.strip()
             if msg == 'CLR':
                 self.__cqueue.put_nowait(('RCLR', ''))
-            LOG.debug(msg)  # log std responses
+            _log.debug(msg)  # log std responses
         return ret
 
     def __proc_impulse(self, st):
@@ -362,9 +334,9 @@ class timy(threading.Thread):
 
         If arm lock is not set, the channel is then de-armed.
         """
-        LOG.log(TIMER_LOG_LEVEL, st)
+        _log.log(_TIMER_LOG_LEVEL, st)
         channo = chan2id(st.chan)
-        if channo != CHAN_UNKNOWN:
+        if channo != _CHAN_UNKNOWN:
             if self.__arms[channo]:
                 self.__cb(st)
                 if not self.__armlocked:
@@ -374,7 +346,7 @@ class timy(threading.Thread):
                 if index > 2000 and not self.__clearing:
                     self.__clearing = True
                     self.clrmem()
-                    LOG.debug('Auto clear memory')
+                    _log.debug('Auto clear memory')
         else:
             pass
         return False
@@ -388,7 +360,7 @@ class timy(threading.Thread):
                 # Return ends the current 'message'
                 self.__rdbuf += ch  # include trailing <cr>
                 t = self.__parse_message(
-                    self.__rdbuf.decode(ENCODING, 'replace'))
+                    self.__rdbuf.decode(_ENCODING, 'replace'))
                 if t is not None:
                     self.__proc_impulse(t)
                 self.__rdbuf = b''
@@ -400,27 +372,12 @@ class timy(threading.Thread):
             ch = self.__port.read(1)
 
     def run(self):
-        running = True
-        LOG.debug('Starting')
+        """Run the Timy thread.
 
-        # re-read serial port and delay config from sysconf
-        baudrate = TIMY_BAUD
-        if sysconf.has_option('timy', 'baudrate'):
-            baudrate = strops.confopt_posint(sysconf.get('timy', 'baudrate'),
-                                             baudrate)
-            LOG.debug('Set serial baudrate to: %d', baudrate)
-        ctsrts = TIMY_CTSRTS
-        if sysconf.has_option('timy', 'ctsrts'):
-            ctsrts = strops.confopt_bool(sysconf.get('timy', 'ctsrts'))
-            LOG.debug('Set serial CTSRTS to: %s', str(ctsrts))
-        if sysconf.has_option('timy', 'chandelay'):
-            nd = sysconf.get('timy', 'chandelay')
-            for cv in nd:
-                c = chan2id(cv)
-                if c != CHAN_UNKNOWN:
-                    nv = tod.mktod(nd[cv])
-                    self.__chandelay[c] = nv
-                    LOG.debug('Set channel delay %s: %s', c, nv.rawtime(4))
+           Called by invoking thread method: timy.start()
+        """
+        running = True
+        _log.debug('Starting')
         while running:
             try:
                 # Read phase
@@ -432,18 +389,19 @@ class timy(threading.Thread):
                 self.__cqueue.task_done()
 
                 # Write phase
-                if isinstance(m, tuple) and m[0] in TCMDS:
+                if isinstance(m, tuple) and m[0] in _TCMDS:
                     if m[0] == 'MSG':
                         if self.__port is not None and not self.error:
-                            LOG.debug('Sending rawmsg: %s', repr(m[1]))
-                            self.__port.write(m[1].encode(ENCODING, 'replace'))
+                            _log.debug('Sending rawmsg: %s', repr(m[1]))
+                            self.__port.write(m[1].encode(
+                                _ENCODING, 'replace'))
                     elif m[0] == 'TRIG':
                         if isinstance(m[1], tod.tod):
                             self.__proc_impulse(m[1])
                     elif m[0] == 'RCLR':
                         self.__clearing = False
                     elif m[0] == 'EXIT':
-                        LOG.debug('Request to close: %s', m[1])
+                        _log.debug('Request to close: %s', m[1])
                         running = False
                     elif m[0] == 'PORT':
                         if self.__port is not None:
@@ -452,20 +410,20 @@ class timy(threading.Thread):
                         if m[1] is not None and m[1] not in [
                                 '', 'NULL', 'None'
                         ]:
-                            LOG.debug('Re-Connect port: %s @ %d', m[1],
-                                      baudrate)
+                            _log.debug('Re-Connect port: %s @ %d', m[1],
+                                       self.__baudrate)
                             self.__port = serial.Serial(m[1],
-                                                        baudrate,
-                                                        rtscts=ctsrts,
+                                                        self.__baudrate,
+                                                        rtscts=self.__ctsrts,
                                                         timeout=0.2)
                             self.error = False
                         else:
-                            LOG.debug('Not connected')
+                            _log.debug('Not connected')
                             self.error = True
                     else:
                         pass
                 else:
-                    LOG.warning('Unknown message: %r', m)
+                    _log.warning('Unknown message: %r', m)
             except queue.Empty:
                 pass
             except serial.SerialException as e:
@@ -473,11 +431,11 @@ class timy(threading.Thread):
                     self.__port.close()
                     self.__port = None
                 self.error = True
-                LOG.error('Serial error: %s', e)
+                _log.error('Serial error: %s', e)
             except Exception as e:
-                LOG.error('%s: %s', e.__class__.__name__, e)
+                _log.error('%s: %s', e.__class__.__name__, e)
                 self.error = True
         if self.__port is not None:
             self.__port.close()
             self.__port = None
-        LOG.info('Exiting')
+        _log.info('Exiting')
