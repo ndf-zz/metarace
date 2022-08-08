@@ -7,7 +7,9 @@ import socket
 import datetime
 
 from . import (decoder, DECODER_LOG_LEVEL)
+from metarace import sysconf
 from metarace import tod
+from metarace import strops
 
 LOG = logging.getLogger('metarace.decoder.rrs')
 LOG.setLevel(logging.DEBUG)

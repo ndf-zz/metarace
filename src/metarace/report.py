@@ -4403,19 +4403,22 @@ class report(object):
                     'id': 'pgre',
                     'class': 'badge bg-warning'
                 })
-            itemstr = ''
+            carditems = []
             for li in metalist:
                 litext = li[1]
                 if pmark is not None:
                     litext += pmark
-                itemstr += htlib.li(
-                    (htlib.i('', {'class': li[0]}), litext),
-                    {'class': 'list-group-item list-group-item-secondary'})
+                carditems.append(
+                    htlib.li(
+                        (htlib.i('', {'class': li[0]}), litext),
+                        {'class': 'list-group-item list-group-item-secondary'
+                         }))
                 pmark = None
             cw.write(
                 htlib.div(
-                    htlib.ul(itemstr, {'class': 'list-group list-group-flush'}
-                             ), {'class': 'card bg-light mb-4 small'}) + '\n')
+                    htlib.ul(carditems,
+                             {'class': 'list-group list-group-flush'}),
+                    {'class': 'card bg-light mb-4 small'}) + '\n')
 
         # output all the sections...
         for s in self.sections:
