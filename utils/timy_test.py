@@ -18,6 +18,7 @@ t.setport('/dev/ttyS0')
 t.setcb(timercb)
 t.start()
 t.sane()
+t.delaytime('0.10')
 try:
     while True:
         sleep(2)

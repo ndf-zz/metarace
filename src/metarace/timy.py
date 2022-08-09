@@ -81,7 +81,6 @@ def _timy_checksum(msg):
     ret = 0
     for ch in msg:
         ret = ret + ord(ch)
-    _log.debug('checksum calc = %r', ret)
     return ret & 0xff
 
 
@@ -165,7 +164,7 @@ class timy(threading.Thread):
 
     def status(self):
         """Request status and current program from Timy."""
-        self.__cqueue.put_nowait(('MSG', 'NSF\r'))
+        self.__cqueue.put_nowait(('MSG', 'NSF?\r'))
         self.__cqueue.put_nowait(('MSG', 'PROG?\r'))
 
     def dumpall(self):
@@ -257,6 +256,7 @@ class timy(threading.Thread):
 	    EMU0		- Running time off
 	    PRINTER0		- Printer off
 	    PRIIGN1		- Don't print all impulses to receipt
+            SL0			- Logo off
 	    PRILF		- Linefeed
 	
         All commands are queued individually to the command thread
@@ -274,9 +274,9 @@ class timy(threading.Thread):
 
         """
         for msg in [
-                'TIMYINIT', 'NSF', 'PROG?', 'KL0', 'CHK1', 'PRE4', 'RR0',
+                'TIMYINIT', 'NSF?', 'PROG?', 'KL0', 'CHK1', 'PRE4', 'RR0',
                 'BE1', 'DTS02.00', 'DTF02.00', 'EMU0', 'PRINTER0', 'PRIIGN1',
-                'DTPMetarace ' + tod.now().meridiem(), 'PRILF'
+                'SL0', 'PRILF'
         ]:
             self.write(msg)
 
@@ -286,16 +286,15 @@ class timy(threading.Thread):
 
     def __parse_message(self, msg):
         """Return tod object from timing msg or None."""
-        _log.debug('TIMY raw msg: %r', msg)
         ret = None
         msg = msg.rstrip()  # remove cr/lf if present
         tsum = 0
         csum = 0
         if len(msg) == 28:
             # assume checksum present, grab it and truncate msg
-            tsum = timy_getsum(msg[26:28])
+            tsum = _timy_getsum(msg[26:28])
             msg = msg[0:26]
-            csum = timy_checksum(msg)
+            csum = _timy_checksum(msg)
         if len(msg) == 26:
             # assume now msg is a timing impulse
             if tsum == csum:
@@ -322,7 +321,6 @@ class timy(threading.Thread):
             msg = msg.strip()
             if msg == 'CLR':
                 self.__cqueue.put_nowait(('RCLR', ''))
-            _log.debug(msg)  # log std responses
         return ret
 
     def __proc_impulse(self, st):
@@ -356,11 +354,12 @@ class timy(threading.Thread):
         ch = self.__port.read(1)
         mcnt = 0
         while ch != b'':
-            if ch == CR:
+            if ch == _CR:
                 # Return ends the current 'message'
                 self.__rdbuf += ch  # include trailing <cr>
-                t = self.__parse_message(
-                    self.__rdbuf.decode(_ENCODING, 'replace'))
+                msg = self.__rdbuf.decode(_ENCODING, 'ignore')
+                _log.debug(u'RECV: %r', msg)
+                t = self.__parse_message(msg)
                 if t is not None:
                     self.__proc_impulse(t)
                 self.__rdbuf = b''
@@ -392,9 +391,8 @@ class timy(threading.Thread):
                 if isinstance(m, tuple) and m[0] in _TCMDS:
                     if m[0] == 'MSG':
                         if self.__port is not None and not self.error:
-                            _log.debug('Sending rawmsg: %s', repr(m[1]))
-                            self.__port.write(m[1].encode(
-                                _ENCODING, 'replace'))
+                            _log.debug('SEND: %r', m[1])
+                            self.__port.write(m[1].encode(_ENCODING, 'ignore'))
                     elif m[0] == 'TRIG':
                         if isinstance(m[1], tod.tod):
                             self.__proc_impulse(m[1])
