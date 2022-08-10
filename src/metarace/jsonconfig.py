@@ -14,7 +14,12 @@ import json
 class config(object):
 
     def __init__(self, default={}):
-        self.__store = dict(default)
+        """Create config object with a deep copy of the provided default."""
+        self.__store = {}
+        for section in default:
+            self.__store[section] = {}
+            for key in default[section]:
+                self.__store[section][key] = default[section][key]
 
     def __str__(self):
         return json.dumps(self.__store)
