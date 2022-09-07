@@ -5,7 +5,7 @@ Time of Day (tod) records are used to compute net times,
 and to communicate context of timing events. Each tod object
 includes the following properties:
 
-	timeval	decimal number of seconds, to 4 places
+	timeval	decimal number of seconds, to 6 places
 	index	optional serial number or marker (from timing device)
 	chan	optional timing channel number or indicator
 	refid	optional transponder id or rider identifier
@@ -34,12 +34,14 @@ import decimal
 import re
 import logging
 from datetime import datetime
+from dateutil.parser import isoparse
 
 # module log object
-LOG = logging.getLogger('metarace.tod')
-LOG.setLevel(logging.DEBUG)
+_log = logging.getLogger('metarace.tod')
+_log.setLevel(logging.DEBUG)
 
 # Formatting and truncation constants
+QUANT_6PLACES = decimal.Decimal('0.000001')
 QUANT_5PLACES = decimal.Decimal('0.00001')
 QUANT_4PLACES = decimal.Decimal('0.0001')
 QUANT_3PLACES = decimal.Decimal('0.001')
@@ -48,12 +50,12 @@ QUANT_1PLACE = decimal.Decimal('0.1')
 QUANT_0PLACES = decimal.Decimal('1')
 QUANT = [
     QUANT_0PLACES, QUANT_1PLACE, QUANT_2PLACES, QUANT_3PLACES, QUANT_4PLACES,
-    QUANT_5PLACES
+    QUANT_5PLACES, QUANT_6PLACES
 ]
-QUANT_FW = [2, 4, 5, 6, 7, 8]
-QUANT_TWID = [8, 10, 11, 12, 13, 14]
-QUANT_PAD = ['     ', '   ', '  ', ' ', '', '']
-QUANT_OPAD = ['    ', '  ', ' ', '', '', '']
+QUANT_FW = [2, 4, 5, 6, 7, 8, 9]
+QUANT_TWID = [8, 10, 11, 12, 13, 14, 15]
+QUANT_PAD = ['     ', '   ', '  ', ' ', '', '', '']
+QUANT_OPAD = ['    ', '  ', ' ', '', '', '', '']
 MILL = decimal.Decimal(1000000)
 
 # default rounding is toward zero
@@ -65,6 +67,34 @@ def now(index='', chan='CLK', refid='', source='host'):
     return tod(_now2dec(), index, chan, refid, source)
 
 
+def fromiso(timestr=''):
+    """Retrieve date and TOD from 8601 date and time of day string"""
+    rd = None
+    rt = None
+    try:
+        # retrieve date and time for the current timezone
+        d = isoparse(timestr).astimezone()
+        rd = d.date().isoformat()
+        tv = 3600 * d.hour + 60 * d.minute + d.second + d.microsecond / MILL
+        rt = mktod(tv)
+        rt.source = timestr
+    except Exception as e:
+        _log.debug('fromiso() %s: %s', e.__class__.__name__, e)
+    return (rd, rt)
+
+
+def fromqc(timestr=''):
+    """Retrieve date and TOS from Queclink datestamp"""
+    rd = None
+    rt = None
+    if isinstance(timestr, str) and len(timestr) == 14 and timestr.isdigit():
+        stamp = '{}T{}Z'.format(timestr[0:8], timestr[8:14])
+        (rd, rt) = fromiso(stamp)
+    else:
+        _log.debug('fromqc(): Invalid datestamp %r', timestr)
+    return (rd, rt)
+
+
 def mkagg(timeval=''):
     """Return agg for given timeval or None."""
     ret = None
@@ -72,7 +102,7 @@ def mkagg(timeval=''):
         try:
             ret = agg(timeval)
         except Exception as e:
-            LOG.debug('mkagg() %s: %s', e.__class__.__name__, e)
+            _log.debug('mkagg() %s: %s', e.__class__.__name__, e)
     return ret
 
 
@@ -83,7 +113,7 @@ def mktod(timeval=''):
         try:
             ret = tod(timeval)
         except Exception as e:
-            LOG.debug('mktod() %s: %s', e.__class__.__name__, e)
+            _log.debug('mktod() %s: %s', e.__class__.__name__, e)
     return ret
 
 
@@ -170,11 +200,25 @@ def _str2dec(timestr=''):
     timestr = timestr.strip()  # assumes string
     if timestr == 'now':
         dectod = _now2dec()
+    elif timestr.startswith('PT'):
+        # interpret as ISO8601 Interval (4.4.1b), but only time flags
+        m = re.match(
+            r'^PT((\d+([\.\,]\d+)?)H)?((\d+([\.\,]\d+)?)M)?((\d+([\.\,]\d+)?)S)?',
+            timestr)
+        if m is not None:
+            dectod = 0
+            if m.group(2):
+                dectod += 3600 * decimal.Decimal(m.group(2).replace(',', '.'))
+            if m.group(5):
+                dectod += 60 * decimal.Decimal(m.group(5).replace(',', '.'))
+            if m.group(8):
+                dectod += decimal.Decimal(m.group(8).replace(',', '.'))
+        else:
+            _log.info('_str2dec() Invalid 8601 interval: %r', timestr)
     else:
         m = re.match(
             r'^(-?)(?:(?:(\d+)[h:-])?(\d{1,2})[:\'-])?(\d{1,2}(?:[\.\"]\d+)?)$',
-            timestr,
-            flags=re.UNICODE)
+            timestr)
         if m is not None:
             dectod = decimal.Decimal(m.group(4).replace('"', '.'))
             dectod += decimal.Decimal(m.group(3) or 0) * 60
@@ -183,8 +227,8 @@ def _str2dec(timestr=''):
                 dectod = dectod.copy_negate()
         else:
             dectod = decimal.Decimal(timestr)
-            LOG.debug('_str2dec() Decimal conversion %s => %s', timestr,
-                      dectod)
+            _log.debug('_str2dec() Decimal conversion %s => %s', timestr,
+                       dectod)
     return dectod
 
 
@@ -200,7 +244,7 @@ def _tv2dec(timeval):
         ret = timeval.timeval
     elif isinstance(timeval, float):
         # Round off float to max tod precision
-        ret = decimal.Decimal('{0:0.4f}'.format(timeval))
+        ret = decimal.Decimal('{0:0.6f}'.format(timeval))
     else:
         ret = decimal.Decimal(timeval)
     return ret
@@ -302,6 +346,16 @@ class tod(object):
         else:
             ret = _dec2hm(tv) + med
         return ret
+
+    def isosecs(self, places=4):
+        """Return ISO8601(4.4.1b) Refer : 4.4.3.2 Format with designators."""
+        return "PT{}S".format(
+            self.timeval.quantize(QUANT[places], rounding=ROUNDING))
+
+    def isostr(self, places=4):
+        """Return ISO8601(4.4.1b) Time interval string"""
+        return "PT{}S".format(
+            _dec2str(self.timeval, places, hoursep='H', minsep='M'))
 
     def rawtime(self, places=4, zeros=False, hoursep='h', minsep=':'):
         """Return time string of tod as string, without padding."""
@@ -423,7 +477,7 @@ class agg(tod):
 ZERO = tod()
 ONE = tod('1.0')
 MINUTE = tod('1:00')
-MAX = tod('23h59:59.9999')  # largest val possible for tod
+MAX = tod('23h59:59.999990')  # largest val possible for tod
 MAXELAP = tod('23h30:00')  # max displayed elapsed time
 
 # Fake times for special cases
@@ -441,8 +495,8 @@ FAKETIMES = {
     'dns': tod(MAX, chan='dns'),
     'dsq': tod(MAX, chan='dsq'),
 }
-extra = decimal.Decimal('0.00001')
-cof = decimal.Decimal('0.00001')
+extra = decimal.Decimal('0.000001')
+cof = decimal.Decimal('0.000001')
 for c in ['ntr', 'caught', 'rel', 'abort', 'otl', 'dnf', 'dns', 'dsq']:
     FAKETIMES[c].timeval += cof
     cof += extra
