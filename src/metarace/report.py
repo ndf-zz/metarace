@@ -4336,9 +4336,15 @@ class report(object):
                     'class': 'nav-link'
                 }))
         if self.indexlink:
-            hrf = self.indexlink + '.html'
+            hrf = self.indexlink
+            if hrf.startswith('.') or hrf.endswith('/') or hrf.endswith(
+                    'html'):
+                pass
+            else:
+                hrf += '.html'
             if hrf == 'index.html':
                 hrf = './'
+
             navbar.append(
                 htlib.a('\u2191 Index', {
                     'href': hrf,
