@@ -301,7 +301,7 @@ class telegraph(threading.Thread):
                     if not self.__connect_pending:
                         self.__reconnect()
                 # Process command queue
-                while True:
+                while self.__running:
                     m = self.__queue.get(timeout=QUEUE_TIMEOUT)
                     self.__queue.task_done()
                     if m[0] == 'PUBLISH':
