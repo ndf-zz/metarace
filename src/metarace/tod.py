@@ -227,8 +227,8 @@ def _str2dec(timestr=''):
                 dectod = dectod.copy_negate()
         else:
             dectod = decimal.Decimal(timestr)
-            _log.debug('_str2dec() Decimal conversion %s => %s', timestr,
-                       dectod)
+            #_log.debug('_str2dec() Decimal conversion %s => %s', timestr,
+            #dectod)
     return dectod
 
 

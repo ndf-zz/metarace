@@ -1,0 +1,629 @@
+#!/usr/bin/python3
+#
+# TT starter console
+#
+
+import gi
+import logging
+import metarace
+import csv
+import os
+import cairo
+import json
+from metarace import telegraph
+from metarace import tod
+from metarace import jsonconfig
+
+gi.require_version("GLib", "2.0")
+from gi.repository import GLib
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gdk
+
+gi.require_version('Pango', '1.0')
+from gi.repository import Pango
+
+gi.require_version('PangoCairo', '1.0')
+from gi.repository import PangoCairo
+
+gi.require_version('Gst', '1.0')
+from gi.repository import Gst
+
+LOGFILE = '.ttstart.log'
+DEFTOPIC = 'startlist'
+# Tolerate up to 50ms audio desync
+DEFAUDIOSYNCTHRESH = 50000000
+TIMEFONT = 'Nimbus Sans L Condensed Bold '
+COUNTERFONT = 'Nimbus Sans L Condensed Bold '
+NOHDR = [u'Start', u'start', u'time', u'Time', u'']
+
+logging.basicConfig()
+_log = logging.getLogger('metarace.ttstart')
+_log.setLevel(logging.DEBUG)
+
+
+def json_hook(obj):
+    """De-serialise tod and geopt objects from config."""
+    if '__tod__' in obj:
+        return tod.mktod(obj['timeval'])
+    elif '__agg__' in obj:
+        return tod.mkagg(obj['timeval'])
+    elif '__geopt__' in obj:
+        return geopt.fromjsob(obj)
+    return obj
+
+
+# squeeze text into a desired width
+def fit_cent(cr, pr, oh, ow, msg, ch, fn):
+    """squeeze text centered at h."""
+    if msg is not None:
+        cr.save()
+        l = Pango.Layout.new(pr)
+        l.set_alignment(Pango.Alignment.CENTER)
+        l.set_font_description(Pango.FontDescription(fn + str(ch)))
+        l.set_text(msg, -1)
+        (tw, th) = l.get_pixel_size()
+        if tw > ow:
+            cr.scale(float(ow) / float(tw), 1.0)
+            tw = ow
+        cr.move_to(0.5 * (ow - tw), oh)
+        PangoCairo.update_context(cr, pr)
+        l.context_changed()
+        PangoCairo.show_layout(cr, l)
+        cr.restore()
+
+
+# draw text centred
+def text_cent(cr, pr, oh, ow, msg, ch, fn):
+    """Position text centred at h."""
+    if msg is not None:
+        cr.save()
+        l = Pango.Layout.new(pr)
+        l.set_alignment(Pango.Alignment.CENTER)
+        l.set_font_description(Pango.FontDescription(fn + str(ch)))
+        l.set_text(msg, -1)
+        (tw, th) = l.get_pixel_size()
+        cr.move_to(ow - (0.5 * tw), oh)
+        PangoCairo.update_context(cr, pr)
+        l.context_changed()
+        PangoCairo.show_layout(cr, l)
+        cr.restore()
+
+
+def tod2key(tod=None):
+    """Return a key from the supplied time of day."""
+    ret = None
+    if tod is not None:
+        ret = int(tod.truncate(0).timeval)
+    return ret
+
+
+class ttstart(object):
+
+    def show(self):
+        self.window.show()
+
+    def hide(self):
+        self.window.show()
+
+    def start(self):
+        """Start threads."""
+        if not self.started:
+            self.io.start()
+            self.started = True
+
+    def shutdown(self):
+        """Cleanly shutdown."""
+        self.io.exit()
+        self.io.join()
+        self.started = False
+
+    def window_destroy_cb(self, window):
+        """Handle destroy signal."""
+        if self.started:
+            self.shutdown()
+        self.running = False
+        Gtk.main_quit()
+
+    def on_configure(self, area, event, data=None):
+        """Handle the display configure event"""
+        self.init_surface(area)
+        self.redraw()
+        return False
+
+    def on_draw(self, area, context):
+        """Handle the area 'draw' event"""
+        if self.area_src is not None:
+            context.set_source_surface(self.area_src, 0.0, 0.0)
+            context.paint()
+        else:
+            _log.error('Drawing surface not yet configured')
+        return False
+
+    def init_surface(self, area):
+        """Re-allocate a cairo surface as required"""
+        newW = area.get_allocated_width()
+        newH = area.get_allocated_height()
+        if newW > self.areaW or newH > self.areaH:
+            if self.area_src is not None:
+                self.area_src.finish()
+                self.area_src = None
+            self.area_src = cairo.ImageSurface(cairo.FORMAT_ARGB32, newW, newH)
+            _log.debug('Created new cairo surface %d x %d', newW, newH)
+            self.areaW = newW
+            self.areaH = newH
+        self.width = newW
+        self.height = newH
+
+    def redraw(self):
+        """Request redraw on the cairo surface"""
+        cr = cairo.Context(self.area_src)
+        pr = PangoCairo.create_context(cr)
+        self.do_drawing(cr, pr)
+        self.area_src.flush()
+
+    def do_drawing(self, cr, pr):
+        """Perform required drawing operations on the provided contexts"""
+        cr.identity_matrix()
+
+        # bg filled
+        cr.set_source_rgb(0.85, 0.85, 0.90)
+        cr.paint()
+
+        # countdown box
+        cbh = 0.56 * self.height
+        cbw = 0.98 * self.width
+        cbxo = 0.5 * (self.width - cbw)
+        cbho = 0.5 * (self.height - cbh)
+        cr.rectangle(cbxo, cbho, cbw, cbh)
+        cr.set_source_rgb(0.92, 0.92, 1.0)
+        cr.fill()
+
+        # time string txt
+        cr.set_source_rgb(0.1, 0.1, 0.1)
+        if self.tod is not None:
+            oh = 0.00 * self.height
+            ch = 0.12 * self.height
+            text_cent(cr, pr, oh, 0.5 * self.width, self.tod.meridiem(), ch,
+                      TIMEFONT)
+
+        # countdown txt
+        if self.countdown is not None:
+            ctx = ''
+            if self.countdown >= 0:
+                ctx = str(self.countdown)
+            else:
+                ctx = '+' + str(-self.countdown)
+            oh = 0.09 * self.height
+            ch = 0.48 * self.height
+            text_cent(cr, pr, oh, 0.5 * self.width, ctx, ch, COUNTERFONT)
+
+        # rider name txt
+        if self.riderstr is not None:
+            oh = 0.80 * self.height
+            ch = 0.10 * self.height
+            #text_cent(cr, pr, oh, 0.5 * self.width,
+            #self.riderstr, ch, COUNTERFONT)
+            fit_cent(cr, pr, oh, self.width, self.riderstr, ch, COUNTERFONT)
+
+        # starter bulbs
+        if self.bulb is not None:
+            rad = 0.15 * self.height
+            oh = 0.5 * self.height
+            ow = 0
+            if self.bulb == 'red':
+                ow = 0.15 * self.width
+                cr.set_source_rgb(1.0, 0.2, 0.2)
+            elif self.bulb == 'green':
+                ow = 0.85 * self.width
+                cr.set_source_rgb(0.2, 1.0, 0.2)
+            cr.move_to(ow, oh)
+            cr.arc(ow, oh, rad, 0, 6.3)
+            cr.fill()
+
+    def clear(self):
+        """Clear all elements and dearm timer."""
+        self.countdown = None
+        self.riderstr = None
+        self.bulb = None
+        self.armed = False
+
+    def loadconfig(self):
+        """Load config"""
+        cr = jsonconfig.config({
+            'ttstart': {
+                'topic': DEFTOPIC,
+                'fullscreen': False,
+                'backlightlow': 0.25,
+                'backlighthigh': 1.0,
+                'backlightdev': None,
+                'syncthresh': DEFAUDIOSYNCTHRESH,
+                'startlist': 'startlist.csv'
+            }
+        })
+        cr.add_section('ttstart')
+        cr.merge(metarace.sysconf, u'ttstart')
+
+        # set fullscreen
+        if cr.get_bool('ttstart', 'fullscreen'):
+            _log.debug('Fullscreen set')
+            self.fullscreen = True
+        else:
+            _log.debug('Fullscreen not set')
+
+        # load backlight parameters
+        self.backlightdev = cr.get('ttstart', 'backlightdev')
+        self.backlightlow = cr.get_float('ttstart', 'backlightlow', 0.25)
+        self.backlighthigh = cr.get_float('ttstart', 'backlighthigh', 1.0)
+        if self.backlightdev and os.path.exists(self.backlightdev):
+            try:
+                with open(os.path.join(self.backlightdev, 'max_brightness'),
+                          'rb') as bf:
+                    mbstr = bf.read()
+                    self.backlightmax = strops.confopt_posint(mbstr, 20)
+                    self.backlightdev = os.path.join(self.backlightdev,
+                                                     'brightness')
+                    _log.info(
+                        'Using backlight dev %r; max=%r, low=%d%%, high=%d%%',
+                        self.backlightdev, self.backlightmax,
+                        int(100.0 * self.backlightlow),
+                        int(100.0 * self.backlighthigh))
+            except Exception as e:
+                _log.error('%s reading from backlight device: %s',
+                           e.__class__.__name__, e)
+        else:
+            _log.info('Backlight control not configured.')
+            self.backlightdev = None
+        # audio sync thresh
+        self.syncthresh = cr.get_posint('ttstart', 'syncthresh',
+                                        DEFAUDIOSYNCTHRESH)
+        _log.info('Sync threshold set to: %0.3fs',
+                  float(self.syncthresh) * 1e-9)
+
+        # set the control topic and subscribe
+        self.topic = cr.get('ttstart', 'topic')
+        if self.topic:
+            self.io.subscribe(self.topic)
+
+        # load riders
+        datafile = metarace.default_file(cr.get('ttstart', 'startlist'))
+        count = 0
+        try:
+            rlist = []
+            with open(datafile) as f:
+                cr = csv.reader(f)
+                for r in cr:
+                    st = None
+                    bib = ''
+                    series = ''
+                    name = ''
+                    # load rider info
+                    # start, no, series, name, cat
+                    if len(r) > 0 and r[0] not in NOHDR:  # time & no provided
+                        st = tod.mktod(r[0])
+                        if len(r) > 1:  # got bib
+                            bib = r[1]
+                        if len(r) > 2:  # got series
+                            series = r[2]
+                        if len(r) > 3:  # got name
+                            name = r[3]
+                        if st is not None:
+                            # enough data to add a starter
+                            count += 1
+                            nr = [st, bib, series, name]
+                            rlist.append(nr)
+                        else:
+                            _log.warning('Ignored invalid starter %r', r)
+            self._newStartlist(rlist)
+
+        except Exception as e:
+            # always an error - there must be startlist to continue
+            _log.error('%s loading from startlist: %s', e.__class__.__name__,
+                       e)
+
+    def draw_and_update(self, data=None):
+        """Redraw in main loop, not in timeout."""
+        self.redraw()
+        self.area.queue_draw()
+        return False
+
+    def delayed_cursor(self):
+        """Remove the mouse cursor from the text area."""
+        if self.fullscreen:
+            self.window.fullscreen()
+        cursor = Gdk.Cursor.new_for_display(Gdk.Display.get_default(),
+                                            Gdk.CursorType.BLANK_CURSOR)
+        self.window.get_window().set_cursor(cursor)
+        return False
+
+    def starttrig(self, e):
+        """Process a trigger."""
+        chan = timy.chan2id(e.chan)
+        if (chan == timy.CHAN_START and self.armed
+                and self.currider is not None
+                and self.currider in self.ridermap):
+            ls = tod.now()  # log the 'now' time and the rider's wall start
+            # emit rider vec
+            cr = self.ridermap[self.currider]
+            ##self.scb.add_rider([cr[1], cr[2], e.rawtime(),
+            ##cr[0].rawtime(), ls.rawtime()], 'starter')
+            _log.info('Starter: %s, %s', cr[1], e.rawtime())
+            self.armed = False
+        else:
+            # emit an anon tod
+            _log.info('Impulse: %s', e.rawtime())
+            ##self.scb.add_rider(['Impulse: ' + unicode(e)], 'message')
+        return False
+
+    def riderlogstr(self, key):
+        """Return nice log string."""
+        ret = ''
+        if key in self.ridermap:
+            r = self.ridermap[key]
+            ret = ' '.join([r[0].rawtime(0), r[1], r[3]])
+        return ret
+
+    def check_play_pos(self, expect):
+        """Check and handle audio desync error."""
+        try:
+            postype, curpos = self.player.query_position(Gst.Format.TIME)
+            if postype:
+                err = abs(expect - curpos)
+                if err > self.syncthresh:
+                    _log.error('Audio desync detected: %r @ %r', err, curpos)
+                    self.player.set_state(Gst.State.NULL)
+            #else:
+            #_log.debug('Audio in sync, error=%r', err)
+        except Exception as e:
+            _log.error('%s reading audio position: %s', e.__class__.__name__,
+                       e)
+        return False
+
+    def timeout(self, data=None):
+        """Handle timeout."""
+
+        # 1: Terminate?
+        if not self.running:
+            return False
+
+        # 2: Process?
+        try:
+            ntime = tod.now()
+            ntod = ntime.truncate(0)
+            if ntime >= self.nc.truncate(1):
+                self.tod = ntod
+                self.nc += tod.ONE
+                self.process_timeout()
+            else:
+                _log.debug('Timeout called early: %s', ntime.rawtime())
+                # no need to advance, desired timeout not yet reached
+        except Exception as e:
+            _log.error('%s in timeout: %s', e.__class__.__name__, e)
+
+        # 3: Re-Schedule
+        tt = tod.now() + tod.tod('0.01')
+        while self.nc < tt:  # ensure interval is positive
+            if tod.MAX - tt < tod.ONE:
+                _log.debug('Midnight rollover')
+                break
+            _log.debug('May have missed an interval, catching up')
+            self.nc += tod.ONE  # 0.01 allows for processing delay
+        ival = int(1000.0 * float((self.nc - tod.now()).timeval))
+        GLib.timeout_add(ival, self.timeout)
+
+        # 4: Return False
+        return False  # must return False
+
+    def set_backlight(self, percent=None):
+        """Attempt to adjust screen brightness between riders."""
+        if self.backlightdev and abs(percent - self.backlight) > 0.05:
+            if percent < 0.0:
+                percent = 0.0
+            elif percent > 1.0:
+                percent = 1.0
+            nb = int(0.5 + percent * self.backlightmax)
+            try:
+                with open(self.backlightdev, 'wb') as f:
+                    f.write(str(nb))
+            except Exception as e:
+                _log.error('%s writing backlight: %s', e.__class__.__name__)
+            self.backlight = percent
+
+    def process_timeout(self):
+        """Process countdown, redraw display if required."""
+        curoft = tod2key(self.tod)
+        if self.currider is not None:
+            cdn = self.currider - curoft
+            if cdn == 10:
+                self.player.set_state(Gst.State.PLAYING)
+                rm = self.ridermap[self.currider]
+                self.riderstr = '\u2004'.join((rm[1], rm[3]))
+                self.bulb = 'red'
+                _log.debug('Player started for: %s',
+                           self.riderlogstr(self.currider))
+            elif cdn in [8, 7, 6]:  # check audio stream sync
+                self.check_play_pos(int((10 - cdn) * 1e9))
+            elif cdn == 15:
+                self.player.set_state(Gst.State.PAUSED)
+                rm = self.ridermap[self.currider]
+                self.riderstr = '\u2004'.join((rm[1], rm[3]))
+                self.bulb = 'red'
+                self.set_backlight(self.backlighthigh)
+            elif cdn == 50 or cdn == 24:
+                rm = self.ridermap[self.currider]
+                self.riderstr = '\u2004'.join((rm[1], rm[3]))
+                self.bulb = 'red'
+                _log.info('LOAD: %s', self.riderlogstr(self.currider))
+            elif cdn == 30:
+                self.set_backlight(self.backlighthigh)
+            elif cdn == 5:
+                self.armed = True  # self arm is not same as timer arm
+            elif cdn == 0:
+                self.bulb = 'green'
+                self.countdown = 0
+                _log.info('GO: %s', self.riderlogstr(self.currider))
+            elif cdn == -4:  # load sets minimum gap-> ~25sec
+                self.set_backlight(self.backlightlow)
+                self.clear()  # note also removes the bulb
+                self.currider = self.ridermap[self.currider][4]
+
+            if cdn >= 0 and cdn <= 30:
+                if self.bulb:
+                    self.countdown = cdn
+                else:
+                    self.countdown = None
+            else:
+                if cdn < 0 and cdn > -5:
+                    self.countdown = cdn
+                else:
+                    self.countdown = None
+        else:
+            self.clear()  # also does dearm
+            self.riderstr = ''
+        self.draw_and_update()
+
+    def gst_message(self, bus, message):
+        t = message.type
+        if t == Gst.MessageType.EOS:
+            self.player.set_state(Gst.State.NULL)
+        elif t == Gst.MessageType.ERROR:
+            self.player.set_state(Gst.State.NULL)
+            err, debug = message.parse_error()
+            _log.error('gst error: %r/%r', err, debug)
+        else:
+            pass
+        #_log.debug('gst message: %r', message)
+
+    def _newStartlist(self, startlist=[]):
+        """Re-load the startlist"""
+        self.ridermap = {}
+        rlist = []
+        for r in startlist:
+            if len(r) > 3:
+                st = tod.mktod(r[0])
+                if st is not None:
+                    key = tod2key(st)
+                    bib = r[1]
+                    series = r[2]
+                    name = r[3]
+                    next = None
+                    nr = [st, bib, series, name, next]
+                    self.ridermap[key] = nr
+                    rlist.append(key)
+                else:
+                    _log.warning('Ignoring invalid starter %r', r)
+            else:
+                _log.warning('Ignoring invalid starter %r', r)
+
+        # sort startlist and build list linkages
+        curoft = tod2key(tod.now())
+        self.currider = None
+        rlist.sort()
+        prev = None
+        for r in rlist:
+            if prev is not None:
+                self.ridermap[prev][4] = r  # prev -> next
+            prev = r
+            if self.currider is None and r > curoft:
+                self.currider = r
+                rvec = self.ridermap[r]
+                stxt = tod.tod(r).meridiem()
+                sno = rvec[1]
+                sname = rvec[3]
+                _log.info('Setting next rider to: %s,%s @ %s', sno, sname,
+                          stxt)
+        # last link will be None
+        self.clear()
+        return False
+
+    def _tcb(self, topic, message):
+        """Handle a callback from the telegraph"""
+        try:
+            #_log.debug('Telegraph msg: t=%r, m=%r', topic, message)
+            if topic == self.topic:
+                _log.debug('decoding message payload...')
+                startlist = json.loads(message, object_hook=json_hook)
+                if startlist is not None:
+                    GLib.idle_add(self._newStartlist, startlist)
+            else:
+                pass
+        except Exception as e:
+            _log.error('%s decoding json object: %s', e.__class__.__name__, e)
+
+    def __init__(self):
+        # logger and handler
+        self.loghandler = logging.FileHandler(LOGFILE)
+        self.loghandler.setLevel(logging.DEBUG)
+        self.loghandler.setFormatter(
+            logging.Formatter(
+                '%(asctime)s %(levelname)s:%(name)s: %(message)s'))
+        _log.addHandler(self.loghandler)
+        _log.info('TT Start - Init')
+
+        # require one timy and one uscbsrv
+        self.io = telegraph.telegraph()
+        self.io.setcb(self._tcb)
+        self.topic = 'startlist'
+
+        self.started = False
+        self.running = True
+
+        # Audio output
+        self.player = Gst.ElementFactory.make('playbin', 'player')
+        _log.debug('Created gst player: %r', self.player)
+        self.player.set_property('audio-sink',
+                                 Gst.ElementFactory.make('alsasink', 'sink'))
+        self.player.set_property(
+            'video-sink', Gst.ElementFactory.make('fakesink', 'fakesink'))
+        bus = self.player.get_bus()
+        bus.add_signal_watch()
+        bus.connect('message', self.gst_message)
+        self.player.set_property(
+            'uri', u'file://' + metarace.default_file('start.wav'))
+
+        # variables
+        self.fullscreen = False
+        self.armed = False
+        self.width = 0
+        self.height = 0
+        self.areaW = 0
+        self.areaH = 0
+        self.backlight = 0.0
+        self.backlightmax = 20
+        self.backlightdev = None
+        self.backlightlow = 0.25
+        self.backlighthigh = 1.0
+        self.syncthresh = 100000000
+        self.tod = tod.now().truncate(0)
+        self.nc = self.tod + tod.tod('1.22')  # set interval a little off mark
+        self.countdown = None
+        self.riderstr = None
+        self.bulb = None
+        self.currider = None
+        self.ridermap = {}
+        self.window = Gtk.Window()
+        self.window.set_title('TT Start')
+        self.window.connect('destroy', self.window_destroy_cb)
+        self.area_src = None
+        self.area = Gtk.DrawingArea()
+        self.area.connect('configure-event', self.on_configure)
+        self.area.connect('draw', self.on_draw)
+        self.area.set_size_request(512, 300)
+        self.area.show()
+        self.window.add(self.area)
+        _log.info('Starting clock intervals at: %s', self.nc.rawtime(3))
+        GLib.timeout_add(2000, self.timeout)
+        GLib.timeout_add_seconds(5, self.delayed_cursor)
+
+
+# run app
+metarace.init()
+Gst.init()
+app = ttstart()
+app.loadconfig()
+app.show()
+app.start()
+Gtk.main()
