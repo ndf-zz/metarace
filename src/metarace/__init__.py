@@ -200,7 +200,7 @@ class savefile(object):
         os.chmod(self.__tfile.name, 0o644)
         try:
             os.rename(self.__tfile.name, self.__sfile)
-            LOG.debug('os.rename: %r,%r', self.__tfile.name, self.__sfile)
+            #LOG.debug('os.rename: %r,%r', self.__tfile.name, self.__sfile)
         except OSError as e:
             LOG.debug('os.rename failed: %s', e)
             copyfile(self.__tfile.name, self.__sfile)
