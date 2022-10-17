@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "metarace"
-version = "2.0.2dev5"
+version = "2.0.2"
 description = "Cyclesport results and timing toolkit"
 readme = "README.md"
 requires-python = ">=3.6"
@@ -22,6 +22,7 @@ classifiers = [
 dependencies = [
     "importlib-resources",
     "pyserial",
+    "python-dateutil",
     "pycairo",
     "PyGObject",
     "libscrc",
