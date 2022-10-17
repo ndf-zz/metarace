@@ -24,7 +24,7 @@ pydoc:
 ### metarace: Base Library
 
 Shared initialisation and resource management for applications.
-Includes a tempfile context manager for safely updating files that
+Includes a tempfile context manager for updating files that
 may be read while being updated.
 
 
@@ -159,10 +159,12 @@ System requirements:
    - Python gi
    - Python gi cairo
    - tex-gyre fonts
+   - mosquitto (optional)
 
 Python packages:
 
    - pyserial: Serial port interface
+   - python-dateutil: Generic date/time string parser
    - xlwt: XLS file writer
    - libscrc: 16 bit CRC for thbc
    - paho-mqtt: MQTT interface
