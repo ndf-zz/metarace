@@ -340,6 +340,7 @@ class telegraph(threading.Thread):
                 _log.error('%s: %s', e.__class__.__name__, e)
                 self.__connect_pending = False
                 self.__doreconnect = False
-        self.__client.disconnect()
-        self.__client.loop_stop()
+        if self.__connected:
+            self.__client.disconnect()
+            self.__client.loop_stop()
         _log.info('Exiting')
