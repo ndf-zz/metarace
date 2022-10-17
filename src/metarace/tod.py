@@ -34,7 +34,7 @@ import decimal
 import re
 import logging
 from datetime import datetime
-from dateutil.parser import isoparse
+from dateutil.parser import isoparse, parse as dateparse
 
 # module log object
 _log = logging.getLogger('metarace.tod')
@@ -65,6 +65,22 @@ ROUNDING = decimal.ROUND_DOWN
 def now(index='', chan='CLK', refid='', source='host'):
     """Return a tod set to the current local time."""
     return tod(_now2dec(), index, chan, refid, source)
+
+
+def fromdate(timestr=''):
+    """Try to parse the provided str as a local datetime"""
+    rd = None
+    rt = None
+    try:
+        # retrieve date and time for the current timezone
+        d = dateparse(timestr).astimezone()
+        rd = d.date().isoformat()
+        tv = 3600 * d.hour + 60 * d.minute + d.second + d.microsecond / MILL
+        rt = mktod(tv)
+        rt.source = timestr
+    except Exception as e:
+        _log.debug('fromdate() %s: %s', e.__class__.__name__, e)
+    return (rd, rt)
 
 
 def fromiso(timestr=''):
@@ -190,11 +206,11 @@ def _str2dec(timestr=''):
     """Return decimal for given string.
 
     Attempt to match against patterns:
-
     	-HhMM:SS.dcmz		Canonical
     	-H:MM:SS.dcmz		Omega
     	-H:MM'SS"dcmz		Chronelec
     	-H-MM-SS.dcmz		Keypad entry
+        PThHmMs.dcmzS		ISO8601 Interval
     """
     dectod = None
     timestr = timestr.strip()  # assumes string
