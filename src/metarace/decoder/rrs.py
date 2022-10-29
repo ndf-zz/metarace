@@ -10,18 +10,23 @@ from . import (decoder, DECODER_LOG_LEVEL)
 from metarace import sysconf
 from metarace import tod
 
-LOG = logging.getLogger('metarace.decoder.rrs')
-LOG.setLevel(logging.DEBUG)
+_log = logging.getLogger('metarace.decoder.rrs')
+_log.setLevel(logging.DEBUG)
 
-RRS_TCP_PORT = 3601
-RRS_PROTOCOL = '3.0'  # desired target protocol level
-RRS_PASSLEN = 20  # passing record length
-RRS_LOWBATT = 2.0  # Warn if battery voltage is below this many volts
-RRS_SYNFMT = 'SETTIME;{:04d}-{:02d}-{:02d};{:02d}:{:02d}:{:02d}.{:03d}'
-RRS_EOL = '\r\n'
-RRS_MARKER = '99999'
-RRS_ENCODING = 'iso8859-1'
-RRS_IOTIMEOUT = 1.0  # Socket I/O timeout in seconds
+# desired target protocol level
+_RRS_PROTOCOL = '3.0'
+# decoder port
+_RRS_TCP_PORT = 3601
+# passing record length
+_RRS_PASSLEN = 20
+# Warn if battery voltage is below this many volts
+_RRS_LOWBATT = 2.0
+_RRS_SYNFMT = 'SETTIME;{:04d}-{:02d}-{:02d};{:02d}:{:02d}:{:02d}.{:03d}'
+_RRS_EOL = '\r\n'
+_RRS_MARKER = '99999'
+_RRS_ENCODING = 'iso8859-1'
+_RRS_IOTIMEOUT = 1.0
+_RRS_PASSIVEID = 'C1'
 
 
 class rrs(decoder):
@@ -37,6 +42,7 @@ class rrs(decoder):
         self._fetchpending = False
         self._pending_command = None
         self._allowstored = False
+        self._passiveloop = 'C1'
 
     # API overrides
     def sync(self, data=None):
@@ -62,22 +68,19 @@ class rrs(decoder):
     # Device-specific functions
     def _close(self):
         if self._io is not None:
-            LOG.debug('Close connection')
+            _log.debug('Close connection')
             cp = self._io
             self._io = None
             try:
                 cp.shutdown(socket.SHUT_RDWR)
             except Exception as e:
-                LOG.debug('%s: shutdown socket: %s', e.__class__.__name__, e)
+                _log.debug('%s: shutdown socket: %s', e.__class__.__name__, e)
             cp.close()
 
     def _sane(self, data=None):
-        if sysconf.has_option('rrs', 'allowstored'):
-            self._allowstored = sysconf.get_bool('rrs', 'allowstored')
-            LOG.info('Allow stored passings: %r', self._allowstored)
         for m in [
                 'GETPROTOCOL',
-                'SETPROTOCOL;{}'.format(RRS_PROTOCOL),
+                'SETPROTOCOL;{}'.format(_RRS_PROTOCOL),
                 'SETPUSHPREWARNS;0',
                 'SETPUSHPASSINGS;1;0',
                 'GETCONFIG;GENERAL;BOXNAME',
@@ -89,45 +92,47 @@ class rrs(decoder):
     def _port(self, port):
         """Re-establish connection to supplied device port."""
         self._close()
-        addr = (port, RRS_TCP_PORT)
-        LOG.debug('Connecting to %r', addr)
+        addr = (port, _RRS_TCP_PORT)
+        _log.debug('Connecting to %r', addr)
         self._rdbuf = b''
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        s.settimeout(RRS_IOTIMEOUT)
+        s.settimeout(_RRS_IOTIMEOUT)
         s.connect(addr)
         self._io = s
         self.sane()
 
     def _sync(self, data=None):
         a = datetime.datetime.now()
-        syncmd = RRS_SYNFMT.format(a.year, a.month, a.day, a.hour, a.minute,
-                                   a.second, a.microsecond // 1000)
+        syncmd = _RRS_SYNFMT.format(a.year, a.month, a.day, a.hour, a.minute,
+                                    a.second, a.microsecond // 1000)
         self._write(syncmd)
 
     def _replay(self, file):
         """RRS-specific replay"""
         if file.isdigit():
-            LOG.debug('Replay passings from %r', file)
+            _log.debug('Replay passings from %r', file)
             cmd = 'GETFILE;{:d}'.format(file)
             self._write(cmd)
         else:
-            LOG.error('Invalid file specified: %r', file)
+            _log.error('Invalid file specified: %r', file)
 
     def _write(self, msg):
         if self._io is not None:
-            ob = (msg + RRS_EOL)
-            self._io.sendall(ob.encode(RRS_ENCODING))
-            LOG.debug(u'SEND: %r', ob)
+            ob = (msg + _RRS_EOL)
+            self._io.sendall(ob.encode(_RRS_ENCODING))
+            _log.debug(u'SEND: %r', ob)
 
     def _passing(self, pv):
         """Process a RRS protocol passing."""
-        if len(pv) == RRS_PASSLEN:
+        if len(pv) == _RRS_PASSLEN:
             today = datetime.date.today().isoformat()
             istr = pv[0]  # <PassingNo>
             tagid = pv[1]  # <Bib/TranspCode>
             date = pv[2]  # <Date>
             timestr = pv[3]  # <Time>
+            eventid = pv[4]  # <EventID>
+            isactive = pv[8]  # <IsActive>
             loopid = pv[10]  # <LoopID>
             wuc = pv[12]  # <WakeupCounter>
             battery = pv[13]  # <Battery>
@@ -141,33 +146,43 @@ class rrs(decoder):
             if self._lastpassing is not None:
                 expectpid = self._lastpassing + 1
                 if pid != expectpid:
-                    LOG.debug('Ignore out of sequence passing: %r != %r', pid,
-                              expectpid)
+                    _log.debug('Ignore out of sequence passing: %r != %r', pid,
+                               expectpid)
                     return
             self._lastpassing = pid
 
+            active = False
+            try:
+                active = bool(int(isactive))
+                if eventid == '0':
+                    eventid = ''
+            except Exception as e:
+                _log.debug('%s reading isactive: %s', e.__class__.__name__, e)
+
             if not loopid:
-                loopid = 'C1'  # add faked id for passives
+                loopid = self._passiveloop
             else:
                 try:
                     loopid = 'C' + str(int(loopid))
                 except Exception as e:
-                    LOG.debug('%s reading loop id: %s', e.__class__.__name__,
-                              e)
+                    _log.debug('%s reading loop id: %s', e.__class__.__name__,
+                               e)
             activestore = False
-            if adata:
+            if active and adata:
                 activestore = (int(adata) & 0x40) == 0x40
-            if tagid.startswith(RRS_MARKER):
+            if not active and tagid and eventid:
+                tagid = '-'.join((eventid, tagid))
+            if tagid == _RRS_MARKER:
                 tagid = ''
 
             if battery and tagid:
                 try:
                     bv = float(battery)
-                    if bv < RRS_LOWBATT:
-                        LOG.warning('Low battery %s: %0.1fV', tagid, bv)
+                    if bv < _RRS_LOWBATT:
+                        _log.warning('Low battery %s: %0.1fV', tagid, bv)
                 except Exception as e:
-                    LOG.debug('%s reading battery voltage: %s',
-                              e.__class__.__name__, e)
+                    _log.debug('%s reading battery voltage: %s',
+                               e.__class__.__name__, e)
 
             if hits and rssi and tagid:
                 try:
@@ -176,15 +191,15 @@ class rrs(decoder):
                     twofour = -90 + ((rssival & 0x70) >> 2)
                     lstrength = 1 + (rssival & 0x0f)
                     if lstrength < 5 or twofour < -82 or hitcount < 4:
-                        LOG.warning(
+                        _log.warning(
                             'Poor read %s: Hits:%d RSSI:%ddBm Loop:%ddB',
                             tagid, hitcount, twofour, lstrength)
                 except Exception as e:
-                    LOG.debug('%s reading hits/RSSI: %s', e.__class__.__name__,
-                              e)
+                    _log.debug('%s reading hits/RSSI: %s',
+                               e.__class__.__name__, e)
 
             # emit a decoder log line TBD
-            LOG.log(DECODER_LOG_LEVEL, ';'.join(pv))
+            _log.log(DECODER_LOG_LEVEL, ';'.join(pv))
 
             # accept valid passings and trigger callback
             t = tod.mktod(timestr)
@@ -198,7 +213,7 @@ class rrs(decoder):
                 else:
                     pass
         else:
-            LOG.info('Non-passing message: %r', pv)
+            _log.info('Non-passing message: %r', pv)
 
     def _statusmsg(self, pv):
         """Process a RRS protocol status message."""
@@ -213,24 +228,24 @@ class rrs(decoder):
                 batt += '%'
 
             if opmode == '1':
-                LOG.info('Started, pwr:%r, uhf:%r, batt:%s', pwr, uhf, batt)
+                _log.info('Started, pwr:%r, uhf:%r, batt:%s', pwr, uhf, batt)
             else:
-                LOG.warning('Not started, pwr:%r, uhf:%r, batt:%s', pwr, uhf,
-                            batt)
+                _log.warning('Not started, pwr:%r, uhf:%r, batt:%s', pwr, uhf,
+                             batt)
 
     def _configmsg(self, pv):
         """Process a RRS protocol config message."""
         if len(pv) > 3:
             if pv[1] == 'BOXNAME':
                 boxid = pv[3]  # <DeviceId>
-                LOG.info('%r connected', boxid)
+                _log.info('%r connected', boxid)
 
     def _protocolmsg(self, pv):
         """Respond to protocol message from decoder."""
         if len(pv) == 3:
-            if RRS_PROTOCOL > pv[2]:
-                LOG.error('Protocol %r unsupported (max %r), update firmware',
-                          RRS_PROTOCOL, pv[2])
+            if _RRS_PROTOCOL > pv[2]:
+                _log.error('Protocol %r unsupported (max %r), update firmware',
+                           _RRS_PROTOCOL, pv[2])
 
     def _passingsmsg(self, pv):
         """Handle update of current passing count."""
@@ -240,26 +255,26 @@ class rrs(decoder):
                 newfile = int(pv[1])
             newidx = int(pv[0])
             if newfile != self._curfile:
-                LOG.debug('New passing file %r', newfile)
+                _log.debug('New passing file %r', newfile)
                 self._curfile = newfile
                 self._lastpassing = newidx
             else:
                 if self._lastpassing is None or newidx < self._lastpassing:
                     # assume new connection or new file
-                    LOG.debug('Last passing %r updated to %r',
-                              self._lastpassing, newidx)
+                    _log.debug('Last passing %r updated to %r',
+                               self._lastpassing, newidx)
                     self._lastpassing = newidx
                 else:
                     # assume a broken connection and fetch missed passings
-                    LOG.debug('Missed %r passings, last passing = %r',
-                              newidx - self._lastpassing, self._lastpassing)
+                    _log.debug('Missed %r passings, last passing = %r',
+                               newidx - self._lastpassing, self._lastpassing)
             self._fetchpending = False
         except Exception as e:
-            LOG.debug('%s reading passing count: %s', e.__class__.__name__, e)
+            _log.debug('%s reading passing count: %s', e.__class__.__name__, e)
 
     def _procmsg(self, msg):
         """Process a decoder response message."""
-        LOG.debug(u'RECV: %r', msg)
+        _log.debug(u'RECV: %r', msg)
         mv = msg.strip().split(';')
         if mv[0].isdigit():  # Requested passing
             self._pending_command = 'PASSING'
@@ -275,19 +290,19 @@ class rrs(decoder):
         elif mv[0] == 'PASSINGS':
             self._passingsmsg(mv[1:])
         elif mv[0] == 'SETTIME':
-            LOG.info('Time set to: %r %r', mv[1], mv[2])
+            _log.info('Time set to: %r %r', mv[1], mv[2])
         elif mv[0] == 'STARTOPERATION':
             self._curfile = None
             self._lastpassing = None
-            LOG.info('Start session')
+            _log.info('Start session')
         elif mv[0] == 'STOPOPERATION':
             self._curfile = None
             self._lastpassing = None
-            LOG.info('Stop session')
+            _log.info('Stop session')
         elif mv[0].startswith('ONLY '):
             self._fetchpending = False
         elif mv[0] == '':
-            LOG.debug('End of requested passings')
+            _log.debug('End of requested passings')
             self._fetchpending = False
             self._pending_command = None
             self._dorefetch = True
@@ -300,13 +315,13 @@ class rrs(decoder):
         if idx < 0:
             inb = self._io.recv(512)
             if inb == b'':
-                LOG.info('Connection closed by peer')
+                _log.info('Connection closed by peer')
                 self._close()
             else:
                 self._rdbuf += inb
             idx = self._rdbuf.find(b'\n')
         if idx >= 0:
-            l = self._rdbuf[0:idx + 1].decode(RRS_ENCODING)
+            l = self._rdbuf[0:idx + 1].decode(_RRS_ENCODING)
             self._rdbuf = self._rdbuf[idx + 1:]
             self._procmsg(l)
         return self._pending_command is None
@@ -322,7 +337,13 @@ class rrs(decoder):
 
     def run(self):
         """Decoder main loop."""
-        LOG.debug('Starting')
+        _log.debug('Starting')
+        if sysconf.has_option('rrs', 'allowstored'):
+            self._allowstored = sysconf.get_bool('rrs', 'allowstored')
+            _log.info('Allow stored passings: %r', self._allowstored)
+        if sysconf.has_option('rrs', 'passiveloop'):
+            self._passiveloop = sysconf.get_str('rrs', 'passiveloop', 'C1')
+            _log.info('Passive loop id set to: %r', self._passiveloop)
         self._running = True
         while self._running:
             try:
@@ -344,9 +365,9 @@ class rrs(decoder):
                 pass
             except socket.error as e:
                 self._close()
-                LOG.error('%s: %s', e.__class__.__name__, e)
+                _log.error('%s: %s', e.__class__.__name__, e)
             except Exception as e:
-                LOG.critical('%s: %s', e.__class__.__name__, e)
+                _log.critical('%s: %s', e.__class__.__name__, e)
                 self._running = False
         self.setcb()
-        LOG.debug('Exiting')
+        _log.debug('Exiting')

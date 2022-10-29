@@ -3864,6 +3864,7 @@ class report(object):
         self.eventid = None  # stage no or other identifier
         self.customlinks = []  # manual override links
         self.navbar = ''  # meet navigation
+        self.shortname = None
         self.prevlink = None
         self.nextlink = None
         self.indexlink = None
@@ -4363,11 +4364,26 @@ class report(object):
                     'href': self.nextlink + '.html',
                     'class': 'nav-link'
                 }))
+        brand = None
+        if self.shortname:
+            brand = htlib.a(htlib.escapetext(self.shortname), {
+                'href': './',
+                'class': 'navbar-brand'
+            })
         if len(navbar) > 0:  # write out bar if non-empty
-            self.navbar = htlib.nav(
-                htlib.div(navbar, {'class': 'container-fluid navbar-nav'}), {
+            if not brand:
+                brand = htlib.a(u'', {
+                    u'href': u'#',
+                    u'class': u'navbar-brand'
+                })
+            self.navbar = htlib.header(
+                htlib.nav(
+                    (brand,
+                     htlib.p(navbar, {'class': 'navbar-nav d-flex flex-row'})),
+                    {'class': 'container'}),
+                {
                     'class':
-                    'navbar navbar-expand navbar-dark sticky-top bg-dark mb-4'
+                    'navbar sticky-top navbar-expand-sm navbar-dark bg-dark mb-4'
                 })
 
         (top, sep, bot) = self.html_template.partition('__REPORT_CONTENT__')
