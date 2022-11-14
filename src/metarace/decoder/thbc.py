@@ -129,7 +129,7 @@ class thbc(decoder):
 
     def __init__(self):
         decoder.__init__(self)
-        self._boxname = 'thbc'
+        self._boxname = None
         self._version = ''
         self._decoderconfig = {}
         self._decoderipconfig = {}
@@ -141,6 +141,9 @@ class thbc(decoder):
     def status(self):
         """Request status message from decoder."""
         self.write(STATCMD)
+
+    def connected(self):
+        return self._io is not None and self._boxname is not None
 
     def stop_session(self):
         """Send a stop command to decoder."""
@@ -186,7 +189,7 @@ class thbc(decoder):
         else:
             # assume device file
             s = serial.Serial(port, THBC_BAUD, rtscts=False, timeout=0.2)
-        self._boxname = 'thbc'
+        self._boxname = None
         self._io = s
         self._write(QUECMD)
 
@@ -216,7 +219,7 @@ class thbc(decoder):
     def _sane(self, data=None):
         """Check decoder config against system settings."""
         doconf = False
-        if self._boxname != 'thbc':
+        if self._boxname is not None:
             if sysconf.has_option('thbc', 'decoderconfig'):
                 oconf = sysconf.get('thbc', 'decoderconfig')
                 for flag in self._decoderconfig:
@@ -473,9 +476,11 @@ class thbc(decoder):
                 pass
             except (serial.SerialException, socket.error) as e:
                 self._close()
+                self._boxname = None
                 LOG.error('%s: %s', e.__class__.__name__, e)
             except Exception as e:
                 LOG.critical('%s: %s', e.__class__.__name__, e)
+                self._boxname = None
                 self._running = False
         self.setcb()
         LOG.debug('Exiting')

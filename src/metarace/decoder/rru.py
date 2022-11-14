@@ -222,7 +222,7 @@ class rru(decoder):
             8: 100
         }
         self._config = {}
-        self._boxname = 'rru'
+        self._boxname = None
         self._rrustamp = None
         self._rruht = None
         self._error = False
@@ -254,12 +254,17 @@ class rru(decoder):
         self.write('PASSINGINFOGET')
         self.write('TIMESTAMPGET')
 
+    def connected(self):
+        """Return true if decoder is connected"""
+        return self._boxname is not None and self._io is not None
+
     def clear(self, data=None):
         """Clear internal passing memory."""
         self._cqueue.put_nowait(('_reset', data))
 
     # Device-specific functions
     def _close(self):
+        self._boxname = None
         if self._io is not None:
             LOG.debug('Close connection')
             cp = self._io
@@ -385,7 +390,7 @@ class rru(decoder):
             if nsec < 0:
                 LOG.debug('Negative timestamp: %r', nsec)
                 nsec = 86400 + nsec
-            ret = tod.tod(nsec).truncate(3)
+            ret = tod.tod(nsec)
         except Exception as e:
             LOG.error('%s converting timeval %r: %s', e.__class__.__name__, ts,
                       e)
@@ -742,5 +747,6 @@ class rru(decoder):
             except Exception as e:
                 LOG.critical('%s: %s', e.__class__.__name__, e)
                 self._running = False
+                self._boxname = None
         self.setcb()
         LOG.debug('Exiting')

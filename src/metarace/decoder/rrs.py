@@ -60,6 +60,9 @@ class rrs(decoder):
     def status(self, data=None):
         self.write('GETSTATUS')
 
+    def connected(self):
+        return self._io is not None
+
     def clear(self, data=None):
         self.stop_session(data)
         self.write('CLEARFILES')
@@ -96,9 +99,14 @@ class rrs(decoder):
         _log.debug('Connecting to %r', addr)
         self._rdbuf = b''
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        s.settimeout(_RRS_IOTIMEOUT)
+        try:
+            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_USER_TIMEOUT, 5000)
+        except Exception as e:
+            _log.debug('%s setting TCP_NODELAY/TCP_USER_TIMEOUT: %s',
+                       e.__class__.__name__, e)
         s.connect(addr)
+        s.settimeout(_RRS_IOTIMEOUT)
         self._io = s
         self.sane()
 

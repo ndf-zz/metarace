@@ -33,6 +33,10 @@ class decoder(threading.Thread):
         """Return state of running flag."""
         return self._running
 
+    def connected(self):
+        """Return true if decoder instance is connected."""
+        return False
+
     def exit(self, msg=None):
         """Request thread termination."""
         self._running = False
