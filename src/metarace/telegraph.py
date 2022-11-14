@@ -159,10 +159,15 @@ class telegraph(threading.Thread):
         """Publish the provided message to topic."""
         self.__queue.put_nowait(('PUBLISH', topic, message, qos, retain))
 
-    def publish_json(self, obj=None, topic=None, qos=None, retain=False):
+    def publish_json(self,
+                     obj=None,
+                     topic=None,
+                     qos=None,
+                     retain=False,
+                     cls=None):
         """Pack the provided object into JSON and publish to topic."""
         try:
-            self.publish(json.dumps(obj), topic, qos, retain)
+            self.publish(json.dumps(obj, cls=cls), topic, qos, retain)
         except Exception as e:
             _log.error('Error publishing object %r: %s', obj, e)
 
