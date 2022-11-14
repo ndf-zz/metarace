@@ -3493,17 +3493,22 @@ class section(object):
             row += 1
         if len(self.lines) > 0:
             rows = []
+            cols = 7
             if self.colheader:
+                cols = max(len(self.colheader), 7)
                 rows.append(vecmapstr(self.colheader, 7))
             for r in self.lines:
-                nv = r[0:6]
-                if len(nv) == 2:
-                    nv = [nv[0], None, nv[1]]
-                rows.append(vecmapstr(nv, 7))
-                if len(r) > 6 and isinstance(r[6], (tuple, list)):
-                    if r[6]:
-                        nv = r[6]
-                        rows.append(vecmapstr(nv, 7))
+                if cols == 7:
+                    nv = r[0:6]
+                    if len(nv) == 2:
+                        nv = [nv[0], None, nv[1]]
+                    rows.append(vecmapstr(nv, 7))
+                    if len(r) > 6 and isinstance(r[6], (tuple, list)):
+                        if r[6]:
+                            nv = r[6]
+                            rows.append(vecmapstr(nv, 7))
+                else:
+                    rows.append(vecmapstr(r, cols))
             if self.units:
                 if self.colheader:
                     rows[1][6] = self.units
@@ -3517,6 +3522,8 @@ class section(object):
                 worksheet.write(row, 4, l[4], XS_RIGHT)
                 worksheet.write(row, 5, l[5], XS_RIGHT)
                 worksheet.write(row, 6, l[6], XS_LEFT)
+                for k in range(7, cols):
+                    worksheet.write(row, k, l[k], XS_RIGHT)
                 row += 1
             row += 1
         if self.footer:
@@ -3868,6 +3875,8 @@ class report(object):
         self.prevlink = None
         self.nextlink = None
         self.indexlink = None
+        self.resultlink = None
+        self.startlink = None
         self.canonical = None
         self.pagemarks = False
         self.s = None
@@ -3987,7 +3996,8 @@ class report(object):
         cr.add_section('colours')
         if os.path.exists(tfile):
             try:
-                with open(tfile, 'rb') as f:
+                LOG.debug('Reading template from %r', tfile)
+                with open(tfile, 'r') as f:
                     cr.read(f)
             except Exception as e:
                 LOG.error('Unable to read report template %r: %s', tfile, e)
@@ -4257,7 +4267,13 @@ class report(object):
         rep['prevlink'] = self.prevlink
         rep['nextlink'] = self.nextlink
         rep['indexlink'] = self.indexlink
+        rep['resultlink'] = self.resultlink
+        rep['startlink'] = self.startlink
         rep['canonical'] = self.canonical
+        rep['customlinks'] = self.customlinks
+        rep['navbar'] = self.navbar
+        rep['shortname'] = self.shortname
+        rep['pagemarks'] = self.pagemarks
         rep['strings'] = self.strings
         rep['sections'] = []
         secmap = ret['sections']
@@ -4324,18 +4340,20 @@ class report(object):
         """Output a html version of the report."""
         cw = file
         navbar = []
-        for link in self.customlinks:  # to build custom toolbars
-            navbar.append(
-                htlib.a(link[0], {
-                    'href': link[1] + '.html',
-                    'class': 'nav-link'
-                }))
+        #for link in self.customlinks:  # to build custom toolbars
+        #navbar.append(
+        #htlib.a(link[0], {
+        #'href': link[1] + '.html',
+        #'class': 'nav-link'
+        #}))
         if self.prevlink:
             navbar.append(
-                htlib.a('\u2190 Previous', {
-                    'href': self.prevlink + '.html',
-                    'class': 'nav-link'
-                }))
+                htlib.a(
+                    htlib.span((), {"class": "bi-caret-left"}), {
+                        'href': self.prevlink + '.html',
+                        'class': 'nav-link',
+                        'title': 'Previous'
+                    }))
         if self.indexlink:
             hrf = self.indexlink
             if hrf.startswith('.') or hrf.endswith('/') or hrf.endswith(
@@ -4347,40 +4365,58 @@ class report(object):
                 hrf = './'
 
             navbar.append(
-                htlib.a('\u2191 Index', {
+                htlib.a(htlib.span((), {"class": "bi-caret-up"}), {
                     'href': hrf,
-                    'class': 'nav-link'
+                    'class': 'nav-link',
+                    'title': 'Index'
                 }))
+        if self.startlink:
+            navbar.append(
+                htlib.a(
+                    htlib.span((), {"class": "bi-file-earmark-person"}), {
+                        'href': self.startlink + '.html',
+                        'class': 'nav-link',
+                        'title': 'Startlist'
+                    }))
+        if self.resultlink:
+            navbar.append(
+                htlib.a(
+                    htlib.span((), {"class": "bi-file-earmark-text"}), {
+                        'href': self.resultlink + '.html',
+                        'class': 'nav-link',
+                        'title': 'Result'
+                    }))
         if self.provisional:  # add refresh button
             navbar.append(
-                htlib.a('Reload \u21bb', {
-                    'href': '#',
-                    'class': 'nav-link',
-                    'onclick': 'return rl();'
-                }))
+                htlib.a(
+                    htlib.span((), {"class": "bi-arrow-repeat"}), {
+                        'href': '#',
+                        'class': 'nav-link',
+                        'title': 'Reload',
+                        'onclick': 'return rl();'
+                    }))
         if self.nextlink:
             navbar.append(
-                htlib.a('Next \u2192', {
-                    'href': self.nextlink + '.html',
-                    'class': 'nav-link'
-                }))
+                htlib.a(
+                    htlib.span((), {"class": "bi-caret-right"}), {
+                        'href': self.nextlink + '.html',
+                        'title': 'Next',
+                        'class': 'nav-link'
+                    }))
         brand = None
         if self.shortname:
             brand = htlib.a(htlib.escapetext(self.shortname), {
                 'href': './',
                 'class': 'navbar-brand'
             })
-        if len(navbar) > 0:  # write out bar if non-empty
+        if len(navbar) > 0 or brand:  # write out bar if non-empty
             if not brand:
-                brand = htlib.a(u'', {
-                    u'href': u'#',
-                    u'class': u'navbar-brand'
-                })
+                brand = htlib.a('', {'href': '#', 'class': 'navbar-brand'})
             self.navbar = htlib.header(
                 htlib.nav(
                     (brand,
                      htlib.p(navbar, {'class': 'navbar-nav d-flex flex-row'})),
-                    {'class': 'container'}),
+                    {'class': u'container'}),
                 {
                     'class':
                     'navbar sticky-top navbar-expand-sm navbar-dark bg-dark mb-4'
@@ -4408,31 +4444,36 @@ class report(object):
         metalist = []
         for s in ['datestr', 'docstr', 'diststr', 'commstr', 'orgstr']:
             if s in self.strings and self.strings[s]:
-                metalist.append((ICONMAP[s], self.strings[s].strip()))
+                metalist.append((ICONMAP[s], [self.strings[s].strip()]))
         if len(linktypes) > 0:
-            linkmsg = 'Download as:'
+            linkmsg = ['Download as:']
             for xtn in linktypes:
                 xmsg = xtn
                 if xtn in FILETYPES:
                     xmsg = FILETYPES[xtn]
-                linkmsg += ' [' + htlib.a(xmsg,
-                                          {'href': linkbase + '.' + xtn}) + ']'
+                linkmsg.append(' [')
+                linkmsg.append(htlib.a(xmsg, {'href': linkbase + '.' + xtn}))
+                linkmsg.append(']')
             metalist.append((ICONMAP['download'], linkmsg))
         if len(metalist) > 0:
             pmark = None
             if self.provisional:  # add prov marker
-                pmark = ' ' + htlib.span('Provisional', {
+                pmark = htlib.span('Provisional', {
                     'id': 'pgre',
                     'class': 'badge bg-warning'
                 })
             carditems = []
             for li in metalist:
-                litext = li[1]
+                items = [htlib.i('', {'class': li[0]})]
+                for c in li[1]:
+                    items.append(' ')
+                    items.append(c)
                 if pmark is not None:
-                    litext += pmark
+                    items.append(' ')
+                    items.append(pmark)
                 carditems.append(
                     htlib.li(
-                        (htlib.i('', {'class': li[0]}), litext),
+                        items,
                         {'class': 'list-group-item list-group-item-secondary'
                          }))
                 pmark = None
