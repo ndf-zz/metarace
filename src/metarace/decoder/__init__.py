@@ -7,11 +7,11 @@ import logging
 
 from metarace import tod
 
-LOG = logging.getLogger('metarace.decoder')
-LOG.setLevel(logging.DEBUG)
+_log = logging.getLogger('metarace.decoder')
+_log.setLevel(logging.DEBUG)
 DECODER_LOG_LEVEL = 15
 logging.addLevelName(DECODER_LOG_LEVEL, 'DECODER')
-PHOTOTHRESH = tod.tod('0.03')
+_PHOTOTHRESH = tod.tod('0.03')
 
 
 class decoder(threading.Thread):
@@ -56,11 +56,11 @@ class decoder(threading.Thread):
         self._cqueue.put_nowait(('_sync', data))
 
     def start_session(self, data=None):
-        """Request decoder to start current timing session."""
+        """Request decoder start timing session."""
         self._cqueue.put_nowait(('_start_session', data))
 
     def stop_session(self, data=None):
-        """Request decoder to stop current timing session."""
+        """Request decoder stop timing session."""
         self._cqueue.put_nowait(('_stop_session', data))
 
     def status(self, data=None):
@@ -88,8 +88,8 @@ class decoder(threading.Thread):
         self._cqueue.put_nowait(('_write', msg))
 
     def photothresh(self):
-        """Return the relevant photo finish threshold."""
-        return PHOTOTHRESH
+        """Return the photo finish threshold."""
+        return _PHOTOTHRESH
 
     # Private Methods
     def __init__(self):
@@ -100,7 +100,7 @@ class decoder(threading.Thread):
 
     def _defcallback(self, evt=None):
         """Default callback is a debug log entry."""
-        LOG.debug(str(evt))
+        _log.debug(str(evt))
 
     def _close(self):
         """Close hardware connection to decoder."""
@@ -117,7 +117,7 @@ class decoder(threading.Thread):
 
     def _exit(self, msg):
         """Handle request to exit."""
-        LOG.debug('Request to exit: %r', msg)
+        _log.debug('Request to exit: %r', msg)
         self._close()
         self._flush()
         self._running = False
@@ -168,11 +168,11 @@ class decoder(threading.Thread):
         if method is not None:
             method(cmd[1])
         else:
-            LOG.debug('Unknown command: %r', cmd)
+            _log.debug('Unknown command: %r', cmd)
 
     def run(self):
         """Decoder main loop."""
-        LOG.debug('Starting')
+        _log.debug('Starting')
         self._running = True
         while self._running:
             try:
@@ -181,6 +181,6 @@ class decoder(threading.Thread):
                 self._proccmd(c)
             except Exception as e:
                 # errors in dummy decoder should not appear in UI
-                LOG.debug('%s: %s', e.__class__.__name__, e)
+                _log.debug('%s: %s', e.__class__.__name__, e)
         self.setcb()  # make sure callback is unrefed
-        LOG.debug('Exiting')
+        _log.debug('Exiting')

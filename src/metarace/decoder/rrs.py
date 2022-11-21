@@ -14,11 +14,13 @@ _log = logging.getLogger('metarace.decoder.rrs')
 _log.setLevel(logging.DEBUG)
 
 # desired target protocol level
-_RRS_PROTOCOL = '3.0'
+_RRS_PROTOCOL = '3.2'
 # decoder port
 _RRS_TCP_PORT = 3601
 # passing record length
 _RRS_PASSLEN = 20
+# status record length
+_RRS_STATUSLEN = 25
 # Warn if battery voltage is below this many volts
 _RRS_LOWBATT = 2.0
 _RRS_SYNFMT = 'SETTIME;{:04d}-{:02d}-{:02d};{:02d}:{:02d}:{:02d}.{:03d}'
@@ -26,7 +28,18 @@ _RRS_EOL = '\r\n'
 _RRS_MARKER = '99999'
 _RRS_ENCODING = 'iso8859-1'
 _RRS_IOTIMEOUT = 1.0
-_RRS_PASSIVEID = 'C1'
+_RRS_PASSIVEID = '1'
+
+# Error flags from decoder status
+_RRS_ERRORFLAGS = {
+    1: 'UHF module reports an error',
+    16: 'Active loop error',
+    32: 'Active loop limit',
+    64: 'Active connection lost',
+    256: 'GPS time sync error',
+    512: 'GPS communication error warning',
+    1024: 'Active time sync error'
+}
 
 
 class rrs(decoder):
@@ -66,6 +79,7 @@ class rrs(decoder):
     def clear(self, data=None):
         self.stop_session(data)
         self.write('CLEARFILES')
+        self._cqueue.put_nowait(('_sync', data))
         self.start_session(data)
 
     # Device-specific functions
@@ -87,6 +101,10 @@ class rrs(decoder):
                 'SETPUSHPREWARNS;0',
                 'SETPUSHPASSINGS;1;0',
                 'GETCONFIG;GENERAL;BOXNAME',
+                'GETCONFIG;ACTIVE;LOOPID',
+                'GETCONFIG;ACTIVE;POWER',
+                'GETCONFIG;UPLOAD;CONNECTION',
+                'GETINTERFACES',
                 'GETSTATUS',
                 'PASSINGS',
         ]:
@@ -129,7 +147,7 @@ class rrs(decoder):
         if self._io is not None:
             ob = (msg + _RRS_EOL)
             self._io.sendall(ob.encode(_RRS_ENCODING))
-            _log.debug(u'SEND: %r', ob)
+            _log.debug('SEND: %r', ob)
 
     def _passing(self, pv):
         """Process a RRS protocol passing."""
@@ -169,12 +187,10 @@ class rrs(decoder):
 
             if not loopid:
                 loopid = self._passiveloop
-            else:
-                try:
-                    loopid = 'C' + str(int(loopid))
-                except Exception as e:
-                    _log.debug('%s reading loop id: %s', e.__class__.__name__,
-                               e)
+            try:
+                loopid = 'C' + str(int(loopid))
+            except Exception as e:
+                _log.debug('%s reading loop id: %s', e.__class__.__name__, e)
             activestore = False
             if active and adata:
                 activestore = (int(adata) & 0x40) == 0x40
@@ -225,21 +241,43 @@ class rrs(decoder):
 
     def _statusmsg(self, pv):
         """Process a RRS protocol status message."""
-        if len(pv) > 10:
+        if len(pv) == _RRS_STATUSLEN:
             pwr = pv[2]  # <HasPower>
             opmode = pv[4]  # <IsInOperationMode>
             uhf = pv[8]  # <ReaderIsHealthy>
             batt = pv[9]  # <BatteryCharge>
+            active = pv[13]  # <ActiveExtConnected>
+            eflag = pv[23]  # <ErrorFlags>
             if batt == '-1':
                 batt = '[estimating]'
             else:
                 batt += '%'
+            loopch = 'n/a'
+            loopid = self._passiveloop
+            looppower = 'n/a'
+            if active == '1':
+                loopch = pv[14]
+                loopid = pv[15]
+                looppower = pv[16]
+            else:
+                loopch = pv[3]
 
             if opmode == '1':
-                _log.info('Started, pwr:%r, uhf:%r, batt:%s', pwr, uhf, batt)
+                _log.info(
+                    'Started, charge:%s, uhf:%s, batt:%s, ch:%s, loop:%s, power:%s',
+                    pwr, uhf, batt, loopch, loopid, looppower)
             else:
-                _log.warning('Not started, pwr:%r, uhf:%r, batt:%s', pwr, uhf,
-                             batt)
+                _log.warning(
+                    'Not started, charge:%s, uhf:%s, batt:%s, ch:%s, loop:%s, power:%s',
+                    pwr, uhf, batt, loopch, loopid, looppower)
+
+            if eflag != '0':
+                stat = int(eflag)
+                evec = []
+                for bit in _RRS_ERRORFLAGS:
+                    if stat & bit == bit:
+                        evec.append(_RRS_ERRORFLAGS[bit])
+                _log.error('Error: %s', ', '.join(evec))
 
     def _configmsg(self, pv):
         """Process a RRS protocol config message."""
@@ -247,6 +285,10 @@ class rrs(decoder):
             if pv[1] == 'BOXNAME':
                 boxid = pv[3]  # <DeviceId>
                 _log.info('%r connected', boxid)
+            elif pv[1] == 'LOOPID':
+                _log.info('Config Loop ID: %s', pv[3])
+            elif pv[1] == 'POWER':
+                _log.info('Config Loop Power: %s', pv[3])
 
     def _protocolmsg(self, pv):
         """Respond to protocol message from decoder."""
@@ -282,7 +324,7 @@ class rrs(decoder):
 
     def _procmsg(self, msg):
         """Process a decoder response message."""
-        _log.debug(u'RECV: %r', msg)
+        _log.debug('RECV: %r', msg)
         mv = msg.strip().split(';')
         if mv[0].isdigit():  # Requested passing
             self._pending_command = 'PASSING'
@@ -348,9 +390,9 @@ class rrs(decoder):
         _log.debug('Starting')
         if sysconf.has_option('rrs', 'allowstored'):
             self._allowstored = sysconf.get_bool('rrs', 'allowstored')
-            _log.info('Allow stored passings: %r', self._allowstored)
+            _log.debug('Allow stored passings: %r', self._allowstored)
         if sysconf.has_option('rrs', 'passiveloop'):
-            self._passiveloop = sysconf.get_str('rrs', 'passiveloop', 'C1')
+            self._passiveloop = sysconf.get_str('rrs', 'passiveloop', '1')
             _log.info('Passive loop id set to: %r', self._passiveloop)
         self._running = True
         while self._running:
