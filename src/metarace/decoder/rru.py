@@ -384,7 +384,7 @@ class rru(decoder):
         self._write('RESET')
         while True:
             m = self._readline()
-            _log.debug('RECV: %r', m)
+            #_log.debug('RECV: %r', m)
             if m == 'AUTOBOOT':
                 break
         self._rrustamp = None
@@ -398,7 +398,7 @@ class rru(decoder):
         if self._io is not None:
             ob = (msg + _RRU_EOL)
             self._io.write(ob.encode(_RRU_ENCODING))
-            _log.debug('SEND: %r', ob)
+            #_log.debug('SEND: %r', ob)
 
     def _tstotod(self, ts):
         """Convert a race result timestamp to time of day."""
@@ -765,7 +765,7 @@ class rru(decoder):
                                 refetch = True
                                 break
                         else:
-                            _log.debug('RECV: %r', l)
+                            #_log.debug('RECV: %r', l)
                             self._procline(l)
                             if self._curreply == 'PREWARN':
                                 # Note: this does not work

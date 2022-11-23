@@ -44,13 +44,11 @@ BIBSERLIST_UTRANS = unicodetrans(
 WEBFILE_UTRANS = unicodetrans(
     '_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', '.',
     '_')
-# special case: map controls and spaces, but keep everything else
+# special case: map out controls, but keep everything else
 PRINT_UTRANS = {}
 for cp in range(0, 0x20):
     PRINT_UTRANS[cp] = ' '
 for cp in range(0x7f, 0xa1):
-    PRINT_UTRANS[cp] = ' '
-for cp in range(0x2000, 0x200B):
     PRINT_UTRANS[cp] = ' '
 PRINT_UTRANS[0x1680] = ' '
 PRINT_UTRANS[0x180e] = ' '

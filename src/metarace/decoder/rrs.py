@@ -147,7 +147,7 @@ class rrs(decoder):
         if self._io is not None:
             ob = (msg + _RRS_EOL)
             self._io.sendall(ob.encode(_RRS_ENCODING))
-            _log.debug('SEND: %r', ob)
+            #_log.debug('SEND: %r', ob)
 
     def _passing(self, pv):
         """Process a RRS protocol passing."""
@@ -324,7 +324,7 @@ class rrs(decoder):
 
     def _procmsg(self, msg):
         """Process a decoder response message."""
-        _log.debug('RECV: %r', msg)
+        #_log.debug('RECV: %r', msg)
         mv = msg.strip().split(';')
         if mv[0].isdigit():  # Requested passing
             self._pending_command = 'PASSING'
