@@ -503,13 +503,14 @@ class dgram(object):
         self._buf = b''
 
     def read(self, sz=1):
-        ret = b''  # check this condition
+        ret = b''
         if len(self._buf) == 0:
             nb, addr = self._s.recvfrom(4096)  # timeout raises exception
             if addr[0] == self._host:
                 self._buf += nb
         if len(self._buf) > 0:
-            ret = self._buf[0]
+            # make sure ret is bytes
+            ret = self._buf[0:1]
             self._buf = self._buf[1:]
         return ret
 

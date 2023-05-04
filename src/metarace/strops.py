@@ -557,14 +557,15 @@ def confopt_dist(confstr, default=None):
 def chan2id(chanstr='0'):
     """Return a channel ID for the provided string, without fail."""
     ret = CHAN_UNKNOWN
-    if (isinstance(chanstr, str) and len(chanstr) > 1 and chanstr[0] == 'C'
-            and chanstr[1].isdigit()):
-        ret = int(chanstr[1])
-    else:
-        try:
+    try:
+        if isinstance(chanstr, str):
+            chanstr = chanstr.upper().rstrip('M').lstrip('C')
+            if chanstr.isdigit():
+                ret = int(chanstr)
+        else:
             ret = int(chanstr)
-        except Exception:
-            pass
+    except Exception as e:
+        pass
     if ret < CHAN_UNKNOWN or ret > CHAN_INT:
         ret = CHAN_UNKNOWN
     return ret
