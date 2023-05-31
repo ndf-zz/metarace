@@ -11,8 +11,9 @@ import metarace
 MIRROR_CMD = 'echo'  # Command/Argument defaults
 MIRROR_ARGS = ['dummy', 'srcdir={srcdir}', 'dstdir={dstdir}']
 MIRROR_TIMEOUT = 30
-LOG = logging.getLogger('metarace.export')
-LOG.setLevel(logging.DEBUG)
+
+_log = logging.getLogger('metarace.export')
+_log.setLevel(logging.DEBUG)
 
 
 class mirror(threading.Thread):
@@ -81,7 +82,7 @@ class mirror(threading.Thread):
     def run(self):
         """Called via threading.Thread.start()."""
         running = True
-        LOG.debug('Starting')
+        _log.debug('Starting')
         ret = None
         try:
             # format errors in arguments caught as exception
@@ -93,7 +94,7 @@ class mirror(threading.Thread):
             ]
             arglist.insert(0, self.__mirrorcmd)
 
-            LOG.debug('Calling subprocess: %r', arglist)
+            _log.debug('Calling subprocess: %r', arglist)
             ret = subprocess.run(arglist,
                                  timeout=self.__timeout,
                                  check=True,
@@ -101,8 +102,8 @@ class mirror(threading.Thread):
             if self.__cb is not None:
                 self.__cb(ret, self.__cbdata)
         except subprocess.CalledProcessError as e:
-            LOG.error('%r returned %r: %s', self.__mirrorcmd, e.returncode,
-                      e.stderr.decode('utf8', 'ignore'))
+            _log.error('%r returned %r: %s', self.__mirrorcmd, e.returncode,
+                       e.stderr.decode('utf8', 'ignore'))
         except Exception as e:
-            LOG.error('%s: %s', e.__class__.__name__, e)
-        LOG.debug('Complete: Returned %r', ret)
+            _log.error('%s: %s', e.__class__.__name__, e)
+        _log.debug('Complete: Returned %r', ret)

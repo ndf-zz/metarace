@@ -26,8 +26,8 @@ from metarace import strops
 from metarace import htlib
 from metarace import jsonconfig
 
-LOG = logging.getLogger('metarace.report')
-LOG.setLevel(logging.DEBUG)
+_log = logging.getLogger('metarace.report')
+_log.setLevel(logging.DEBUG)
 
 # JSON report API versioning
 APIVERSION = '1.2.0'
@@ -153,7 +153,7 @@ def str2angle(anglestr=None):
         try:
             fval = float(val)
         except Exception as e:
-            LOG.warning('Invalid angle %r ignored: %s', anglestr, e)
+            _log.warning('Invalid angle %r ignored: %s', anglestr, e)
     return ANGUNITSMAP[ukey](fval)
 
 
@@ -170,7 +170,7 @@ def str2align(alignstr=None):
             elif ret > 1.0:
                 ret = 1.0
         except Exception as e:
-            LOG.warning('Invalid alignment %r ignored: %s', alignstr, e)
+            _log.warning('Invalid alignment %r ignored: %s', alignstr, e)
     return ret
 
 
@@ -190,7 +190,7 @@ def str2len(lenstr=None):
         try:
             fval = float(val)
         except Exception as e:
-            LOG.warning('Invalid length %r ignored: %s', lenstr, e)
+            _log.warning('Invalid length %r ignored: %s', lenstr, e)
     return UNITSMAP[ukey](fval)
 
 
@@ -220,7 +220,7 @@ def str2colour(colstr=None):
                     elif ret[c] > 1.0:
                         ret[c] = 1.0
             except Exception as e:
-                LOG.warning('Invalid colour %r ignored: %s', colstr, e)
+                _log.warning('Invalid colour %r ignored: %s', colstr, e)
     return ret
 
 
@@ -2146,8 +2146,8 @@ class event_index(object):
         if len(self.lines) > 0:
             hdr = ''
             if self.colheader:
-                LOG.warning('Colheader not supported for %s',
-                            self.__class__.__name__)
+                _log.warning('Colheader not supported for %s',
+                             self.__class__.__name__)
                 #hdr = htlib.thead(vec2htmllinkhead(self.colheader))
             rows = []
             for r in self.lines:
@@ -3588,7 +3588,7 @@ class pagebreak(object):
             if nthresh > 0.05 and nthresh < 0.95:
                 self.threshold = nthresh
         except Exception as e:
-            LOG.warning('Invalid break thresh %r: %s', threshold, e)
+            _log.warning('Invalid break thresh %r: %s', threshold, e)
 
     def get_threshold(self):
         return self.threshold
@@ -3994,15 +3994,8 @@ class report(object):
         cr.add_section('fonts')
         cr.add_section('strings')
         cr.add_section('colours')
-        if os.path.exists(tfile):
-            try:
-                LOG.debug('Reading template from %r', tfile)
-                with open(tfile, 'r') as f:
-                    cr.read(f)
-            except Exception as e:
-                LOG.error('Unable to read report template %r: %s', tfile, e)
-        else:
-            LOG.warning('Report template %r not found.', tfile)
+        if not cr.load(tfile):
+            _log.error('Unable to read report template %r')
 
         # read in page options
         if cr.has_option('page', 'width'):
@@ -4062,7 +4055,7 @@ class report(object):
             if htfile:
                 self.html_template = self.load_htmlfile(htfile)
                 if '__REPORT_CONTENT__' not in self.html_template:
-                    LOG.warning('Invalid report HTML template ignored')
+                    _log.warning('Invalid report HTML template ignored')
                     self.html_template = htlib.emptypage()
             else:
                 self.html_template = htlib.emptypage()
@@ -4081,12 +4074,12 @@ class report(object):
         fname = metarace.default_file(templatefile)
         if os.path.exists(fname):
             try:
-                with open(fname, 'rb') as f:
-                    ret = f.read().decode('utf8')
+                with open(fname, encoding='utf-8', errors='replace') as f:
+                    ret = f.read()
             except Exception as e:
-                LOG.warning('Error reading HTML template %r: %s', fname, e)
+                _log.warning('Error reading HTML template %r: %s', fname, e)
         else:
-            LOG.warning('Report HTML template %r not found.', fname)
+            _log.warning('Report HTML template %r not found.', fname)
         return ret
 
     def set_font(self, key=None, val=None):
@@ -4104,9 +4097,9 @@ class report(object):
                     try:
                         rh = Rsvg.Handle()
                         fh = rh.new_from_file(fname)
-                        LOG.debug('Loaded SVG info fh=%r', fh)
+                        _log.debug('Loaded SVG info fh=%r', fh)
                     except Exception as e:
-                        LOG.warning('Error loading image %r: %s', fname, e)
+                        _log.warning('Error loading image %r: %s', fname, e)
                 self.images[key] = fh
             ret = self.images[key]
         return ret

@@ -23,8 +23,8 @@ LOGFILEFORMAT = '%(asctime)s %(levelname)s:%(name)s: %(message)s'
 LOGFORMAT = '%(levelname)s:%(name)s: %(message)s'
 LOGLEVEL = logging.DEBUG  # default console log level
 sysconf = jsonconfig.config()  # system-defaults, populated by init() method
-LOG = logging.getLogger('metarace')
-LOG.setLevel(logging.DEBUG)
+_log = logging.getLogger('metarace')
+_log.setLevel(logging.DEBUG)
 
 
 def init():
@@ -40,23 +40,21 @@ def init():
     conffile = default_file(SYSCONF)
     try:
         if os.path.exists(conffile):
-            LOG.debug('Loading system defaults from %r', conffile)
-            with open(conffile) as f:
-                sysconf.read(f)
+            sysconf.load(conffile)
             # don't copy path-specific config into defaults
             copyconf = False
         else:
-            LOG.info('System defaults not present, using package defaults')
+            _log.info('System defaults not present, using package defaults')
             ref = files(RESOURCE_PKG).joinpath(SYSCONF)
-            with ref.open('r', encoding='utf-8') as f:
+            with ref.open('rb') as f:
                 sysconf.read(f)
             copyconf = True
     except Exception as e:
-        LOG.error('%s reading system config: %s', e.__class__.__name__, e)
+        _log.error('%s reading system config: %s', e.__class__.__name__, e)
 
     # if required, create a new system default file
     if copyconf:
-        LOG.info('Creating default system config %s', SYSCONF)
+        _log.info('Creating default system config %s', SYSCONF)
         with savefile(os.path.join(DEFAULTS_PATH, SYSCONF)) as f:
             sysconf.write(f)
 
@@ -65,10 +63,10 @@ def mk_data_path():
     """Create a shared data path if it does not yet exist."""
     ret = False
     if not os.path.exists(DATA_PATH):
-        LOG.info('Creating data directory: %r', DATA_PATH)
+        _log.info('Creating data directory: %r', DATA_PATH)
         os.makedirs(DATA_PATH)
     if not os.path.exists(DEFAULTS_PATH):
-        LOG.info('Creating system defaults directory: %r', DEFAULTS_PATH)
+        _log.info('Creating system defaults directory: %r', DEFAULTS_PATH)
         os.makedirs(DEFAULTS_PATH)
         ret = True  # flag copy of config back to defaults path
     return ret
@@ -83,23 +81,23 @@ def config_path(configpath=None):
         if not os.path.isdir(ret):
             ret = os.path.dirname(ret)  # assume dangling path contains file
         ret = os.path.realpath(ret)
-        LOG.debug('Checking for meet %r using %r', configpath, ret)
+        _log.debug('Checking for meet %r using %r', configpath, ret)
         # then check if the path exists
         if not os.path.exists(ret):
             try:
-                LOG.info('Creating meet folder %r', ret)
+                _log.info('Creating meet folder %r', ret)
                 os.makedirs(ret)
             except Exception as e:
-                LOG.error('Unable to create folder %r: %s', ret, e)
+                _log.error('Unable to create folder %r: %s', ret, e)
                 ret = None
         # check the path is writable
         if ret is not None:
             try:
-                LOG.debug('Checking folder %r for write access', ret)
+                _log.debug('Checking folder %r for write access', ret)
                 with NamedTemporaryFile(dir=ret, prefix='.chkwrite_') as f:
                     pass
             except Exception as e:
-                LOG.error('Unable to access meet folder %r: %s', ret, e)
+                _log.error('Unable to access meet folder %r: %s', ret, e)
                 ret = None
     return ret
 
@@ -114,7 +112,7 @@ def default_file(filename=''):
     """
     basefile = os.path.basename(filename)
     if basefile in ['..', '.', '', None]:
-        LOG.debug('Invalid filename %r ignored', filename)
+        _log.debug('Invalid filename %r ignored', filename)
         return None
     ret = basefile
     if os.path.exists(basefile):
@@ -125,7 +123,7 @@ def default_file(filename=''):
             os.stat(check)
             ret = check
         except Exception as e:
-            LOG.debug('%s: %s', e.__class__.__name__, e)
+            _log.debug('%s: %s', e.__class__.__name__, e)
     return ret
 
 
@@ -135,7 +133,7 @@ def resource_text(name=''):
     if basefile in ['..', '.', '', None]:
         raise FileNotFoundError('Invalid resource name: ' + repr(name))
     t = files(RESOURCE_PKG).joinpath(basefile)
-    LOG.debug('Fetching %r from resource %r', basefile, t)
+    _log.debug('Fetching %r from resource %r', basefile, t)
     if t is not None and t.is_file():
         return t.read_text(encoding='utf-8')
     else:
@@ -157,7 +155,7 @@ def resource_file(name=''):
     if basefile in ['..', '.', '', None]:
         raise FileNotFoundError('Invalid resource name: ' + repr(name))
     t = files(RESOURCE_PKG).joinpath(basefile)
-    LOG.debug('Fetching %r from resource %r', basefile, t)
+    _log.debug('Fetching %r from resource %r', basefile, t)
     if t is not None and t.is_file():
         return as_file(t)
     else:
@@ -200,11 +198,11 @@ class savefile(object):
         os.chmod(self.__tfile.name, 0o644)
         try:
             os.rename(self.__tfile.name, self.__sfile)
-            #LOG.debug('os.rename: %r,%r', self.__tfile.name, self.__sfile)
+            #_log.debug('os.rename: %r,%r', self.__tfile.name, self.__sfile)
         except OSError as e:
-            LOG.debug('os.rename failed: %s', e)
+            _log.debug('os.rename failed: %s', e)
             copyfile(self.__tfile.name, self.__sfile)
-            LOG.warn('Un-safely moved file: %r', self.__sfile)
+            _log.warn('Un-safely moved file: %r', self.__sfile)
             os.unlink(self.__tfile.name)
         return True
 
@@ -216,12 +214,12 @@ def lockpath(configpath):
     try:
         lf = open(lfn, 'a+b')
         fcntl.flock(lf, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        LOG.debug('Config lock %r acquired', lfn)
+        _log.debug('Config lock %r acquired', lfn)
     except Exception as e:
         if lf is not None:
             lf.close()
             lf = None
-        LOG.error('Unable to acquire config lock %r: %s', lfn, e)
+        _log.error('Unable to acquire config lock %r: %s', lfn, e)
     return lf
 
 
@@ -230,7 +228,7 @@ def unlockpath(configpath, lockfile):
     lfn = os.path.join(configpath, '.lock')
     os.unlink(lfn)
     lockfile.close()
-    LOG.debug('Config lock %r released', lfn)
+    _log.debug('Config lock %r released', lfn)
     return None
 
 

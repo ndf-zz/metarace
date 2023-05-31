@@ -282,7 +282,7 @@ class riderdb():
             _log.debug('Riders file %r not found', csvfile)
             return
         _log.debug('Loading riders from %r', csvfile)
-        with open(csvfile, 'r', encoding='utf-8') as f:
+        with open(csvfile, 'r', encoding='utf-8', errors='replace') as f:
             cr = csv.reader(f)
             incols = None  # no header
             for r in cr:

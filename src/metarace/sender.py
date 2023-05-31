@@ -27,8 +27,8 @@ SERIALBAUD = 115200
 TCMDS = ('EXIT', 'PORT', 'MSG')
 
 # module log object
-LOG = logging.getLogger('metarace.sender')
-LOG.setLevel(logging.DEBUG)
+_log = logging.getLogger('metarace.sender')
+_log.setLevel(logging.DEBUG)
 
 
 class serialport(object):
@@ -43,7 +43,7 @@ class serialport(object):
           baudrate -- serial line speed
 
         """
-        LOG.debug('Serial connection %s @ %d baud.', addr, baudrate)
+        _log.debug('Serial connection %s @ %d baud.', addr, baudrate)
         self.__s = serial.Serial(addr, baudrate, rtscts=False)
         self.send = self.__s.write
         self.running = True
@@ -81,11 +81,11 @@ class scbport(object):
         if protocol == socket.SOCK_STREAM:
             # set the TCP 'no delay' option
             self.__s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            LOG.debug('Opening TCP socket %s', repr(addr))
+            _log.debug('Opening TCP socket %s', repr(addr))
         else:  # assume Datagram (UDP)
             # enable broadcast send
             self.__s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            LOG.debug('Opening UDP socket %s', repr(addr))
+            _log.debug('Opening UDP socket %s', repr(addr))
         self.__s.connect(addr)
         self.send = self.__s.send
         self.running = True
@@ -94,7 +94,7 @@ class scbport(object):
         """Send all of buf to port."""
         msglen = len(buf)
         sent = 0
-        #LOG.debug(u'Sending: %r', buf)
+        #_log.debug(u'Sending: %r', buf)
         while sent < msglen:
             out = self.send(buf[sent:])
             if out == 0:
@@ -134,7 +134,7 @@ def mkport(port=None):
             port = metarace.sysconf.get('sender', 'portspec')
 
     if port == 'DEBUG':  # force use of the hardcoded UDP endpoint
-        LOG.debug('Using debug port: UDP:localhost:5060')
+        _log.debug('Using debug port: UDP:localhost:5060')
         nprot = socket.SOCK_DGRAM
         naddr = 'localhost'
         nport = 5060
@@ -300,35 +300,35 @@ class sender(threading.Thread):
 
     def run(self):
         self.running = True
-        LOG.debug('Starting')
+        _log.debug('Starting')
         while self.running:
             m = self.queue.get()
             self.queue.task_done()
             try:
                 if m[0] == 'MSG' and not self.ignore and self.port:
-                    #LOG.debug(u'Sending message : ' + repr(m[1]))
+                    #_log.debug(u'Sending message : ' + repr(m[1]))
                     self.port.sendall(m[1].encode(self.encoding, 'replace'))
                 elif m[0] == 'EXIT':
-                    LOG.debug('Request to close: %s', m[1])
+                    _log.debug('Request to close: %s', m[1])
                     self.running = False
                 elif m[0] == 'PORT':
                     if self.port is not None:
                         self.port.close()
                         self.port = None
                     if m[1] not in [None, '', 'none', 'NULL']:
-                        LOG.debug('Re-Connect port: %s', m[1])
+                        _log.debug('Re-Connect port: %s', m[1])
                         self.port = mkport(m[1])
                         self.curov = None
                     else:
-                        LOG.debug('Not connected.')
+                        _log.debug('Not connected.')
 
             except IOError as e:
-                LOG.error('IO Error: %s', e)
+                _log.error('IO Error: %s', e)
                 if self.port is not None:
                     self.port.close()
                 self.port = None
             except Exception as e:
-                LOG.error('%s: %s', e.__class__.__name__, e)
+                _log.error('%s: %s', e.__class__.__name__, e)
         if self.port is not None:
             self.port.close()
-        LOG.info('Exiting')
+        _log.info('Exiting')

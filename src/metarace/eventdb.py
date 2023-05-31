@@ -8,8 +8,8 @@ import csv
 import metarace
 from metarace import strops
 
-LOG = logging.getLogger('metarace.eventdb')
-LOG.setLevel(logging.DEBUG)
+_log = logging.getLogger('metarace.eventdb')
+_log.setLevel(logging.DEBUG)
 
 # Note: These are for the trackmeet module, roadmeet re-defines race types
 defracetypes = [
@@ -188,7 +188,7 @@ class eventdb(object):
         self.__store[evno] = nev
         self.__index.append(evno)
         self.__notify(None)
-        LOG.debug('Added empty event %r', evno)
+        _log.debug('Added empty event %r', evno)
         return nev
 
     def clear(self):
@@ -196,16 +196,16 @@ class eventdb(object):
         self.__index = []
         self.__store = {}
         self.__notify(None)
-        LOG.debug('Event model cleared')
+        _log.debug('Event model cleared')
 
     def change_evno(self, oldevent, newevent):
         """Attempt to change the event id."""
         if oldevent not in self:
-            LOG.error('Change event %r not found', oldevent)
+            _log.error('Change event %r not found', oldevent)
             return False
 
         if newevent in self:
-            LOG.error('New event %r already exists', newevent)
+            _log.error('New event %r already exists', newevent)
             return False
 
         oktochg = True
@@ -223,7 +223,7 @@ class eventdb(object):
                 self.__index[cnt] = newevent
             del (self.__store[oldevent])
             self.__store[newevent] = ref
-            LOG.info('Updated event %r to %r', oldevent, newevent)
+            _log.info('Updated event %r to %r', oldevent, newevent)
             return True
         return False
 
@@ -233,14 +233,14 @@ class eventdb(object):
         if eid is None:
             eid = self.nextevno()
         elif not isinstance(eid, str):
-            LOG.debug('Converted %r to event id: %r', eid, str(eid))
+            _log.debug('Converted %r to event id: %r', eid, str(eid))
             eid = str(eid)
         evno = eid
         while evno in self.__index:
             evno = u'-'.join((eid, strops.randstr()))
-            LOG.info('Duplicate evid %r changed to %r', eid, evno)
+            _log.info('Duplicate evid %r changed to %r', eid, evno)
         newevent['evid'] = evno
-        LOG.debug('Add new event with id=%r', evno)
+        _log.debug('Add new event with id=%r', evno)
         newevent.set_notify(self.__notify)
         self.__store[evno] = newevent
         self.__index.append(evno)
@@ -256,17 +256,17 @@ class eventdb(object):
                 nev[key] = val
         if not nev['evid']:
             evno = self.nextevno()
-            LOG.info('Event without id assigned %r', evno)
+            _log.info('Event without id assigned %r', evno)
             nev['evid'] = evno
         self.add_event(nev)
 
     def load(self, csvfile=None):
         """Load events from supplied CSV file."""
         if not os.path.isfile(csvfile):
-            LOG.debug('Events file %r not found', csvfile)
+            _log.debug('Events file %r not found', csvfile)
             return
-        LOG.debug('Loading events from %r', csvfile)
-        with open(csvfile, 'r', encoding='utf-8') as f:
+        _log.debug('Loading events from %r', csvfile)
+        with open(csvfile, encoding='utf-8', errors='replace') as f:
             cr = csv.reader(f)
             incols = None  # no header
             for r in cr:
@@ -287,10 +287,10 @@ class eventdb(object):
     def save(self, csvfile=None):
         """Save current model content to CSV file."""
         if len(self.__index) != len(self.__store):
-            LOG.error('Index out of sync with model, dumping whole model')
+            _log.error('Index out of sync with model, dumping whole model')
             self.__index = [a for a in self.__store]
 
-        LOG.debug('Saving events to %r', csvfile)
+        _log.debug('Saving events to %r', csvfile)
         with metarace.savefile(csvfile) as f:
             cr = csv.writer(f, quoting=csv.QUOTE_ALL)
             cr.writerow(get_header(self.include_cols))
