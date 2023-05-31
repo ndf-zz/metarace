@@ -9,6 +9,11 @@
 """
 
 import json
+import os
+import logging
+
+_log = logging.getLogger('metarace.jsonconfig')
+_log.setLevel(logging.DEBUG)
 
 
 class config(object):
@@ -132,6 +137,7 @@ class config(object):
                         self.set(sec, opt, otherconfig.get(sec, opt))
 
     def read(self, file):
+        """Read config from open file-like"""
         addconf = json.load(file)
         if not isinstance(addconf, dict):
             raise TypeError('Configuration file is not dict: ' +
@@ -144,3 +150,19 @@ class config(object):
             self.add_section(sec)
             for k in thesec:
                 self.set(sec, k, thesec[k])
+
+    def load(self, filename):
+        """Load the configuration from filename, return True/False"""
+        ret = True
+        if os.path.exists(filename):
+            try:
+                with open(filename, mode='rb') as f:
+                    self.read(f)
+                _log.debug('Loaded from %r', filename)
+            except Exception as e:
+                _log.error('%s loading config: %s', e.__class__.__name__, e)
+                ret = False
+        else:
+            _log.debug('Load file %r not found', filename)
+            ret = False
+        return ret
