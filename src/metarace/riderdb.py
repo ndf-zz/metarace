@@ -88,6 +88,15 @@ _ALT_COLUMNS = {
 }
 
 
+def primary_cat(catstr=''):
+    """Return the primary cat from a catlist (legacy support)."""
+    ret = u''
+    cv = catstr.split()
+    if cv:
+        ret = cv[0].upper()
+    return ret
+
+
 def colkey(colstr=''):
     """Convert a column header string to a colkey."""
     col = colstr[0:3].lower()
@@ -113,6 +122,10 @@ class rider():
         """Return this rider's unique id"""
         return (self.__store['no'].lower(), self.__store['series'].lower())
 
+    def get_bibstr(self):
+        """Return the bib.series string"""
+        return strops.bibser2bibstr(self.__store['no'], self.__store['series'])
+
     def get_key(self):
         """Return a sorting key for this rider number"""
         return strops.bibstr_key(self.__store['no'])
@@ -124,6 +137,10 @@ class rider():
         if cv:
             ret = cv[0].upper()
         return ret
+
+    def in_cat(self, cat):
+        """Return True if rider is in the nominated category"""
+        return cat.upper() in self['cat'].upper().split()
 
     def get_cats(self):
         """Return a list of categories for this rider"""
@@ -163,6 +180,22 @@ class rider():
             self.__store['series'] = series
         if notify is not None:
             self.__notify = notify
+
+    def listname(self):
+        """Return a standard rider name summary field for non-edit lists."""
+        ret = None
+        nkey = 'ln'
+        if nkey not in self.__strcache:
+            ret = self.fitname(32)
+            if self['org']:
+                org = self['org']
+                if grapheme.length(org) < 4:
+                    org = org.upper()
+                ret += '(' + org + ')'
+            self.__strcache[nkey] = ret
+        else:
+            ret = self.__strcache[nkey]
+        return ret
 
     def fitname(self, width, trunc=False):
         """Return a truncated name string of width or less graphemes"""
@@ -249,19 +282,22 @@ class riderdb():
         _log.debug('Rider model cleared')
         self.__notify(None)
 
-    def add_rider(self, newrider, notify=True):
+    def add_rider(self, newrider, notify=True, overwrite=False):
         """Append newrider to model."""
         rid = newrider.get_id()
         if rid in self.__store:
-            _log.warning('Duplicate rider entry: %r', rid)
-            rid = (newrider['no'], '-'.join(('dupe', strops.randstr())))
+            if overwrite:
+                _log.info('Overwriting existing rider: %r', rid)
+            else:
+                _log.warning('Duplicate rider entry: %r', rid)
+                rid = (newrider['no'], '-'.join(('dupe', strops.randstr())))
         newrider.set_notify(self.__notify)
         self.__store[rid] = newrider
         if notify:
             self.__notify(rid)
         return rid
 
-    def __loadrow(self, r, colspec):
+    def __loadrow(self, r, colspec, overwrite):
         nr = rider()
         for i in range(0, len(colspec)):
             if len(r) > i:  # column data in row
@@ -274,9 +310,9 @@ class riderdb():
                 return
         else:
             _log.warning('Rider without number: %r', nr)
-        self.add_rider(nr, notify=False)
+        self.add_rider(nr, notify=False, overwrite=overwrite)
 
-    def load(self, csvfile=None):
+    def load(self, csvfile=None, overwrite=False):
         """Load riders from supplied CSV file."""
         if not os.path.isfile(csvfile):
             _log.debug('Riders file %r not found', csvfile)
@@ -288,7 +324,7 @@ class riderdb():
             for r in cr:
                 if len(r) > 0:  # got a data row
                     if incols is not None:  # already got col header
-                        self.__loadrow(r, incols)
+                        self.__loadrow(r, incols, overwrite)
                     else:
                         # determine input column structure
                         if colkey(r[0]) in _RIDER_COLUMNS:
@@ -297,8 +333,29 @@ class riderdb():
                                 incols.append(colkey(col))
                         else:
                             incols = _DEFAULT_COLUMN_ORDER  # assume full
-                            self.__loadrow(r, incols)
+                            self.__loadrow(r, incols, overwrite)
         self.__notify(None)
+
+    def listcats(self, series=None):
+        """Return a set of categories assigned to riders in the riderdb"""
+        cats = set()
+        for r in self.__store.values():
+            if (series is not None and r['series'] == series) or (
+                    r['series'] not in ['SPARE', 'CAT', 'TEAM', 'DS']):
+                cats.update(r.get_cats())
+        return cats
+
+    def biblistfromcat(self, cat, series=None):
+        """Return a list of rider ids in the supplied category"""
+        ret = set()
+        for r in self.__store.values():
+            if (series is not None and r['series'] == series) or (
+                    r['series'] not in ['SPARE', 'CAT', 'TEAM', 'DS']):
+                if r.in_cat(cat):
+                    ret.add(r.get_bibstr())
+        _log.debug('Found %d riders in cat %r, series %r', len(ret), cat,
+                   series)
+        return ret
 
     def save(self, csvfile=None, columns=None):
         """Save current model content to CSV file."""

@@ -372,19 +372,19 @@ def riderlist_split(riderstr, rdb=None, series=''):
     ret = []
     riderstr = riderstr.lower()
 
-    # special case: 'all' -> return all riders from the specified series.
-    if rdb is not None and riderstr.strip() == 'all':
-        riderstr = ''
-        for r in rdb:
-            if r[5] == series:
-                ret.append(r[0])
-
-    # pass 1: search for categories
+    # first do riderdb lookups
     if rdb is not None:
-        for cat in sorted(rdb.listcats(series), key=len, reverse=True):
-            if len(cat) > 0 and cat.lower() in riderstr:
-                ret.extend(rdb.biblistfromcat(cat, series))
-                riderstr = riderstr.replace(cat.lower(), '')
+        if riderstr.strip() == 'all':
+            riderstr = ''
+            for r in rdb:
+                # (bib, series), ...
+                if r[1] == series:
+                    ret.append(r[0])
+        else:
+            for cat in rdb.listcats(series):
+                if len(cat) > 0 and cat.lower() in riderstr:
+                    ret.extend(rdb.biblistfromcat(cat, series))
+                    riderstr = riderstr.replace(cat.lower(), '')
 
     # pass 2: append riders and expand any series if possible
     riderstr = reformat_placelist(riderstr)
