@@ -2553,9 +2553,15 @@ class judgerep(object):
             if ft is None and self.start is not None:
                 ft = tod.now()
             for r in self.lines:
+                lstart = self.start
+                if len(r) > 9 and r[9] is not None:
+                    lstart = r[9]
+                lfinish = ft
+                if len(r) > 11 and r[11] is not None:
+                    lfinish = r[11]
                 if len(r) > 6 and r[6] is not None and len(
-                        r[6]) > 0 and self.start is not None:
-                    report.laplines(report.h, r[6], self.start, ft)
+                        r[6]) > 0 and lstart is not None:
+                    report.laplines(report.h, r[6], lstart, lfinish)
                 report.h += report.judges_row(report.h, r, cnt % 2)
                 cnt += 1
             eh = report.h  # - for the column shade box
