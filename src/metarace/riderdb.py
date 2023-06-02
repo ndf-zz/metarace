@@ -191,7 +191,7 @@ class rider():
                 org = self['org']
                 if grapheme.length(org) < 4:
                     org = org.upper()
-                ret += '(' + org + ')'
+                ret += ' (' + org + ')'
             self.__strcache[nkey] = ret
         else:
             ret = self.__strcache[nkey]
