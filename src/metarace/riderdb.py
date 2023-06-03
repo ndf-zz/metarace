@@ -48,11 +48,12 @@ _CATEGORY_COLUMNS = {
     'sex': 'Sex',
 }
 
+# reserved series
+_RESERVED_SERIES = ('spare', 'cat', 'team', 'ds')
+
 # legacy csv file ordering
-_DEFAULT_COLUMN_ORDER = [
-    'no', 'first', 'last', 'org', 'cat', 'series', 'ref', 'uci', 'dob', 'nat',
-    'sex', 'note'
-]
+_DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'cat', 'series', 'ref',
+                         'uci', 'dob', 'nat', 'sex', 'note')
 
 # Alternative column header strings lookup
 _ALT_COLUMNS = {
@@ -297,7 +298,7 @@ class riderdb():
             self.__notify(rid)
         return rid
 
-    def __loadrow(self, r, colspec, overwrite):
+    def __loadrow(self, r, colspec):
         nr = rider()
         for i in range(0, len(colspec)):
             if len(r) > i:  # column data in row
@@ -307,10 +308,10 @@ class riderdb():
         if nr['no']:
             if colkey(nr['no']) in _RIDER_COLUMNS:
                 _log.debug('Ignore column header: %r', r)
-                return
+                return None
         else:
             _log.warning('Rider without number: %r', nr)
-        self.add_rider(nr, notify=False, overwrite=overwrite)
+        return nr
 
     def load(self, csvfile=None, overwrite=False):
         """Load riders from supplied CSV file."""
@@ -322,9 +323,10 @@ class riderdb():
             cr = csv.reader(f)
             incols = None  # no header
             for r in cr:
+                nr = None
                 if len(r) > 0:  # got a data row
                     if incols is not None:  # already got col header
-                        self.__loadrow(r, incols, overwrite)
+                        nr = self.__loadrow(r, incols)
                     else:
                         # determine input column structure
                         if colkey(r[0]) in _RIDER_COLUMNS:
@@ -333,15 +335,18 @@ class riderdb():
                                 incols.append(colkey(col))
                         else:
                             incols = _DEFAULT_COLUMN_ORDER  # assume full
-                            self.__loadrow(r, incols, overwrite)
+                            nr = self.__loadrow(r, incols)
+                if nr is not None:
+                    self.add_rider(nr, notify=False, overwrite=overwrite)
         self.__notify(None)
 
     def listcats(self, series=None):
         """Return a set of categories assigned to riders in the riderdb"""
         cats = set()
         for r in self.__store.values():
-            if (series is not None and r['series'] == series) or (
-                    r['series'] not in ['SPARE', 'CAT', 'TEAM', 'DS']):
+            if (series is not None
+                    and r['series'] == series) or (r['series']
+                                                   not in _RESERVED_SERIES):
                 cats.update(r.get_cats())
         return cats
 
@@ -349,8 +354,9 @@ class riderdb():
         """Return a list of rider ids in the supplied category"""
         ret = set()
         for r in self.__store.values():
-            if (series is not None and r['series'] == series) or (
-                    r['series'] not in ['SPARE', 'CAT', 'TEAM', 'DS']):
+            if (series is not None
+                    and r['series'] == series) or (r['series']
+                                                   not in _RESERVED_SERIES):
                 if r.in_cat(cat):
                     ret.add(r.get_bibstr())
         _log.debug('Found %d riders in cat %r, series %r', len(ret), cat,
@@ -376,6 +382,53 @@ class riderdb():
                 cr.writerow(get_header(columns, _CATEGORY_COLUMNS))
                 for r in cats:
                     cr.writerow(r.get_row(columns))
+
+    def load_chipfile(self, csvfile=None):
+        """Load refids into model from CSV file"""
+        _log.debug('Loading refids from %r', csvfile)
+        count = 0
+        with open(csvfile, 'r', encoding='utf-8', errors='replace') as f:
+            cr = csv.reader(f)
+            incols = None  # no header
+            for r in cr:
+                nr = None
+                if len(r) > 0:  # got a data row
+                    if incols is not None:  # already got col header
+                        nr = self.__loadrow(r, incols)
+                    else:
+                        # determine input column structure
+                        if colkey(r[0]) in _RIDER_COLUMNS:
+                            incols = []
+                            for col in r:
+                                incols.append(colkey(col))
+                        else:
+                            incols = _DEFAULT_COLUMN_ORDER  # assume full
+                            nr = self.__loadrow(r, incols)
+                if nr is not None:
+                    if nr['refid'] and nr['series'] not in _RESERVED_SERIES:
+                        lr = self.get_rider(nr['no'], nr['series'])
+                        if lr is not None:
+                            if nr['refid'] != lr['refid']:
+                                lr['refid'] = nr['refid']
+                                count += 1
+        if count > 0:
+            self.__notify(None)
+        return count
+
+    def save_chipfile(self, csvfile=None):
+        """Save all known refids from model to CSV file"""
+        _log.debug('Export chipfile to %r', csvfile)
+        columns = ('refid', 'no', 'series', 'first', 'last', 'cat')
+        count = 0
+        with metarace.savefile(csvfile) as f:
+            cr = csv.writer(f, quoting=csv.QUOTE_ALL)
+            cr.writerow(get_header(columns))
+            for r in self.__store.values():
+                if r['series'] not in _RESERVED_SERIES:
+                    if r['refid']:
+                        cr.writerow(r.get_row(columns))
+                        count += 1
+        return count
 
     def __len__(self):
         return len(self.__store)
