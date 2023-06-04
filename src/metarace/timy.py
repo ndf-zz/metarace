@@ -321,6 +321,12 @@ class timy(threading.Thread):
             msg = msg.strip()
             if msg == 'CLR':
                 self.__cqueue.put_nowait(('RCLR', ''))
+            elif msg.startswith('HW_SN'):
+                _log.info('%r connected', msg.split()[-1])
+            elif msg.startswith('NSF'):
+                _log.info('Version: %r', msg.replace('NSF', ''))
+            elif msg.startswith('PROG:'):
+                _log.debug('Program: %r', msg.split()[-1])
         return ret
 
     def __proc_impulse(self, st):
