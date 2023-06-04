@@ -25,7 +25,7 @@ _RIDER_COLUMNS = {
     'org': 'Organisation',
     'cat': 'Categories',
     'nat': 'Nationality',
-    'ref': 'Refid/Transponder',
+    'ref': 'Transponder',
     'uci': 'UCI ID',
     'dob': 'DoB',
     'sex': 'Sex',
@@ -182,6 +182,16 @@ class rider():
         if notify is not None:
             self.__notify = notify
 
+    def summary(self):
+        """Return a summary string for the rider."""
+        ret = None
+        iv = []
+        for k in _RIDER_COLUMNS:
+            if self[k]:
+                iv.append('%s: %s' % (_RIDER_COLUMNS[k], self[k]))
+            ret = ', '.join(iv)
+        return ret
+
     def listname(self):
         """Return a standard rider name summary field for non-edit lists."""
         ret = None
@@ -203,23 +213,31 @@ class rider():
         ret = None
         nkey = ('fn', width, trunc)
         if nkey not in self.__strcache:
-            fn = self['first'].strip().title()
-            fl = grapheme.length(fn)
-            ln = self['last'].strip().upper()
-            ll = grapheme.length(ln)
-            if fl + ll >= width:
-                lshrt = ln.split('-')[-1].strip()
-                lsl = grapheme.length(lshrt)
-                ln = lshrt
-                if fl + lsl >= width:
-                    if fl > 2:
-                        fn = grapheme.slice(fn, end=1) + '.'
-            ret = ' '.join((fn, ln))
-            if trunc and grapheme.length(ret) > width:
-                if width > 4:
-                    ret = grapheme.slice(ret, end=width - 1) + '\u2026'
-                else:
-                    ret = grapheme.slice(ret, end=width)
+            if self['series'] == 'team':
+                ret = self['first']
+                if trunc and grapheme.length(ret) > width:
+                    if width > 4:
+                        ret = grapheme.slice(ret, end=width - 1) + '\u2026'
+                    else:
+                        ret = grapheme.slice(ret, end=width)
+            else:
+                fn = self['first'].strip().title()
+                fl = grapheme.length(fn)
+                ln = self['last'].strip().upper()
+                ll = grapheme.length(ln)
+                if fl + ll >= width:
+                    lshrt = ln.split('-')[-1].strip()
+                    lsl = grapheme.length(lshrt)
+                    ln = lshrt
+                    if fl + lsl >= width:
+                        if fl > 2:
+                            fn = grapheme.slice(fn, end=1) + '.'
+                ret = ' '.join((fn, ln))
+                if trunc and grapheme.length(ret) > width:
+                    if width > 4:
+                        ret = grapheme.slice(ret, end=width - 1) + '\u2026'
+                    else:
+                        ret = grapheme.slice(ret, end=width)
             self.__strcache[nkey] = ret
         else:
             ret = self.__strcache[nkey]
@@ -256,7 +274,7 @@ class rider():
     def __delitem__(self, key):
         key = colkey(key)
         del (self.__store[key])
-        if key in ['fir', 'las', 'org']:
+        if key in ['first', 'last', 'org']:
             self.__strcache = {}
         self.__notify(self.get_id())
 
@@ -277,11 +295,12 @@ class rider():
 class riderdb():
     """Rider database."""
 
-    def clear(self):
+    def clear(self, notify=True):
         """Clear rider model."""
         self.__store = {}
         _log.debug('Rider model cleared')
-        self.__notify(None)
+        if notify:
+            self.__notify(None)
 
     def add_rider(self, newrider, notify=True, overwrite=False):
         """Append newrider to model."""
@@ -317,8 +336,9 @@ class riderdb():
         """Load riders from supplied CSV file."""
         if not os.path.isfile(csvfile):
             _log.debug('Riders file %r not found', csvfile)
-            return
+            return 0
         _log.debug('Loading riders from %r', csvfile)
+        count = 0
         with open(csvfile, 'r', encoding='utf-8', errors='replace') as f:
             cr = csv.reader(f)
             incols = None  # no header
@@ -338,7 +358,10 @@ class riderdb():
                             nr = self.__loadrow(r, incols)
                 if nr is not None:
                     self.add_rider(nr, notify=False, overwrite=overwrite)
-        self.__notify(None)
+                    count += 1
+        if count > 0:
+            self.__notify(None)
+        return count
 
     def listcats(self, series=None):
         """Return a set of categories assigned to riders in the riderdb"""
