@@ -68,6 +68,13 @@ def mk_data_path():
         _log.info('Creating system defaults directory: %r', DEFAULTS_PATH)
         os.makedirs(DEFAULTS_PATH)
         ret = True  # flag copy of config back to defaults path
+    lfile = os.path.join(DEFAULTS_PATH, LOGO)
+    if not os.path.exists(lfile):
+        _log.info('Saving default app logo into defaults path')
+        ref = files(RESOURCE_PKG).joinpath(LOGO)
+        with ref.open('rb') as sf:
+            with savefile(lfile, mode='b') as df:
+                df.write(sf.read())
     return ret
 
 
