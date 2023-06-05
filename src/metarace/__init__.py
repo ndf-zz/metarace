@@ -18,7 +18,6 @@ RESOURCE_PKG = 'metarace.data'
 LOGO = 'metarace_icon.svg'
 SYSCONF = 'metarace.json'
 PDF_TEMPLATE = 'pdf_template.json'
-HTML_TEMPLATE = 'html_template.json'
 LOGFILEFORMAT = '%(asctime)s %(levelname)s:%(name)s: %(message)s'
 LOGFORMAT = '%(levelname)s:%(name)s: %(message)s'
 LOGLEVEL = logging.DEBUG  # default console log level
@@ -52,7 +51,7 @@ def init():
     except Exception as e:
         _log.error('%s reading system config: %s', e.__class__.__name__, e)
 
-    # if required, create a new system default file
+    # if required, create new system default file
     if copyconf:
         _log.info('Creating default system config %s', SYSCONF)
         with savefile(os.path.join(DEFAULTS_PATH, SYSCONF)) as f:

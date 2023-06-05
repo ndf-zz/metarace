@@ -136,14 +136,20 @@ class config(object):
                     for opt in otherconfig.options(sec):
                         self.set(sec, opt, otherconfig.get(sec, opt))
 
+    def reads(self, s):
+        """Read config from a JSON-encoded string"""
+        self.addconf(json.loads(s))
+
     def read(self, file):
         """Read config from open file-like"""
-        addconf = json.load(file)
-        if not isinstance(addconf, dict):
+        self.addconf(json.load(file))
+
+    def addconf(self, obj):
+        if not isinstance(obj, dict):
             raise TypeError('Configuration file is not dict: ' +
-                            addconf.__class__.__name__)
-        for sec in addconf:
-            thesec = addconf[sec]
+                            obj.__class__.__name__)
+        for sec in obj:
+            thesec = obj[sec]
             if not isinstance(thesec, dict):
                 raise TypeError('Configuration section is not dict: ' +
                                 thesec.__type__.__name__)

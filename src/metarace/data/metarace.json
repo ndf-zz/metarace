@@ -15,7 +15,7 @@
     "serialbaud": 115200
   },
   "telegraph":{
-    "host": null,
+    "host": "localhost",
     "port": null,
     "usetls": false,
     "debug": false,

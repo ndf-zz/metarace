@@ -39,9 +39,6 @@ XS_TITLE = xlwt.easyxf('font: bold on')
 XS_SUBTITLE = xlwt.easyxf('font: italic on')
 XS_MONOSPACE = xlwt.easyxf('font: name Courier')
 
-# default files
-PDF_TEMPLATE_FILE = 'pdf_template.json'
-
 # Meta cell icon classes
 ICONMAP = {
     'datestr': 'bi-calendar-date',
@@ -89,15 +86,16 @@ BODYFONT = 'serif 7.0'  # body text
 BODYOBLIQUE = 'serif italic 7.0'  # body text oblique
 BODYBOLDFONT = 'serif bold 7.0'  # bold body text
 BODYSMALL = 'serif 6.0'  # small body text
-MONOSPACEFONT = 'monospace bold 7.0'  # monospaced text
-SECTIONFONT = 'sans bold 7.0'  # section headings
+MONOSPACEFONT = 'monospace Bold 7.0'  # monospaced text
+SECTIONFONT = 'sans-serif Bold 7.0'  # section headings
 SUBHEADFONT = 'serif italic 7.0'  # section subheadings
-TITLEFONT = 'sans bold 8.0'  # page title
-SUBTITLEFONT = 'sans bold 7.5'  # page subtitle
-ANNOTFONT = 'sans oblique 6.0'  # header and footer annotations
-PROVFONT = 'sans bold Ultra-Condensed 90'  # provisonal underlay font
-GAMUTSTDFONT = 'sans bold condensed'  # default gamut standard font
-GAMUTOBFONT = 'sans bold condensed italic'  # default gamut oblique font
+TITLEFONT = 'sans-serif bold 8.0'  # page title
+SUBTITLEFONT = 'sans-serif bold 7.5'  # page subtitle
+HOSTFONT = 'sans-serif oblique 7.0'  # page title
+ANNOTFONT = 'sans-serif oblique 6.0'  # header and footer annotations
+PROVFONT = 'sans-serif bold Ultra-Condensed 90'  # provisonal underlay font
+GAMUTSTDFONT = 'sans-serif bold condensed'  # default gamut standard font
+GAMUTOBFONT = 'sans-serif bold condensed italic'  # default gamut oblique font
 LINE_HEIGHT = mm2pt(5.0)  # body text line height
 PAGE_OVERFLOW = mm2pt(3.0)  # tolerated section overflow
 SECTION_HEIGHT = mm2pt(5.3)  # height of section title
@@ -3977,6 +3975,7 @@ class report(object):
         self.fonts['provisional'] = Pango.FontDescription(PROVFONT)
         self.fonts['title'] = Pango.FontDescription(TITLEFONT)
         self.fonts['subtitle'] = Pango.FontDescription(SUBTITLEFONT)
+        self.fonts['host'] = Pango.FontDescription(HOSTFONT)
         self.fonts['annotation'] = Pango.FontDescription(ANNOTFONT)
         self.gamutstdfont = GAMUTSTDFONT
         self.gamutobfont = GAMUTOBFONT
@@ -3990,18 +3989,27 @@ class report(object):
         self.page_elem = None
 
         # read in from template
-        tfile = PDF_TEMPLATE_FILE
-        if template is not None:
-            tfile = template
-        tfile = metarace.default_file(tfile)
         cr = jsonconfig.config()
         cr.add_section('page')
         cr.add_section('elements')
         cr.add_section('fonts')
         cr.add_section('strings')
         cr.add_section('colours')
+        tfile = metarace.PDF_TEMPLATE
+        if template is not None:
+            tfile = template
+        tfile = metarace.default_file(tfile)
         if not cr.load(tfile):
-            _log.error('Unable to read report template %r')
+            try:
+                _log.debug('Loading default template from resource')
+                cr.reads(metarace.resource_text(metarace.PDF_TEMPLATE))
+            except Exception as e:
+                _log.error('%s loading template: %s', e.__class__.__name__, e)
+        if cr.has_option('description', 'text'):
+            _log.debug('API: %s, template: %s', APIVERSION,
+                       cr.get('description', 'text'))
+        else:
+            _log.debug('API: %s, template: UNKNOWN', APIVERSION)
 
         # read in page options
         if cr.has_option('page', 'width'):
@@ -4083,9 +4091,10 @@ class report(object):
                 with open(fname, encoding='utf-8', errors='replace') as f:
                     ret = f.read()
             except Exception as e:
-                _log.warning('Error reading HTML template %r: %s', fname, e)
+                _log.warning('%s reading HTML template %r: %s',
+                             e.__class__.__name__, fname, e)
         else:
-            _log.warning('Report HTML template %r not found.', fname)
+            _log.warning('HTML template %r not found', fname)
         return ret
 
     def set_font(self, key=None, val=None):
@@ -4103,9 +4112,9 @@ class report(object):
                     try:
                         rh = Rsvg.Handle()
                         fh = rh.new_from_file(fname)
-                        _log.debug('Loaded SVG info fh=%r', fh)
                     except Exception as e:
-                        _log.warning('Error loading image %r: %s', fname, e)
+                        _log.warning('%s loading SVG %r: %s',
+                                     e.__class__.__name__, fname, e)
                 self.images[key] = fh
             ret = self.images[key]
         return ret

@@ -1,0 +1,53 @@
+{
+ "description": {
+  "text": "Middle Title (AC) TeX/Gyre"
+ },
+ "fonts": {
+  "provisional": "TeXGyreHerosCn Bold 90",
+  "headline": "TeXGyreHeros bold oblique 6.6",
+  "footline": "TeXGyreHeros 6.5",
+  "subtitle": "TeXGyreHeros bold 8.5",
+  "title": "TeXGyreHeros bold 8.5",
+  "body": "TeXGyreTermes 6.5",
+  "bodysmall": "TeXGyreTermes 5.8",
+  "bodyoblique": "TeXGyreTermes oblique 6.5",
+  "bodybold": "TeXGyreTermes bold 6.5",
+  "monospace": "TeXGyreCursor bold 6.5",
+  "section": "TeXGyreHeros bold 7.0",
+  "host": "TeXGyreHeros 6.5",
+  "timestamp": "TeXGyreHeros 5.0",
+  "gamutstdfont": "TeXGyreHerosCn Bold",
+  "gamutobfont": "TeXGyreHerosCn Bold Italic",
+  "subhead": "TeXGyreTermes oblique 7.0"
+ },
+ "colours": {
+  "dark": "0.06, 0.06, 0.06",
+  "shade": "0.9, 0.9, 0.9",
+  "topbar": "0.3, 0.3, 0.3"
+ },
+ "elements": {
+  "mainlogo": "image, 15.5, 8.2, 55.5, 25.2, 0.0, 0.5, mainlogo",
+  "title": "text, mid, 11.5, 0.5, title, dark, title",
+  "subtitle": "text, mid, 16.3, 0.5, subtitle, dark, subtitle",
+  "host": "text, mid, 21.5, 0.5, host, dark, host",
+  "sublogo": "image, -55.5, 8.2, -15.5, 25.2, 1.0, 0.5, sublogo",
+  "pagestr": "text, 17.2, -31.8, 0.0, footline, dark, pagestr",
+  "timestamp": "text, mid, -28.0, 0.5, timestamp, topbar, timestamp",
+  "commstr": "text, mid, -31.8, 0.5, footline, dark, commstr",
+  "hbotline": "line, 15.5, -32.2, -15.5, -32.2, 0.5pt, dark,",
+  "footlogo": "image, 15.5, -25.2, -15.5, -5.2, 0.5, 0.5, footlogo",
+  "htopbox": "box, 15.5, 26.2, -15.5, 32.2, topbar,,,,",
+  "docstr": "text, mid, 26.8, 0.5, headline, white, docstr",
+  "header": "group, htopbox, mainlogo, title, subtitle, host, datestr, diststr, sublogo",
+  "diststr": "text, -17.2, 26.8, 1.0, headline, white,diststr",
+  "datestr": "text, 17.2, 26.8, 0.0, headline, white, datestr",
+  "footer": "group, hbotline, commstr, orgstr, timestamp, footlogo",
+  "orgstr": "text, -17.2, -31.8, 1.0, footline, dark, orgstr"
+ },
+ "page": {
+  "elements": "header footer docstr",
+  "minbreak": "0.8",
+  "lineheight": "4.5",
+  "sectionheight": "4.5"
+ }
+}
