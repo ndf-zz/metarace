@@ -2,16 +2,18 @@
 
 A collection of Python modules to assist with cycle race timekeeping
 and official result preparation. Version 2 of Metarace is a
-re-write for Python 3, which removes static pyGTK/glib dependencies.
+re-write for Python 3 which removes static pyGTK/GLib dependencies.
 
-This package includes common shared elements that a metarace
-application might require eg report, tod, decoder.
 Unlike version 1, application-level modules are not contained in
-the library, they are available separately as standalone projects.
+the library, they are available separately:
 
-## TODO
-
-### riderdb: CSV Rider and Category list
+   - [roadmeet](https://github.com/ndf-zz/metarace-roadmeet) : Timing
+     and results for UCI Part 2 Road Races, UCI Part 5 Cyclo-Cross,
+     criterium, road handicap and ad-hoc time trial events.
+   - [tagreg](https://github.com/ndf-zz/metarace-tagreg) : Transponder
+     id management.
+   - [ttstart](https://github.com/ndf-zz/metarace-ttstart) : Time
+     Trial starter console.
 
 
 ## Module Overview
@@ -21,45 +23,41 @@ pydoc:
 
 	$ pydoc metarace.tod
 
+
 ### metarace: Base Library
 
-Shared initialisation and resource management for applications.
-Includes a tempfile context manager for updating files that
-may be read while being updated.
+   - shared configuration, default files and resources
+   - tempfile-backed file writer
+   - meet folder locking
 
 
 ### jsonconfig: Configuration File Wrapper
 
 A thin wrapper on a dictionary-based configuration
-with JSON export and import. The structure for a configuration
-is a dictionary of sections, each of which contains a dictionary
-of key/value pairs, where the key is a unicode string and the
-value may be any base type supported by python & JSON. For example:
-
-	"modulename": {
-		"simpleoption": "string value",
-		"complexoption": {
-			"ordering": ["a","b","c"],
-			"counter": 1023
-		}
-	}
+with JSON export and import.
 
 
-### tod: Time of Day Object
+### riderdb: CSV-backed Competitor Information
 
-Represent timing measurements and calculations for short intervals 
-(<24 hours) and aggregates.
+Store details for competitors, teams, and categories.
+
+
+### tod: Time of Day
+
+Represent timing measurements and calculations for
+short intervals (<24 hours) and aggregate times.
 
 
 ### timy: Alge Timy Chronometer
 
-Read time of day measurements from an attached Alge Timy.
+Read time of day measurements from an attached Alge Timy
+in PC-TIMER mode.
 
 
 ### decoder: Transponder Decoders
 
-Standardised interfaces for transponder readers from Race Result
-and Chronelec:
+Read transponder and timing information from
+Race Result and Chronelec devices:
 
    - rrs : Race Result System Decoder (passive and active)
    - rru : Race Result USB Timing Box (active)
@@ -69,30 +67,26 @@ and Chronelec:
 ### strops: Common String Manipulations
 
 Commonly used functions for formatting competitor names,
-rankings and user inputs. Example:
-
-	>>> strops.lapstring(3)
-	'3 Laps'
-	>>> strops.riderlist_split('1+2  6-10, 22')
-	['1', '2', '6', '7', '8', '9', '10', '22']
+rankings and user inputs.
 
 
 ### telegraph: Interprocess Communication
 
-MQTT backed message exchange service. 
+MQTT-backed pub/sub message exchange service.
 
 
 ### unt4: Legacy Timing Protocol
 
-Swiss Timing UNT4 protocol wrapper, for legacy devices and DHI
-communications.
+Swiss Timing UNT4 protocol wrapper, for legacy devices
+and DHI communications.
 
 
 ### sender: Legacy DHI Scoreboard Interface
 
 Thread object for drawing text on a
 [Caprica](https://github.com/ndf-zz/caprica)
-or Galactica DHI scoreboard over TCP, UDP and serial connections.
+or Galactica DHI scoreboard over TCP,
+UDP and serial connections.
 
 
 ### gemini: Numeric LED Scoreboard Interface
@@ -103,33 +97,13 @@ numeric LED boards, and lap count displays.
 
 ### countback: Accumulate and Compare Count of Places
 
-Represent a countback of places and allow for simple comparisons:
-
-	>>> from metarace import countback
-	>>> a=countback.countback('-,2')
-	>>> b=countback.countback('-,1,1')
-	>>> a>b
-	True
-	>>> a[3]+=1
-	>>> b[1]+=1
-	>>> a>b
-	False
-	>>> str(a)
-	'-,2,-,1'
-	>>> str(b)
-	'-,2,1'
-	>>> str(a+b)
-	'-,4,1,1'
+Represent a countback of places and allow for simple
+placing comparisons.
 
 
 ### htlib: HTML Generation
 
 Functional primitives for HTML generation.
-
-	>>> htlib.div(htlib.p(('Check the',
-	...                    htlib.a('website', {'href':'#website'}),
-	...                    'for more.')))
-	'<div><p>Check the\n<a href="#website">website</a>\nfor more.</p></div>'
 
 
 ### report: Report Generation
@@ -139,13 +113,14 @@ Create sectioned reports and save to PDF, HTML, XLS and JSON.
 
 ### export: Result Export and Mirroring
 
-Provides a means to execute a process on the host system, to
-mirror result files to a remote server, or to run a script.
+Execute a process on the host system, to
+mirror result files to a remote server,
+or to run a script.
 
 
 ### eventdb: CSV Event List
 
-Mainly for trackmeet, a CSV event listing object.
+Store details for events within a meet.
 
 
 ## Requirements
@@ -158,8 +133,10 @@ System requirements:
    - Rsvg
    - Python gi
    - Python gi cairo
-   - tex-gyre fonts
+   - tex-gyre (fonts)
    - mosquitto (optional)
+   - evince (optional)
+   - libreoffice (optional)
 
 Python packages:
 
@@ -173,12 +150,12 @@ Python packages:
 
 ## Installation
 
-For a Debian-ish system, install the system requirements first:
-
-	# apt-get install gir1.2-rsvg-2.0 gir1.2-pango-1.0 tex-gyre python3-cairo python3-gi python3-gi-cairo python3-pip
-
-Then use pip3 to install metarace:
-
-	$ pip3 install metarace
+Install system requirements Cairo, Pango, Rsvg,
+Tex-Gyre and optionally Mosquitto, then use pip
+to install metarace.
 
 
+### Debian (11+)
+
+	$ sudo apt-get install gir1.2-rsvg-2.0 gir1.2-pango-1.0 tex-gyre python3-cairo python3-gi python3-gi-cairo python3-pip mosquitto evince
+	$ pip install metarace
