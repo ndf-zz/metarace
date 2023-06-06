@@ -10,7 +10,7 @@ from shutil import copyfile
 from importlib_resources import files, as_file
 from metarace import jsonconfig
 
-VERSION = '2.0.3'
+VERSION = '2.1.0'
 DATA_PATH = os.path.realpath(
     os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
