@@ -38,12 +38,12 @@ _CATEGORY_COLUMNS = {
     'series': 'Series',
     'first': 'Title',
     'last': 'Subtitle',
-    'org': 'Lap Prefix',
-    'cat': 'Target Laps',
-    'nat': 'Nationality',
-    'uci': 'Start Offset',
-    'ref': 'Distance',
     'note': 'Footer',
+    'org': 'Lap Prefix',
+    'ref': 'Distance',
+    'cat': 'Target Laps',
+    'uci': 'Start Offset',
+    'nat': 'Nationality',
     'dob': 'DoB',
     'sex': 'Sex',
 }
@@ -186,10 +186,15 @@ class rider():
         """Return a summary string for the rider."""
         ret = None
         iv = []
-        for k in _RIDER_COLUMNS:
+        colset = _RIDER_COLUMNS
+        if self.__store['series'] == 'cat':
+            colset = _CATEGORY_COLUMNS
+
+        for k in colset:
             if self[k]:
-                iv.append('%s: %s' % (_RIDER_COLUMNS[k], self[k]))
+                iv.append('%s: %s' % (colset[k], self[k]))
             ret = ', '.join(iv)
+
         return ret
 
     def listname(self):
