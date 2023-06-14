@@ -4396,12 +4396,11 @@ class report(object):
                     }))
         if self.provisional:  # add refresh button
             navbar.append(
-                htlib.a(
-                    htlib.span((), {"class": "bi-arrow-repeat"}), {
-                        'href': '#',
-                        'class': 'nav-link',
+                htlib.span(
+                    (), {
+                        'id': 'pageReload',
                         'title': 'Reload',
-                        'onclick': 'return rl();'
+                        "class": "nav-link bi-arrow-repeat"
                     }))
         if self.nextlink:
             navbar.append(
