@@ -334,7 +334,7 @@ def vec2htmlhead(vec=[]):
 
 
 # Section Types
-class dual_ittt_startlist(object):
+class dual_ittt_startlist:
     """Two-up time trial for individual riders (eg track pursuit)."""
 
     def __init__(self, secid=None):
@@ -622,7 +622,7 @@ class dual_ittt_startlist(object):
         return False
 
 
-class signon_list(object):
+class signon_list:
 
     def __init__(self, secid=None):
         self.sectionid = secid
@@ -824,7 +824,7 @@ class signon_list(object):
         return False
 
 
-class twocol_startlist(object):
+class twocol_startlist:
 
     def __init__(self, secid=None):
         self.sectionid = secid
@@ -1018,7 +1018,7 @@ class twocol_startlist(object):
         return False
 
 
-class sprintround(object):
+class sprintround:
 
     def __init__(self, secid=None):
         self.sectionid = secid
@@ -1209,7 +1209,7 @@ class sprintround(object):
         return ''
 
 
-class sprintfinal(object):
+class sprintfinal:
 
     def __init__(self, secid=None):
         self.sectionid = secid
@@ -1414,7 +1414,7 @@ class sprintfinal(object):
         return ''
 
 
-class rttstartlist(object):
+class rttstartlist:
     """Time trial start list."""
 
     def __init__(self, secid=None):
@@ -1598,6 +1598,9 @@ class rttstartlist(object):
                 nv = r[0:6]
                 if len(nv) == 2:
                     nv = [nv[0], None, nv[1]]
+                if len(nv) > 4:
+                    # suppress the printrep underscores
+                    nv[4] = ''
                 rows.append(nv)
             trows = []
             for l in rows:
@@ -1610,7 +1613,7 @@ class rttstartlist(object):
         return None
 
 
-class bullet_text(object):
+class bullet_text:
     """List of bullet items, each one a non-breaking pango para."""
 
     def __init__(self, secid=None):
@@ -1802,7 +1805,7 @@ class bullet_text(object):
             f.write('\n')
 
 
-class preformat_text(object):
+class preformat_text:
     """Block of pre-formatted/monospaced plain text."""
 
     def __init__(self, secid=None):
@@ -1962,7 +1965,7 @@ class preformat_text(object):
             f.write(htlib.pre('\n'.join(prelines)))
 
 
-class event_index(object):
+class event_index:
     """Copy of plain section, but in text output text links."""
 
     def __init__(self, secid=None):
@@ -2164,7 +2167,7 @@ class event_index(object):
         return None
 
 
-class judge24rep(object):
+class judge24rep:
 
     def __init__(self, secid=None):
         self.sectionid = secid
@@ -2411,7 +2414,7 @@ class judge24rep(object):
         return None
 
 
-class judgerep(object):
+class judgerep:
 
     def __init__(self, secid=None):
         self.sectionid = secid
@@ -2675,7 +2678,7 @@ class judgerep(object):
         return None
 
 
-class teampage(object):
+class teampage:
     """One-page teams race startlist, with individuals in 3 columns."""
 
     def __init__(self, secid=None):
@@ -2937,7 +2940,7 @@ class teampage(object):
         return None
 
 
-class gamut(object):
+class gamut:
     """Whole view of the entire tour - aka crossoff."""
 
     def __init__(self, secid=None):
@@ -3105,7 +3108,7 @@ class gamut(object):
         return None
 
 
-class threecol_section(object):
+class threecol_section:
 
     def __init__(self, secid=None):
         self.sectionid = secid
@@ -3331,7 +3334,7 @@ class threecol_section(object):
         return None
 
 
-class section(object):
+class section:
 
     def __init__(self, secid=None):
         self.sectionid = secid
@@ -3349,6 +3352,8 @@ class section(object):
     def serialize(self, rep, sectionid=None):
         """Return a serializable map for JSON export."""
         ret = {}
+        if sectionid is None:
+            sectionid = self.sectionid
         ret['sectionid'] = sectionid
         ret['type'] = 'section'
         ret['heading'] = self.heading
@@ -3570,7 +3575,7 @@ class section(object):
         return None
 
 
-class pagebreak(object):
+class pagebreak:
     """Dummy 'section' for page breaks."""
 
     def __init__(self, threshold=None):
@@ -3598,7 +3603,7 @@ class pagebreak(object):
         return self.threshold
 
 
-class image_elem(object):
+class image_elem:
     """Place an SVG image on the page."""
 
     def __init__(self,
@@ -3660,7 +3665,7 @@ class image_elem(object):
             c.restore()
 
 
-class arc_elem(object):
+class arc_elem:
     """Pace an optionally shaded arc on the page."""
 
     def __init__(self,
@@ -3708,7 +3713,7 @@ class arc_elem(object):
         c.restore()
 
 
-class box_elem(object):
+class box_elem:
     """Place an optionally shaded box on the page."""
 
     def __init__(self,
@@ -3756,7 +3761,7 @@ class box_elem(object):
         c.restore()
 
 
-class line_elem(object):
+class line_elem:
     """Places a line on the page."""
 
     def __init__(self,
@@ -3789,7 +3794,7 @@ class line_elem(object):
         c.restore()
 
 
-class text_elem(object):
+class text_elem:
     """Places string of text on the page."""
 
     def __init__(self,
@@ -3833,7 +3838,7 @@ class text_elem(object):
             c.restore()
 
 
-class group_elem(object):
+class group_elem:
     """Place each defined element on the page."""
 
     def __init__(self, report=None, elems=[]):
@@ -3853,7 +3858,7 @@ class group_elem(object):
         self.indraw = False
 
 
-class report(object):
+class report:
     """PDF/GTKPrint Report class."""
 
     def __init__(self, template=None):
@@ -4258,6 +4263,12 @@ class report(object):
 
     def output_json(self, file=None):
         """Output the JSON version."""
+        ret = self.serialise()
+        # serialise to the provided file handle
+        json.dump(ret, file, indent=1, sort_keys=True)
+
+    def serialise(self):
+        """Return a serialisable report object"""
         if 'pagestr' in self.strings:
             del self.strings['pagestr']  # remove spurious string data
         ret = {
@@ -4279,7 +4290,7 @@ class report(object):
         rep['startlink'] = self.startlink
         rep['canonical'] = self.canonical
         rep['customlinks'] = self.customlinks
-        rep['navbar'] = self.navbar
+        #rep['navbar'] = self.navbar
         rep['shortname'] = self.shortname
         rep['pagemarks'] = self.pagemarks
         rep['strings'] = self.strings
@@ -4289,8 +4300,7 @@ class report(object):
             secid = mksectionid(secmap, s.sectionid)
             secmap[secid] = s.serialize(self, secid)
             rep['sections'].append(secid)
-        # serialise to the provided file handle
-        json.dump(ret, file, indent=1, sort_keys=True)
+        return ret
 
     def output_xls(self, file=None):
         """Output xls spreadsheet."""
