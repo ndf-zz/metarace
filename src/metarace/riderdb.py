@@ -48,6 +48,231 @@ _CATEGORY_COLUMNS = {
     'sex': 'Sex',
 }
 
+# Config schema for a rider
+_RIDER_SCHEMA = {
+    'rtype': {
+        'prompt': 'Rider',
+        'control': 'section',
+    },
+    'no': {
+        'prompt': 'Rider No:',
+        'control': 'short',
+        'attr': 'no',
+        'defer': True,
+    },
+    'series': {
+        'prompt': 'Series:',
+        'control': 'short',
+        'attr': 'series',
+        'defer': True,
+    },
+    'first': {
+        'prompt': 'First Name:',
+        'attr': 'first',
+        'defer': True,
+    },
+    'last': {
+        'prompt': 'Last Name:',
+        'attr': 'last',
+        'defer': True,
+    },
+    'org': {
+        'prompt': 'Organisation:',
+        'attr': 'org',
+        'defer': True,
+        'hint': 'Club or team affiliation',
+    },
+    'cat': {
+        'prompt': 'Categories:',
+        'attr': 'cat',
+        'defer': True,
+        'hint': 'Space separated list of categories',
+    },
+    'nat': {
+        'prompt': 'Nationality:',
+        'attr': 'nat',
+        'defer': True,
+        'hint': '3 letter IOC country code eg: AUS, GBR, JPN',
+        'control': 'short',
+    },
+    'ref': {
+        'prompt': 'Transponder:',
+        'attr': 'ref',
+        'defer': True,
+        'control': 'short',
+    },
+    'uci': {
+        'prompt': 'UCI ID:',
+        'attr': 'uci',
+        'defer': True,
+        'control': 'short',
+        'hint': '11 digit UCI ID',
+    },
+    'dob': {
+        'prompt': 'Date of Birth:',
+        'attr': 'dob',
+        'control': 'short',
+        'defer': True,
+        'subtext': '(YYYY-MM-DD)',
+        'hint': 'ISO8601 Date of birth eg: 2012-01-25',
+    },
+    'sex': {
+        'prompt': 'Sex:',
+        'control': 'short',
+        'subtext': '(Male|Female)',
+        'defer': True,
+        'hint': 'Sex of participant',
+        'attr': 'sex',
+    },
+    'note': {
+        'prompt': 'Notes:',
+        'attr': 'note',
+        'defer': True,
+        'hint': 'Supplementary rider notes',
+    },
+}
+
+# Config schema for a category
+_CATEGORY_SCHEMA = {
+    'rtype': {
+        'prompt': 'Category',
+        'control': 'section',
+    },
+    'no': {
+        'prompt': 'ID:',
+        'control': 'short',
+        'attr': 'no',
+        'hint': 'Category ID or handicap group',
+        'defer': True,
+    },
+    'series': {
+        'prompt': 'Series:',
+        'control': 'short',
+        'readonly': True,
+        'attr': 'series',
+        'defer': True,
+    },
+    'first': {
+        'prompt': 'Title:',
+        'attr': 'first',
+        'hint': 'Category title',
+        'defer': True,
+    },
+    'last': {
+        'prompt': 'Subtitle:',
+        'attr': 'last',
+        'hint': 'Category subtitle',
+        'defer': True,
+    },
+    'note': {
+        'prompt': 'Footer:',
+        'attr': 'note',
+        'defer': True,
+        'hint': 'Supplementary footer text for reports',
+    },
+    'uci': {
+        'prompt': 'Start Offset:',
+        'attr': 'uci',
+        'defer': True,
+        'control': 'short',
+        'hint': 'Start time offset from event start',
+    },
+    'cat': {
+        'prompt': 'Target:',
+        'attr': 'cat',
+        'control': 'short',
+        'subtext': 'laps',
+        'defer': True,
+        'hint': 'Target number of laps for this category',
+    },
+    'ref': {
+        'prompt': 'Distance:',
+        'attr': 'ref',
+        'defer': True,
+        'control': 'short',
+        'subtext': 'km',
+        'hint': 'Category distance override',
+    },
+    'org': {
+        'prompt': 'Lap Prefix:',
+        'attr': 'org',
+        'control': 'short',
+        'defer': True,
+        'hint': 'Optional category lap prefix',
+    },
+}
+
+# Config schema for a team
+_TEAM_SCHEMA = {
+    'rtype': {
+        'prompt': 'Team',
+        'control': 'section',
+    },
+    'no': {
+        'prompt': 'Team Code:',
+        'control': 'short',
+        'attr': 'no',
+        'defer': True,
+    },
+    'series': {
+        'prompt': 'Series:',
+        'control': 'short',
+        'readonly': True,
+        'attr': 'series',
+        'defer': True,
+    },
+    'first': {
+        'prompt': 'Name:',
+        'attr': 'first',
+        'hint': 'Team name',
+        'defer': True,
+    },
+    'last': {
+        'prompt': 'Short Name:',
+        'attr': 'last',
+        'control': 'short',
+        'subtext': '(~12 characters)',
+        'hint': 'Abbreviated team name for reports',
+        'defer': True,
+    },
+    'nat': {
+        'prompt': 'Nationality:',
+        'attr': 'nat',
+        'defer': True,
+        'hint': '3 letter IOC country code eg: AUS, GBR, JPN',
+        'control': 'short',
+    },
+    'uci': {
+        'prompt': 'UCI ID:',
+        'attr': 'uci',
+        'defer': True,
+        'control': 'short',
+        'hint': 'Team UCI ID',
+    },
+    'sex': {
+        'prompt': 'Division:',
+        'control': 'short',
+        'subtext': '',
+        'defer': True,
+        'hint': 'UCI division of team eg: WTT WTW PRT',
+        'attr': 'sex',
+    },
+    'ref': {
+        'prompt': 'Start Time:',
+        'attr': 'ref',
+        'defer': True,
+        'control': 'short',
+        'subtext': '(Team TT)',
+        'hint': 'Team TT Start Time',
+    },
+    'note': {
+        'prompt': 'Notes:',
+        'attr': 'note',
+        'defer': True,
+        'hint': 'Supplementary team notes',
+    },
+}
+
 # reserved series
 _RESERVED_SERIES = ('spare', 'cat', 'team', 'ds')
 
@@ -121,11 +346,28 @@ class rider():
 
     def get_id(self):
         """Return this rider's unique id"""
-        return (self.__store['no'].lower(), self.__store['series'].lower())
+        return (self.__store['no'].upper(), self.__store['series'].lower())
+
+    def get_schema(self):
+        """Return a schema for this rider object"""
+        ret = _RIDER_SCHEMA
+        if self.__store['series'] == 'cat':
+            ret = _CATEGORY_SCHEMA
+        elif self.__store['series'] == 'team':
+            ret = _TEAM_SCHEMA
+        return ret
 
     def get_bibstr(self):
         """Return the bib.series string"""
-        return strops.bibser2bibstr(self.__store['no'], self.__store['series'])
+        ret = None
+        nkey = 'bs'
+        if nkey not in self.__strcache:
+            ret = strops.bibser2bibstr(self.__store['no'],
+                                       self.__store['series'])
+            self.__strcache[nkey] = ret
+        else:
+            ret = self.__strcache[nkey]
+        return ret
 
     def get_key(self):
         """Return a sorting key for this rider number"""
@@ -166,6 +408,8 @@ class rider():
         """Update a value without triggering notify."""
         key = colkey(key)
         self.__store[key] = value
+        if key in ['no', 'series', 'first', 'last', 'org']:
+            self.__strcache = {}
 
     def notify(self):
         """Forced notify."""
@@ -197,12 +441,27 @@ class rider():
 
         return ret
 
-    def listname(self):
+    def resname_bib(self):
+        """Return rider name formatted for results with bib."""
+        ret = None
+        nkey = 'rnb'
+        if nkey not in self.__strcache:
+            ret = self.get_bibstr() + ' ' + self.listname(48)
+            self.__strcache[nkey] = ret
+        else:
+            ret = self.__strcache[nkey]
+        return ret
+
+    def resname(self):
+        """Return the name for results"""
+        return self.listname(48)
+
+    def listname(self, namelen=32):
         """Return a standard rider name summary field for non-edit lists."""
         ret = None
-        nkey = 'ln'
+        nkey = ('ln', namelen)
         if nkey not in self.__strcache:
-            ret = self.fitname(32)
+            ret = self.fitname(namelen)
             if self['org']:
                 org = self['org']
                 if grapheme.length(org) < 4:
@@ -272,14 +531,14 @@ class rider():
     def __setitem__(self, key, value):
         key = colkey(key)
         self.__store[key] = value
-        if key in ['first', 'last', 'org']:
+        if key in ['no', 'series', 'first', 'last', 'org']:
             self.__strcache = {}
         self.__notify(self.get_id())
 
     def __delitem__(self, key):
         key = colkey(key)
         del (self.__store[key])
-        if key in ['first', 'last', 'org']:
+        if key in ['no', 'series', 'first', 'last', 'org']:
             self.__strcache = {}
         self.__notify(self.get_id())
 
@@ -458,6 +717,21 @@ class riderdb():
                         count += 1
         return count
 
+    def update_cats(self, oldcat, newcat, notify=True):
+        """Update all instances of oldcat to newcat in each of the riders"""
+        for r in self.__store.values():
+            if r['series'] != 'cat':
+                oldcat = oldcat.upper()
+                newcat = newcat.upper()
+                rcv = r['cat'].upper().split()
+                if oldcat in rcv:
+                    oft = rcv.index(oldcat)
+                    rcv.insert(oft, newcat)
+                    del (rcv[oft + 1])
+                    r.set_value('cat', ' '.join(rcv))
+                    if notify:
+                        r.notify()
+
     def __len__(self):
         return len(self.__store)
 
@@ -524,7 +798,7 @@ class riderdb():
         ret = None
         if series is None:
             riderno, series = strops.bibstr2bibser(riderno)
-        rkey = (riderno.lower(), series.lower())
+        rkey = (riderno.upper(), series.lower())
         if rkey in self.__store:
             ret = rkey
         return ret
@@ -534,6 +808,10 @@ class riderdb():
 
     def __contains__(self, item):
         return item in self.__store
+
+    def notify(self, data=None):
+        """Trigger a manual notify call"""
+        self.__notify(data)
 
     def set_notify(self, cb=None):
         """Set the data change notification callback."""
