@@ -22,7 +22,7 @@ _RRS_PASSLEN = 20
 # status record length
 _RRS_STATUSLEN = 25
 # Warn if battery voltage is below this many volts
-_RRS_LOWBATT = 2.0
+_RRS_LOWBATT = 2.3
 _RRS_SYNFMT = 'SETTIME;{:04d}-{:02d}-{:02d};{:02d}:{:02d}:{:02d}.{:03d}'
 _RRS_EOL = '\r\n'
 _RRS_MARKER = '99999'
@@ -214,7 +214,7 @@ class rrs(decoder):
                     rssival = int(rssi, 16)
                     twofour = -90 + ((rssival & 0x70) >> 2)
                     lstrength = 1 + (rssival & 0x0f)
-                    if lstrength < 5 or twofour < -82 or hitcount < 4:
+                    if lstrength < 3 or twofour < -82 or hitcount < 3:
                         _log.warning(
                             'Poor read %s: Hits:%d RSSI:%ddBm Loop:%ddB',
                             tagid, hitcount, twofour, lstrength)

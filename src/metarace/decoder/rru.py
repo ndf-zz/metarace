@@ -19,7 +19,7 @@ _log.setLevel(logging.DEBUG)
 _RRU_BAUD = 19200
 _RRU_PASSLEN = 12
 _RRU_BEACONLEN = 17
-_RRU_LOWBATT = 2.1  # Warn if battery voltage is below this many volts
+_RRU_LOWBATT = 2.3  # Warn if battery voltage is below this many volts
 _RRU_REFCHECK = 1800  # check ref after this many timeouts
 _RRU_REFTHRESH = 0x2a30000  # 2 x 86400 x 256
 _RRU_ENCODING = 'iso8859-1'
@@ -560,7 +560,7 @@ class rru(decoder):
                     rssival = int(rssi, 16)
                     twofour = -90 + ((rssival & 0x70) >> 2)
                     lstrength = 1 + (rssival & 0x0f)
-                    if lstrength < 5 or twofour < -82 or hitcount < 4:
+                    if lstrength < 3 or twofour < -82 or hitcount < 3:
                         _log.warning(
                             'Poor read %s: Hits:%d RSSI:%ddBm Loop:%ddB',
                             tagid, hitcount, twofour, lstrength)
