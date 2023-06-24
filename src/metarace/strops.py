@@ -64,42 +64,23 @@ CHAN_UNKNOWN = -1
 
 # running number comparisons
 RUNNER_NOS = {
-    'red': 0,
-    'whi': 1,
-    'blu': 2,
-    'yel': 3,
-    'grn': 4,
-    'pin': 5,
-    'bla': 6,
-    'gry': 7,
-    'ora': 8,
-    'pur': 9,
-    'rdw': 10,
-    'blw': 11,
-    'ylw': 12,
-    'grw': 13
+    'RED': 0,
+    'WHI': 1,
+    'BLU': 2,
+    'YEL': 3,
+    'GRN': 4,
+    'PIN': 5,
+    'BLA': 6,
+    'GRY': 7,
+    'ORA': 8,
+    'PUR': 9,
+    'RDW': 10,
+    'BLW': 11,
+    'YLW': 12,
+    'GRW': 13
 }
 
 DNFCODEMAP = {'otl': 0, 'dsq': 1, 'dnf': 3, 'dns': 4, '': 2}
-
-
-def cmp_no(x, y):
-    """Replicate py2 cmp() for numeric quantities."""
-    if x == y:
-        return 0
-    elif x < y:
-        return -1
-    else:
-        return 1
-
-
-def cmp_dnf(x, y):
-    """Comparison func for two dnf codes."""
-    if x not in DNFCODEMAP:
-        x = ''
-    if y not in DNFCODEMAP:
-        y = ''
-    return cmp_no(DNFCODEMAP[x], DNFCODEMAP[y])
 
 
 def rand_key(data=None):
@@ -146,8 +127,8 @@ def bibstr_key(bibstr=''):
         if sbib and sbib.isdigit():
             bval = int(sbib)
         else:
-            if bib.lower()[0:3] in RUNNER_NOS:
-                bval = RUNNER_NOS[bib.lower()[0:3]]
+            if bib.upper()[0:3] in RUNNER_NOS:
+                bval = RUNNER_NOS[bib.upper()[0:3]]
             else:
                 bval = id(bib)
     sval = 0
@@ -316,9 +297,10 @@ def truncpad(srcline, length, align='l', ellipsis=True):
     return ret
 
 
-def resname_bib(bib, first, last, club):
+def resname_bib(bib, first, last, club, series=''):
     """Return rider name formatted for results with bib."""
-    ret = [bib, ' ', fitname(first, last, 64)]
+    bibstr = bibser2bibstr(bib, series)
+    ret = [bibstr, ' ', fitname(first, last, 64)]
     if club is not None and club != '':
         if len(club) < 4:
             club = club.upper()
@@ -370,11 +352,11 @@ def reformat_biblist(bibstr):
 def riderlist_split(riderstr, rdb=None, series=''):
     """Filter, search and return a list of matching riders for entry."""
     ret = []
-    riderstr = riderstr.lower()
+    riderstr = riderstr.upper()
 
     # first do riderdb lookups
     if rdb is not None:
-        if riderstr.strip() == 'all':
+        if riderstr.strip() == 'ALL':
             riderstr = ''
             for r in rdb:
                 # (bib, series), ...
@@ -382,9 +364,9 @@ def riderlist_split(riderstr, rdb=None, series=''):
                     ret.append(r[0])
         else:
             for cat in rdb.listcats(series):
-                if len(cat) > 0 and cat.lower() in riderstr:
+                if len(cat) > 0 and cat.upper() in riderstr:
                     ret.extend(rdb.biblistfromcat(cat, series))
-                    riderstr = riderstr.replace(cat.lower(), '')
+                    riderstr = riderstr.replace(cat.upper(), '')
 
     # pass 2: append riders and expand any series if possible
     riderstr = reformat_placelist(riderstr)
@@ -610,9 +592,9 @@ def bibstr2bibser(bibstr=''):
     ret_bib = ''
     ret_ser = ''
     if len(a) > 0:
-        ret_bib = a[0]
+        ret_bib = a[0].upper()
     if len(a) > 1:
-        ret_ser = a[1]
+        ret_ser = a[1].lower()
     return (ret_bib, ret_ser)
 
 
@@ -627,9 +609,9 @@ def lapstring(lapcount=None):
 
 def bibser2bibstr(bib='', ser=''):
     """Return a valid bib.series string."""
-    ret = bib
+    ret = bib.upper()
     if ser != '':
-        ret += '.' + ser
+        ret += '.' + ser.lower()
     return ret
 
 
