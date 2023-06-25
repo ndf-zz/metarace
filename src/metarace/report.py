@@ -268,9 +268,9 @@ def vec2htmllinkrow(vec=[], xtn='', rep=None):
     # evno -> column one
     # N/A
     # descr -> column two
-    # status
+    # text
     # link
-    # status
+    # text
     # link
     rowmap = vecmapstr(vec, 7)
     cols = []
@@ -279,21 +279,21 @@ def vec2htmllinkrow(vec=[], xtn='', rep=None):
         cols.append(htlib.td(rowmap[2]))  # DESCR
         bstyle = rep.buttonstyle
         stxt = ''
-        if rowmap[4]:  # startlist is present
-            if 'provisional' in rowmap[3].lower():
-                bstyle = rep.warnbuttonstyle
-            stxt = htlib.a('Startlist', {
-                'href': rowmap[4] + xtn,
-                'class': bstyle
-            })
+        if rowmap[4]:  # 'startlist' is present
+            ltxt = 'Startlist'
+            flnk = rowmap[4] + xtn
+            if rowmap[3]:
+                ltxt = rowmap[3]
+                flnk = rowmap[4]
+            stxt = htlib.a(ltxt, {'href': flnk, 'class': bstyle})
         rtxt = ''
         if rowmap[6]:  # result is present
-            if 'provisional' in rowmap[5].lower():
-                bstyle = rep.warnbuttonstyle
-            rtxt = htlib.a('Result', {
-                'href': rowmap[6] + xtn,
-                'class': bstyle
-            })
+            ltxt = 'Result'
+            flnk = rowmap[6] + xtn
+            if rowmap[5]:
+                ltxt = rowmap[5]
+                flnk = rowmap[6]
+            rtxt = htlib.a(ltxt, {'href': flnk, 'class': bstyle})
         cols.append(htlib.td(stxt))
         cols.append(htlib.td(rtxt))
     else:  # Old-style trackmeet event index
