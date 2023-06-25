@@ -16,7 +16,7 @@ _log = logging.getLogger('metarace.jsonconfig')
 _log.setLevel(logging.DEBUG)
 
 
-class config(object):
+class config:
 
     def __init__(self, default={}):
         """Create config object with a deep copy of the provided default."""

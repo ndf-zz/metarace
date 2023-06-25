@@ -2,7 +2,7 @@
 """Countback support."""
 
 
-class countback(object):
+class countback:
     """Wrapper for countback store/compare."""
     __hash__ = None
 

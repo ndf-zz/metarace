@@ -18,7 +18,7 @@ for i in range(0, 256):
 
 
 # unicode translation 'map' class
-class unicodetrans(object):
+class unicodetrans:
 
     def __init__(self, keep='', replace=SPACEBLOCK, replacechar=' '):
         self.comp = dict((ord(c), replacechar) for c in replace)

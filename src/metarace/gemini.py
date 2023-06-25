@@ -74,7 +74,7 @@ TCMDS = ('EXIT', 'PORT', 'MSG')
 ENCODING = 'ascii'
 
 
-class scbport(object):
+class scbport:
     """Gemini scoreboard communication port object."""
 
     def __init__(self, port='/dev/ttyUSB1'):

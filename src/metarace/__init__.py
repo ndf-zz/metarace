@@ -168,7 +168,7 @@ def resource_file(name=''):
         raise FileNotFoundError('Named resource not found: ' + repr(name))
 
 
-class savefile(object):
+class savefile:
     """Tempfile-backed save file contextmanager.
 
        Creates a temporary file with the desired mode and encoding

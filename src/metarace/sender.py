@@ -31,7 +31,7 @@ _log = logging.getLogger('metarace.sender')
 _log.setLevel(logging.DEBUG)
 
 
-class serialport(object):
+class serialport:
     """Scoreboard communication port object."""
 
     def __init__(self, addr, baudrate):
@@ -65,7 +65,7 @@ class serialport(object):
             pass
 
 
-class scbport(object):
+class scbport:
     """Scoreboard communication port object."""
 
     def __init__(self, addr, protocol):

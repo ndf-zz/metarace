@@ -66,7 +66,7 @@ def decode(tbuf=''):
 
 
 # UNT4 Packet class
-class unt4(object):
+class unt4:
     """UNT4 Packet Class."""
 
     def __init__(self,

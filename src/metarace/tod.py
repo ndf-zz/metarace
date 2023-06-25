@@ -266,7 +266,7 @@ def _tv2dec(timeval):
     return ret
 
 
-class tod(object):
+class tod:
     """A class for representing time of day, net time and RFID events."""
 
     def __init__(self,
@@ -518,7 +518,7 @@ for c in ['ntr', 'caught', 'rel', 'abort', 'otl', 'dnf', 'dns', 'dsq']:
     cof += extra
 
 
-class todlist(object):
+class todlist:
     """ToD list helper class for managing splits and ranks."""
 
     def __init__(self, lbl=''):

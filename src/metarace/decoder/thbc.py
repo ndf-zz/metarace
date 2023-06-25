@@ -491,7 +491,7 @@ class thbc(decoder):
         _log.debug('Exiting')
 
 
-class dgram(object):
+class dgram:
     """Serial-like UDP port object."""
 
     def __init__(self, host, port):

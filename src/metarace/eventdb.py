@@ -97,7 +97,7 @@ def get_header(cols=DEFAULT_COLUMN_ORDER):
     return [EVENT_COLUMNS[c] for c in cols]
 
 
-class event(object):
+class event:
     """CSV-backed event listing."""
 
     def get_row(self, coldump=DEFAULT_COLUMN_ORDER):
@@ -177,7 +177,7 @@ class event(object):
         pass
 
 
-class eventdb(object):
+class eventdb:
     """Event database."""
 
     def add_empty(self, evno=None):
