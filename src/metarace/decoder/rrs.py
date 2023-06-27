@@ -56,6 +56,7 @@ class rrs(decoder):
         self._pending_command = None
         self._allowstored = False
         self._passiveloop = 'C1'
+        self._curport = None
 
     # API overrides
     def sync(self, data=None):
@@ -113,6 +114,11 @@ class rrs(decoder):
     def _port(self, port):
         """Re-establish connection to supplied device port."""
         self._close()
+        if port is None and self._curport is not None:
+            port = self._curport
+        if port is None:
+            _log.debug('Re-connect cancelled: port is None')
+            return
         addr = (port, _RRS_TCP_PORT)
         _log.debug('Connecting to %r', addr)
         self._rdbuf = b''
@@ -127,6 +133,7 @@ class rrs(decoder):
         s.settimeout(_RRS_IOTIMEOUT)
         self._io = s
         self.sane()
+        self._curport = port
 
     def _sync(self, data=None):
         a = datetime.datetime.now()

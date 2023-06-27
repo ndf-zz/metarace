@@ -12,7 +12,8 @@ import time
 from . import (decoder, DECODER_LOG_LEVEL)
 from metarace import sysconf
 from metarace import tod
-from libscrc import mcrf4xx
+# todo: remove this
+from libscrc import mcrf4xx as oldmcrf4xx
 
 _log = logging.getLogger('metarace.decoder.thbc')
 _log.setLevel(logging.DEBUG)
@@ -101,6 +102,39 @@ DEFAULT_IPCFG = {
 DEFPORT = '/dev/ttyS0'
 
 
+def reflect(dat, width):
+    """Reverse bit order of byte"""
+    out = dat & 0x01
+    for i in range(width - 1):
+        dat >>= 1
+        out = (out << 1) | (dat & 0x01)
+    return out
+
+
+# Build a lookup table for the MCRF4XX CRC
+# Source: pycrc https://pycrc.org/
+_MCRF4XXTBL = [0] * 256
+for i in range(256):
+    r = i
+    r = reflect(r, 8) << 8
+    for j in range(8):
+        if r & 0x8000 != 0:
+            r = (r << 1) ^ 0x1021
+        else:
+            r = (r << 1)
+    r = reflect(r, 16)
+    _MCRF4XXTBL[i] = r & 0xffff
+
+
+def mcrf4xx(msgstr=b''):
+    """Return MCRF4XX CRC for provided byte string."""
+    r = 0xffff  # reflect(0xffff,16) == 0xffff
+    for b in msgstr:
+        i = (r ^ b) & 0xff
+        r = ((r >> 8) ^ _MCRF4XXTBL[i]) & 0xffff
+    return r & 0xffff  # collapse two reflects, mask and ^0
+
+
 def thbc_sum(msgstr=b''):
     """Return sum of character values as decimal string."""
     ret = 0
@@ -136,6 +170,7 @@ class thbc(decoder):
         self._io = None
         self._cksumerr = 0
         self._rdbuf = b''  # bytestring read buffer
+        self._curport = None
 
     # API overrides
     def status(self):
@@ -181,6 +216,11 @@ class thbc(decoder):
     def _port(self, port):
         """Re-establish connection to supplied device port."""
         self._close()
+        if port is None and self._curport is not None:
+            port = self._curport
+        if port is None:
+            _log.debug('Re-connect cancelled: port is None')
+            return
         s = None
         self._rdbuf = b''
         if '/' not in port and '.' in port:
@@ -195,6 +235,7 @@ class thbc(decoder):
         # queue sane through command loop
         time.sleep(0.2)
         self.sane()
+        self._curport = port
 
     def _sync(self, data=None):
         _log.debug('Performing blocking sync')
@@ -248,6 +289,9 @@ class thbc(decoder):
     def _v3_cmd(self, cmdstr=b''):
         """Pack and send a v3 command directly to port."""
         crc = mcrf4xx(cmdstr)
+        ocrc = oldmcrf4xx(cmdstr)
+        _log.debug('Orig CRC: %r, New CRC: %r, Same:%r', ocrc, crc,
+                   crc == ocrc)
         crcstr = bytes([(crc >> 8) & 0xff, crc & 0xff])
         self._write(ESCAPE + cmdstr + crcstr + b'>')
 

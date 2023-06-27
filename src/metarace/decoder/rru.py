@@ -235,6 +235,7 @@ class rru(decoder):
         self._allowstored = False
         self._autochannelid = None
         self._refcount = 0
+        self._curport = None
 
     # API overrides
     def status(self):
@@ -266,6 +267,11 @@ class rru(decoder):
         self._rrustamp = None
         self._rruht = None
         self._close()
+        if port is None and self._curport is not None:
+            port = self._curport
+        if port is None:
+            _log.debug('Re-connect cancelled: port is None')
+            return
         self._rdbuf = b''
         _log.debug('Connecting to %r', port)
         s = serial.Serial(baudrate=_RRU_BAUD,
