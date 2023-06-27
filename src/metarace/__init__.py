@@ -7,10 +7,13 @@ import fcntl
 import errno
 from tempfile import NamedTemporaryFile
 from shutil import copyfile
-from importlib_resources import files, as_file
 from metarace import jsonconfig
+try:
+    from importlib.resources import files, as_file
+except ImportError:
+    print('Python >= 3.9 is required to use this module')
 
-VERSION = '2.1.0'
+VERSION = '2.1.1'
 DATA_PATH = os.path.realpath(
     os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
