@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "metarace"
-version = "2.1.0"
+version = "2.1.1"
 description = "Cyclesport results and timing toolkit"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 keywords = ["cyclesport", "results", "timing"]
 authors = [
@@ -20,12 +20,10 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "importlib-resources",
     "pyserial",
     "python-dateutil",
     "pycairo",
     "PyGObject",
-    "libscrc",
     "paho-mqtt",
     "xlwt",
     "grapheme",

@@ -4,7 +4,7 @@ A collection of Python modules to assist with cycle race timekeeping
 and official result preparation. Version 2 of Metarace is a
 re-write for Python 3 which removes static pyGTK/GLib dependencies.
 
-Unlike version 1, application-level modules are not contained in
+Application-level modules are not contained in
 the library, they are available separately:
 
    - [roadmeet](https://github.com/ndf-zz/metarace-roadmeet) : Timing
@@ -16,13 +16,16 @@ the library, they are available separately:
      Trial starter console.
 
 
+## Work in Progress
+
+   - include grapheme support in strops
+   - update pango text layouts to align vertically by text baseline
+   - re-write report library for better sectioning and dynamic updates
+   - module documentation
+   - sample scripts
+
+
 ## Module Overview
-
-For details on module contents, methods and properties, use
-pydoc:
-
-	$ pydoc metarace.tod
-
 
 ### metarace: Base Library
 
@@ -44,7 +47,7 @@ Store details for competitors, teams, and categories.
 
 ### tod: Time of Day
 
-Represent timing measurements and calculations for
+Represent timing measurements, calculations for
 short intervals (<24 hours) and aggregate times.
 
 
@@ -113,7 +116,7 @@ Create sectioned reports and save to PDF, HTML, XLS and JSON.
 
 ### export: Result Export and Mirroring
 
-Execute a process on the host system, to
+Execute a process on the host system to
 mirror result files to a remote server,
 or to run a script.
 
@@ -127,15 +130,15 @@ Store details for events within a meet.
 
 System requirements:
 
+   - Python >= 3.9
    - Cairo
    - Pango
-   - PangoCairo
    - Rsvg
    - Python gi
-   - Python gi cairo
-   - tex-gyre (fonts)
+   - Python gi-cairo
+   - tex-gyre (optional, recommended)
+   - evince (optional, recommended)
    - mosquitto (optional)
-   - evince (optional)
    - libreoffice (optional)
 
 Python packages:
@@ -143,19 +146,35 @@ Python packages:
    - pyserial: Serial port interface
    - python-dateutil: Generic date/time string parser
    - xlwt: XLS file writer
-   - libscrc: 16 bit CRC for thbc
    - paho-mqtt: MQTT interface
-   - importlib-resources: Package data files() interface (transitional)
+   - grapheme: Unicode grapheme support
 
 
 ## Installation
 
-Install system requirements Cairo, Pango, Rsvg,
-Tex-Gyre and optionally Mosquitto, then use pip
-to install metarace.
+Check that your python
+version is at least 3.9 before installing. This library will
+not work with python versions less than 3.9.
 
 
-### Debian (11+)
+### Debian 11+
 
-	$ sudo apt-get install gir1.2-rsvg-2.0 gir1.2-pango-1.0 tex-gyre python3-cairo python3-gi python3-gi-cairo python3-pip mosquitto evince
-	$ pip install metarace
+Install system requirements with apt:
+
+	$ sudo apt install python3-venv python3-pip python3-cairo python3-gi python3-gi-cairo
+	$ sudo apt install gir1.2-rsvg-2.0 gir1.2-pango-1.0
+	$ sudo apt install python3-serial python3-paho-mqtt python3-dateutil python3-xlwt
+
+Optionally add fonts, PDF viewer and MQTT broker:
+
+	$ sudo apt install tex-gyre evince mosquitto
+
+Create a virtualenv for metarace and associated packages:
+
+	$ python3 -m venv --system-site-packages mrv
+
+Activate the virtualenv and install packages with pip:
+
+	$ source ./mrv/bin/activate
+	(mrv) $ pip3 install metarace
+
