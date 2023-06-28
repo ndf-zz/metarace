@@ -4483,10 +4483,8 @@ class report:
             for li in metalist:
                 items = [htlib.i('', {'class': li[0]})]
                 for c in li[1]:
-                    items.append(' ')
                     items.append(c)
                 if pmark is not None:
-                    items.append(' ')
                     items.append(pmark)
                 carditems.append(
                     htlib.li(

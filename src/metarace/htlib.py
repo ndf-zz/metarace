@@ -81,32 +81,32 @@ def emptypage():
                 link(
                     attrs={
                         'href':
-                        'https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css',
+                        'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
                         'integrity':
-                        'sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor',
+                        'sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM',
                         'crossorigin': 'anonymous',
                         'rel': 'stylesheet'
                     }),
                 link(
                     attrs={
                         'href':
-                        'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.3/font/bootstrap-icons.css',
+                        'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css',
                         'rel': 'stylesheet'
                     }),
                 script(
                     element(
-                        'function ud(){null!==document.querySelector("#pgre")&&setTimeout("history.go(0);",55329)}function rl(){return setTimeout("history.go(0);",10),!1}'
+                        '"use strict";let pageReload=null;function rl(){setTimeout(function(){history.go(0)},10);return false}function pageInit(){pageReload=document.getElementById("pageReload");pageReload.addEventListener("click",rl)}window.addEventListener("load",pageInit,false);'
                     ), ),
             )),
             body((
                 '__REPORT_NAV__',
-                div((
-                    h1('__REPORT_TITLE__'),
+                main((
+                    h2('__REPORT_TITLE__'),
                     '__REPORT_CONTENT__',
                 ),
-                    attrs={'class': 'container'}),
+                     attrs={'class': 'container'}),
             ),
-                 attrs={'onload': 'ud();'}),
+                 attrs={}),
         ), {'lang': 'en'})))
 
 
