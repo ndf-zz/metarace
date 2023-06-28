@@ -13,7 +13,7 @@ try:
 except ImportError:
     print('Python >= 3.9 is required to use this module')
 
-VERSION = '2.1.1'
+VERSION = '2.1.2'
 DATA_PATH = os.path.realpath(
     os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
