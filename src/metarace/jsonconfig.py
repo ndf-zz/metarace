@@ -39,6 +39,7 @@ class config:
         if isinstance(section, str):
             if section not in self.__store:
                 self.__store[section] = dict()
+            return self.__store[section]
         else:
             raise TypeError('Invalid section key: ' + repr(section))
 
