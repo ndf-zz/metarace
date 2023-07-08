@@ -12,7 +12,7 @@
 
   attr : (str) config attribute in object
   type : (str) value type, one of:
-		'str', 'tod', 'int', 'float', 'chan', 'bool'
+		'none', 'str', 'tod', 'int', 'float', 'chan', 'bool'
   prompt : (str) Text prompt for option
   subtext : (str) Supplementary text for option
   hint : (str) Tooltip, additional info for option
@@ -53,7 +53,6 @@ class _configEncoder(json.JSONEncoder):
     """Serialise tod objects to config."""
 
     def default(self, obj):
-        print('serialising obj: %r', obj)
         if isinstance(obj, tod):
             return obj.serialize()
         return json.JSONEncoder.default(self, obj)
@@ -84,10 +83,8 @@ class config:
             if section not in self.__store:
                 self.__store[section] = dict()
             if schema is not None:
+                # overwrite schema
                 self.__schema[section] = schema
-            else:
-                if section in self.__schema:
-                    del self.__schema[section]
             return self.__store[section]
         else:
             raise TypeError('Invalid section key: ' + repr(section))
@@ -163,10 +160,102 @@ class config:
 
     def get_tod(self, section, key, default=None):
         ret = default
-        nt = mktod(self.get(section, key))
-        if nt is not None:
-            ret = nt
+        nv = self.get(section, key)
+        if isinstance(nv, tod):
+            ret = nv
+        else:
+            nv = mktod(nv)
+            if nv is not None:
+                ret = nv
         return ret
+
+    def get_value(self, section, key):
+        """Return value according to schema"""
+        ret = None
+        schema = {}
+        if section in self.__schema:
+            schema = self.__schema[section]
+        if key in schema:
+            option = schema[key]
+            if 'default' in option:
+                ret = option['default']
+            # does the schema require a value?
+            otype = 'str'
+            if 'type' in option:
+                otype = option['type']
+            ctrl = 'text'
+            if 'control' in option:
+                ctrl = option['control']
+            if otype != 'none' and ctrl != 'section':
+                # schema expects a value
+                if self.has_option(section, key):
+                    if otype == 'tod':
+                        ret = self.get_tod(section, key, ret)
+                    elif otype == 'int':
+                        ret = self.get_int(section, key, ret)
+                    elif otype == 'chan':
+                        ret = self.get_chan(section, key, ret)
+                    elif otype == 'bool':
+                        ret = self.get_bool(section, key, ret)
+                    elif otype == 'float':
+                        ret = self.get_float(section, key, ret)
+                    else:
+                        # assume str
+                        ret = self.get_str(section, key, ret)
+                else:
+                    _log.debug('Default used for %r', key)
+            else:
+                # schema does not require a value
+                _log.debug('No value assigned for option %r', key)
+        else:
+            _log.debug('Requested value %r:%r not in schema', section, key)
+            if self.has_option(section, key):
+                ret = self.get(section, key)
+        return ret
+
+    def export_section(self, section, obj):
+        """Copy values from section to obj according to schema"""
+        if section not in self.__schema:
+            _log.error('No schema for section export %r', section)
+            return False
+        for option in self.__schema[section]:
+            schema = self.__schema[section][option]
+            otype = 'txt'
+            if 'type' in schema:
+                otype = schema['type']
+            if otype != 'none':
+                if 'attr' in schema and hasattr(obj, schema['attr']):
+                    attr = schema['attr']
+                    val = self.get_value(section, option)
+                    setattr(obj, attr, val)
+                    _log.debug('Export option:%r, attr:%r, val:%r', option,
+                               attr, val)
+                else:
+                    _log.debug('Skip option: %r', option)
+            else:
+                _log.debug('Option: %r type none', option)
+
+    def import_section(self, section, obj):
+        """Copy values from obj into section according to schema"""
+        if section not in self.__schema:
+            _log.error('No schema for section import %r', section)
+            return False
+        for option in self.__schema[section]:
+            schema = self.__schema[section][option]
+            otype = 'txt'
+            if 'type' in schema:
+                otype = schema['type']
+            if otype != 'none':
+                if 'attr' in schema and hasattr(obj, schema['attr']):
+                    attr = schema['attr']
+                    val = getattr(obj, attr)
+                    self.set(section, option, val)
+                    _log.debug('Import option:%r, attr:%r, val:%r', option,
+                               attr, val)
+                else:
+                    _log.debug('Skip option: %r', option)
+            else:
+                _log.debug('Option: %r type none', option)
 
     def write(self, file):
         json.dump(self.__store, file, indent=1, cls=_configEncoder)
