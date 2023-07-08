@@ -28,8 +28,7 @@
   --
   baudrate: (int) serial port speed [38400]
   ctsrts: (bool) if True, use hardware flow control [False]
-  chandelay: (dict) map of channel ids to delay time in seconds [{}]
-             example: {'C2':'0.200'}
+  delayN: (tod) channel N delay time in seconds [None]
 
  Notes:
 
@@ -75,6 +74,99 @@ _log.setLevel(logging.DEBUG)
 _TIMER_LOG_LEVEL = 25
 logging.addLevelName(_TIMER_LOG_LEVEL, 'TIMER')
 
+_CONFIG_SCHEMA = {
+    'ttype': {
+        'prompt': 'Alge Timy RS-232 Options',
+        'control': 'section',
+    },
+    'baudrate': {
+        'prompt': 'Baudrate:',
+        'attr': 'baudrate',
+        'hint': 'Serial line speed in bps',
+        'control': 'choice',
+        'type': 'int',
+        'options': {
+            '9600': '9600 (Timy)',
+            '19200': '19200',
+            '38400': '38400 (Timy 2/3)'
+        },
+        'default': _DEFBAUD,
+    },
+    'ctsrts': {
+        'prompt': 'Handshake:',
+        'attr': 'cstrts',
+        'hint': 'Enable RTS-CTS handshake on serial line',
+        'subtext': 'With RTS-CTS?',
+        'control': 'check',
+        'type': 'bool',
+        'default': _DEFCTSRTS,
+    },
+    'dsec': {
+        'prompt': 'Channel Delays',
+        'control': 'section',
+    },
+    'delay0': {
+        'prompt': 'C0:',
+        'control': 'short',
+        'subtext': '(Start)',
+        'type': 'tod',
+        'places': '4',
+    },
+    'delay1': {
+        'prompt': 'C1:',
+        'control': 'short',
+        'subtext': '(Finish)',
+        'type': 'tod',
+        'places': '4',
+    },
+    'delay2': {
+        'prompt': 'C2:',
+        'control': 'short',
+        'subtext': '(Cell/Pursuit A)',
+        'type': 'tod',
+        'places': '4',
+    },
+    'delay3': {
+        'prompt': 'C3:',
+        'control': 'short',
+        'subtext': '(Plunger/Pursuit B)',
+        'type': 'tod',
+        'places': '4',
+    },
+    'delay4': {
+        'prompt': 'C4:',
+        'control': 'short',
+        'subtext': '(Aux Start/200m Start)',
+        'type': 'tod',
+        'places': '4',
+    },
+    'delay5': {
+        'prompt': 'C5:',
+        'control': 'short',
+        'subtext': '(100m Split)',
+        'type': 'tod',
+        'places': '4',
+    },
+    'delay6': {
+        'prompt': 'C6:',
+        'control': 'short',
+        'type': 'tod',
+        'places': '4',
+    },
+    'delay7': {
+        'prompt': 'C7:',
+        'control': 'short',
+        'type': 'tod',
+        'places': '4',
+    },
+    'delay8': {
+        'prompt': 'C8:',
+        'control': 'short',
+        'type': 'tod',
+        'places': '4',
+    },
+}
+
 
 def _timy_checksum(msg):
     """Return a checksum for the Timy message string."""
@@ -118,28 +210,19 @@ class timy(threading.Thread):
         self.__armlocked = False
         self.__chandelay = {}
         self.__cb = _defcallback
-        self.__baudrate = _DEFBAUD
-        self.__ctsrts = _DEFCTSRTS
-        self.name = 'timy'
+        self.__name = 'timy'
         self.error = False
-        if sysconf.has_option('timy', 'baudrate'):
-            self.__baudrate = sysconf.get_posint('timy', 'baudrate', _DEFBAUD)
-            _log.debug('Set serial baudrate to: %d', self.__baudrate)
-        if sysconf.has_option('timy', 'ctsrts'):
-            self.__ctsrts = sysconf.get_bool('timy', 'ctsrts')
-            _log.debug('Set serial CTSRTS to: %s', self.__ctsrts)
-        if sysconf.has_option('timy', 'chandelay'):
-            nd = sysconf.get('timy', 'chandelay')
-            if isinstance(nd, dict):
-                for cv in nd:
-                    c = chan2id(cv)
-                    if c != _CHAN_UNKNOWN:
-                        nv = tod.mktod(nd[cv])
-                        self.__chandelay[c] = nv
-                        _log.debug('Set channel delay %s: %s', c,
-                                   nv.rawtime(4))
-            else:
-                _log.debug('Invalid channel delay setting: %r', nd)
+
+        sysconf.add_section('timy', _CONFIG_SCHEMA)
+        self.__baudrate = sysconf.get_value('timy', 'baudrate')
+        self.__ctsrts = sysconf.get_value('timy', 'ctsrts')
+        _log.debug('Set serial baudrate to: %d', self.__baudrate)
+        _log.debug('Set serial CTSRTS to: %s', self.__ctsrts)
+        for c in range(0, 8):
+            cd = sysconf.get_value('timy', 'delay' + str(c))
+            if cd is not None:
+                self.__chandelay[c] = cd
+                _log.debug('Set channel delay %s: %s', c, cd.rawtime(4))
 
     def setcb(self, func=None):
         """Set or clear impulse callback function."""
@@ -290,43 +373,46 @@ class timy(threading.Thread):
         msg = msg.rstrip()  # remove cr/lf if present
         tsum = 0
         csum = 0
-        if len(msg) == 28:
-            # assume checksum present, grab it and truncate msg
-            tsum = _timy_getsum(msg[26:28])
-            msg = msg[0:26]
-            csum = _timy_checksum(msg)
-        if len(msg) == 26:
-            # assume now msg is a timing impulse
-            if tsum == csum:
-                e = msg.split()
-                if len(e) == 4:
-                    cid = chan2id(e[1])
-                    ret = tod.mktod(e[2])
-                    if ret is not None:
-                        if cid in self.__chandelay:
-                            # note: ret might wrap over 24hr boundary
-                            ret = ret - self.__chandelay[cid]
-                        ret.index = e[0]
-                        ret.chan = e[1]
-                        ret.refid = ''
-                        ret.source = self.name
+
+        if msg == 'CLR':
+            self.__cqueue.put_nowait(('RCLR', ''))
+            _log.debug('RCLR Ack')
+        elif msg.startswith('HW_SN'):
+            _log.info('%r connected', msg.split()[-1])
+        elif msg.startswith('NSF'):
+            _log.info('Version: %r', msg.replace('NSF', ''))
+        elif msg.startswith('PROG:'):
+            _log.debug('Program: %r', msg.split()[-1])
+        elif msg.startswith('PULSE HOLD:'):
+            _log.warning('Pulse hold: %s', msg.split('][')[1])
+        else:
+            if len(msg) == 28:
+                # assume checksum present, grab it and truncate msg
+                tsum = _timy_getsum(msg[26:28])
+                msg = msg[0:26]
+                csum = _timy_checksum(msg)
+            if len(msg) == 26:
+                # assume now msg is a timing impulse
+                if tsum == csum:
+                    e = msg.split()
+                    if len(e) == 4:
+                        cid = chan2id(e[1])
+                        ret = tod.mktod(e[2])
+                        if ret is not None:
+                            if cid in self.__chandelay:
+                                # note: ret might wrap over 24hr boundary
+                                ret = ret - self.__chandelay[cid]
+                            ret.index = e[0]
+                            ret.chan = e[1]
+                            ret.refid = ''
+                            ret.source = self.__name
+                        else:
+                            _log.error('Invalid message: %s', msg)
                     else:
                         _log.error('Invalid message: %s', msg)
                 else:
-                    _log.error('Invalid message: %s', msg)
-            else:
-                _log.error('Corrupt message: %s', msg)
-                _log.error('Checksum fail: 0x%02X != 0x%02X', tsum, csum)
-        else:
-            msg = msg.strip()
-            if msg == 'CLR':
-                self.__cqueue.put_nowait(('RCLR', ''))
-            elif msg.startswith('HW_SN'):
-                _log.info('%r connected', msg.split()[-1])
-            elif msg.startswith('NSF'):
-                _log.info('Version: %r', msg.replace('NSF', ''))
-            elif msg.startswith('PROG:'):
-                _log.debug('Program: %r', msg.split()[-1])
+                    _log.warning('Corrupt message: %s', msg)
+                    _log.debug('Checksum fail: 0x%02X != 0x%02X', tsum, csum)
         return ret
 
     def __proc_impulse(self, st):
@@ -364,7 +450,7 @@ class timy(threading.Thread):
                 # Return ends the current 'message'
                 self.__rdbuf += ch  # include trailing <cr>
                 msg = self.__rdbuf.decode(_ENCODING, 'ignore')
-                _log.debug(u'RECV: %r', msg)
+                #_log.debug('RECV: %r', msg)
                 t = self.__parse_message(msg)
                 if t is not None:
                     self.__proc_impulse(t)
@@ -397,7 +483,7 @@ class timy(threading.Thread):
                 if isinstance(m, tuple) and m[0] in _TCMDS:
                     if m[0] == 'MSG':
                         if self.__port is not None and not self.error:
-                            _log.debug('SEND: %r', m[1])
+                            #_log.debug('SEND: %r', m[1])
                             self.__port.write(m[1].encode(_ENCODING, 'ignore'))
                     elif m[0] == 'TRIG':
                         if isinstance(m[1], tod.tod):
