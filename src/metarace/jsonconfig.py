@@ -35,6 +35,7 @@ import json
 import os
 import logging
 from metarace.tod import tod, fromobj, mktod
+from metarace.strops import confopt_chan, CHAN_UNKNOWN
 
 _log = logging.getLogger('metarace.jsonconfig')
 _log.setLevel(logging.DEBUG)
@@ -116,6 +117,20 @@ class config:
         ret = default
         try:
             ret = float(self.get(section, key))
+        except Exception:
+            pass
+        return ret
+
+    def get_chan(self, section, key, default=None):
+        ret = default
+        try:
+            rv = self.get(section, key)
+            if rv is None or rv == '':
+                ret = None
+            else:
+                nv = confopt_chan(rv)
+                if nv != CHAN_UNKNOWN:
+                    ret = nv
         except Exception:
             pass
         return ret
