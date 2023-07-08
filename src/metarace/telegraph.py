@@ -35,14 +35,14 @@
   --
   host : (string) MQTT broker, None to disable ['localhost']
   port: (int) MQTT port [1883/8883]
-  usetls : (bool) if True, connect to server over TLS [False]
-  debug : (bool) if True, enable logging in MQTT library [False]
   username : (string) username [None]
   password : (string) password [None]
-  deftopic : (string) a default publish topic [None]
+  usetls : (bool) if True, connect to server over TLS [False]
   persist : (bool) if true, open a persistent connection to broker [False]
   clientid : (string) provide an explicit client id [None]
   qos : (int) default QOS to use for subscribe and publish [0]
+  debug : (bool) if True, enable logging in MQTT library [False]
+  deftopic : (string) a default publish topic [None]
 
 
 """
@@ -60,6 +60,81 @@ QUEUE_TIMEOUT = 2
 # module logger
 _log = logging.getLogger('metarace.telegraph')
 _log.setLevel(logging.DEBUG)
+
+_CONFIG_SCHEMA = {
+    'ttype': {
+        'prompt': 'MQTT Broker Details',
+        'control': 'section'
+    },
+    'host': {
+        'prompt': 'Host:',
+        'hint': 'Hostname or IP of MQTT broker',
+        'default': 'localhost',
+    },
+    'port': {
+        'prompt': 'Port:',
+        'control': 'short',
+        'hint': 'TCP port number of MQTT broker',
+        'type': 'int',
+        'default': 1883,
+    },
+    'usetls': {
+        'prompt': 'Security:',
+        'subtext': 'Use TLS?',
+        'type': 'bool',
+        'control': 'check',
+        'hint': 'Connect to MQTT broker using TLS',
+        'default': False
+    },
+    'username': {
+        'prompt': 'Username:',
+        'hint': 'Username on MQTT broker if required'
+    },
+    'password': {
+        'prompt': 'Password:',
+        'hint': 'Password on MQTT broker if required'
+    },
+    'debug': {
+        'prompt': 'Log:',
+        'control': 'check',
+        'type': 'bool',
+        'subtext': 'Debug MQTT connection?',
+        'hint': 'Log detailed information on connection to MQTT broken',
+        'default': False,
+    },
+    'ssec': {
+        'prompt': 'Session Options',
+        'control': 'section',
+    },
+    'clientid': {
+        'prompt': 'Client ID:',
+        'hint': 'Specify client id for MQTT connection'
+    },
+    'persist': {
+        'prompt': 'Session:',
+        'subtext': 'Persistent?',
+        'type': 'bool',
+        'control': 'check',
+        'hint': 'Request persistent session on broker',
+        'default': False,
+    },
+    'qos': {
+        'prompt': 'QoS:',
+        'control': 'choice',
+        'hint': 'Default message QOS',
+        'type': 'int',
+        'options': {
+            '0': '0 - At most once',
+            '1': '1 - At least once',
+            '2': '2 - Exactly once'
+        },
+        'default': 1,
+    },
+    'deftopic': {
+        'prompt': 'Default Topic:',
+        'hint': 'Default topic for messages published without one',
+    },
+}
 
 
 def from_json(payload=None):
@@ -177,65 +252,52 @@ class telegraph(threading.Thread):
         self.__queue = queue.Queue()
         self.__cb = defcallback
         self.__subscriptions = {}
-        self.__deftopic = None
         self.__connected = False
         self.__connect_pending = False
-        self.__host = 'localhost'
-        self.__port = 1883
         self.__cid = None
-        self.__persist = False
         self.__resub = True
-        self.__qos = 0
         self.__doreconnect = False
 
-        # check system config for overrides
-        if metarace.sysconf.has_option('telegraph', 'host'):
-            self.__host = metarace.sysconf.get_str('telegraph', 'host')
-        if metarace.sysconf.has_option('telegraph', 'deftopic'):
-            # note: this may be overidden by application
-            self.__deftopic = metarace.sysconf.get_str('telegraph', 'deftopic')
-        if metarace.sysconf.has_option('telegraph', 'qos'):
-            self.__qos = metarace.sysconf.get_posint('telegraph', 'qos', 0)
-            if self.__qos > 2:
-                _log.info('Invalid QOS %r set to %r', self.__qos, 2)
-                self.__qos = 2
-        if metarace.sysconf.has_option('telegraph', 'clientid'):
-            self.__cid = metarace.sysconf.get_str('telegraph', 'clientid')
+        metarace.sysconf.add_section('telegraph', _CONFIG_SCHEMA)
+        self.__host = metarace.sysconf.get_value('telegraph', 'host')
+        self.__port = metarace.sysconf.get_value('telegraph', 'port')
+        self.__deftopic = metarace.sysconf.get_value('telegraph', 'deftopic')
+        self.__qos = metarace.sysconf.get_value('telegraph', 'qos')
+        self.__persist = metarace.sysconf.get_value('telegraph', 'persist')
+        self.__cid = metarace.sysconf.get_value('telegraph', 'clientid')
+
+        # check values
+        if self.__qos > 2:
+            _log.info('Invalid QOS %r set to %r', self.__qos, 2)
+            self.__qos = 2
         if not self.__cid:
             self.__cid = str(uuid4())
+        _log.debug('Using QoS: %r', self.__qos)
         _log.debug('Using client id: %r', self.__cid)
-        if metarace.sysconf.has_option('telegraph', 'persist'):
-            self.__persist = metarace.sysconf.get_bool('telegraph', 'persist')
         _log.debug('Persistent connection: %r', self.__persist)
 
         # create mqtt client
         self.__client = mqtt.Client(client_id=self.__cid,
                                     clean_session=not self.__persist)
-        if metarace.sysconf.has_option('telegraph', 'debug'):
-            if metarace.sysconf.get_bool('telegraph', 'debug'):
-                _log.debug('Enabling mqtt/paho debug')
-                mqlog = logging.getLogger('metarace.telegraph.mqtt')
-                mqlog.setLevel(logging.DEBUG)
-                self.__client.enable_logger(mqlog)
-        if metarace.sysconf.has_option('telegraph', 'usetls'):
-            if metarace.sysconf.get_bool('telegraph', 'usetls'):
-                _log.debug('Enabling TLS connection')
+
+        if metarace.sysconf.get_value('telegraph', 'debug'):
+            _log.debug('Enabling mqtt/paho debug')
+            mqlog = logging.getLogger('metarace.telegraph.mqtt')
+            mqlog.setLevel(logging.DEBUG)
+            self.__client.enable_logger(mqlog)
+
+        if metarace.sysconf.get_value('telegraph', 'usetls'):
+            _log.debug('Enabling TLS connection')
+            if not metarace.sysconf.has_option('telegraph', 'port'):
+                # Update port for TLS if not exlicitly set
                 self.__port = 8883
-                self.__client.tls_set()
-        username = None
-        password = None
-        if metarace.sysconf.has_option('telegraph', 'username'):
-            username = metarace.sysconf.get_str('telegraph', 'username')
-        if metarace.sysconf.has_option('telegraph', 'password'):
-            password = metarace.sysconf.get_str('telegraph', 'password')
+                _log.debug('Set port to %r', self.__port)
+            self.__client.tls_set()
+        username = metarace.sysconf.get_value('telegraph', 'username')
+        password = metarace.sysconf.get_value('telegraph', 'password')
         if username and password:
             self.__client.username_pw_set(username, password)
-        # override automatic port selection if provided
-        if metarace.sysconf.has_option('telegraph', 'port'):
-            np = metarace.sysconf.get_posint('telegraph', 'port')
-            if np is not None:
-                self.__port = np
-                _log.debug('Set port to %r', self.__port)
+
         self.__client.reconnect_delay_set(2, 16)
         self.__client.on_message = self.__on_message
         self.__client.on_connect = self.__on_connect
