@@ -62,9 +62,26 @@ MILL = decimal.Decimal(1000000)
 ROUNDING = decimal.ROUND_DOWN
 
 
-def now(index='', chan='CLK', refid='', source='host'):
+def now(index='', chan='CLK', refid='', source=''):
     """Return a tod set to the current local time."""
     return tod(_now2dec(), index, chan, refid, source)
+
+
+def fromobj(obj):
+    """Create tod from serialized object"""
+    ret = None
+    try:
+        timeval = obj['timeval']
+        if '__agg__' in obj:
+            ret = agg(timeval)
+        else:
+            ret = tod(timeval)
+        for attr in ('index', 'chan', 'refid', 'source'):
+            if attr in obj:
+                setattr(ret, attr, obj[attr])
+    except Exception as e:
+        _log.warning('%s deserializing tod: %s', e.__class__.__name__, e)
+    return ret
 
 
 def fromdate(timestr=''):
@@ -269,12 +286,7 @@ def _tv2dec(timeval):
 class tod:
     """A class for representing time of day, net time and RFID events."""
 
-    def __init__(self,
-                 timeval=0,
-                 index='',
-                 chan='TOD',
-                 refid='',
-                 source='host'):
+    def __init__(self, timeval=0, index='', chan='', refid='', source=''):
         self.index = index
         self.chan = chan
         self.refid = refid
@@ -301,6 +313,15 @@ class tod:
                                                      repr(self.refid),
                                                      repr(self.source),
                                                      self.__class__.__name__)
+
+    def serialize(self):
+        """Return serialized object for JSON export"""
+        obj = {'__tod__': 1, 'timeval': str(self.timeval)}
+        for attr in ('index', 'chan', 'refid', 'source'):
+            val = getattr(self, attr)
+            if val:
+                obj[attr] = val
+        return obj
 
     def truncate(self, places=4):
         """Return a new truncated time value."""
@@ -454,17 +475,21 @@ class tod:
 class agg(tod):
     """Aggregate time type."""
 
-    def __init__(self,
-                 timeval=0,
-                 index='',
-                 chan='AGG',
-                 refid='',
-                 source='host'):
+    def __init__(self, timeval=0, index='', chan='', refid='', source=''):
         self.index = index
         self.chan = chan
         self.refid = refid
         self.source = source
         self.timeval = _tv2dec(timeval)
+
+    def serialize(self):
+        """Return serialized object for JSON export"""
+        obj = {'__agg__': 1, 'timeval': str(self.timeval)}
+        for attr in ('index', 'chan', 'refid', 'source'):
+            val = getattr(self, attr)
+            if val:
+                obj[attr] = val
+        return obj
 
     def __add__(self, other):
         """Compute addition and return aggregate."""
@@ -491,7 +516,7 @@ class agg(tod):
 
 # TOD 'constants'
 ZERO = tod()
-ONE = tod('1.0')
+ONE = tod(1)
 MINUTE = tod('1:00')
 MAX = tod('23h59:59.999990')  # largest val possible for tod
 MAXELAP = tod('23h30:00')  # max displayed elapsed time
