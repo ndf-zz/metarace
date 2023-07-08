@@ -41,6 +41,40 @@ _RRS_ERRORFLAGS = {
     1024: 'Active time sync error'
 }
 
+_CONFIG_SCHEMA = {
+    'ttype': {
+        'prompt': 'Race Result System/Active Extension',
+        'control': 'section'
+    },
+    'allowstored': {
+        'type': 'bool',
+        'attr': 'allowstored',
+        'subtext': 'Report stored passings?',
+        'prompt': 'Allow Stored:',
+        'hint': 'Stored passings will be reported as normal passings',
+        'control': 'check',
+        'default': True,
+    },
+    'passiveloop': {
+        'type': 'chan',
+        'attr': 'passiveloop',
+        'prompt': 'Passive Loop:',
+        'hint': 'Assign loop ID to passive passings',
+        'control': 'choice',
+        'options': {
+            '1': '1 (Base)',
+            '2': '2',
+            '3': '3',
+            '4': '4',
+            '5': '5',
+            '6': '6',
+            '7': '7',
+            '8': '8'
+        },
+        'default': 1
+    }
+}
+
 
 class rrs(decoder):
     """RRS thread object class."""
@@ -54,8 +88,8 @@ class rrs(decoder):
         self._dorefetch = True
         self._fetchpending = False
         self._pending_command = None
-        self._allowstored = False
-        self._passiveloop = 'C1'
+        self._allowstored = True
+        self._passiveloop = 1
         self._curport = None
 
     # API overrides
@@ -194,10 +228,15 @@ class rrs(decoder):
 
             if not loopid:
                 loopid = self._passiveloop
-            try:
-                loopid = 'C' + str(int(loopid))
-            except Exception as e:
-                _log.debug('%s reading loop id: %s', e.__class__.__name__, e)
+            if loopid is not None:
+                try:
+                    loopid = 'C' + str(int(loopid))
+                except Exception as e:
+                    _log.debug('%s reading loop id: %s', e.__class__.__name__,
+                               e)
+            else:
+                # Assume passive without loop set
+                loopid = 'PSV'
             activestore = False
             if active and adata:
                 activestore = (int(adata) & 0x40) == 0x40
@@ -395,12 +434,11 @@ class rrs(decoder):
     def run(self):
         """Decoder main loop."""
         _log.debug('Starting')
-        if sysconf.has_option('rrs', 'allowstored'):
-            self._allowstored = sysconf.get_bool('rrs', 'allowstored')
-            _log.debug('Allow stored passings: %r', self._allowstored)
-        if sysconf.has_option('rrs', 'passiveloop'):
-            self._passiveloop = sysconf.get_str('rrs', 'passiveloop', '1')
-            _log.info('Passive loop id set to: %r', self._passiveloop)
+        sysconf.add_section('rrs', _CONFIG_SCHEMA)
+        self._allowstored = sysconf.get_value('rrs', 'allowstored')
+        self._passiveloop = sysconf.get_value('rrs', 'passiveloop')
+        _log.debug('Allow stored passings: %r', self._allowstored)
+        _log.debug('Passive loop id set to: %r', self._passiveloop)
         self._running = True
         while self._running:
             try:
