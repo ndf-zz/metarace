@@ -6,14 +6,57 @@
   is a dictionary of sections, each of which contains a dictionary
   of key/value pairs, where the key is a unicode string and the
   value may be any base type supported by python & JSON.
+
+  Config sections have support for schema-based descriptions with
+  the following keys:
+
+  attr : (str) config attribute in object
+  type : (str) value type, one of:
+		'str', 'tod', 'int', 'float', 'chan', 'bool'
+  prompt : (str) Text prompt for option
+  subtext : (str) Supplementary text for option
+  hint : (str) Tooltip, additional info for option
+  places : (int) Decimal places for float and tod types
+  defer : (bool) Defer writing changes to object
+  readonly : (bool) Control should not allow editing value
+  options : (dict) Map of option keys to displayed values
+  default : (misc) Default value for option
+  control: (str) edit control type, one of:
+		'none' : no control should be displayed
+		'section' : no value is associated with the option
+		'text' : single line text entry
+		'short' : short text entry with supplemental text
+		'check' : yes/no checkbox
+		'choice' : select box choice of options
+
 """
 
 import json
 import os
 import logging
+from metarace.tod import tod, fromobj, mktod
 
 _log = logging.getLogger('metarace.jsonconfig')
 _log.setLevel(logging.DEBUG)
+
+
+def _config_object(obj):
+    """De-serialise tod objects from config."""
+    if '__tod__' in obj:
+        return fromobj(obj)
+    elif '__agg__' in obj:
+        return tod(obj['timeval'])
+    return obj
+
+
+class _configEncoder(json.JSONEncoder):
+    """Serialise tod objects to config."""
+
+    def default(self, obj):
+        print('serialising obj: %r', obj)
+        if isinstance(obj, tod):
+            return obj.serialize()
+        return json.JSONEncoder.default(self, obj)
 
 
 class config:
@@ -21,13 +64,14 @@ class config:
     def __init__(self, default={}):
         """Create config object with a deep copy of the provided default."""
         self.__store = {}
+        self.__schema = {}
         for section in default:
             self.__store[section] = {}
             for key in default[section]:
                 self.__store[section][key] = default[section][key]
 
     def __str__(self):
-        return json.dumps(self.__store)
+        return json.dumps(self.__store, cls=_configEncoder)
 
     def __unicode__(self):
         return str(self.__str__())
@@ -35,10 +79,15 @@ class config:
     def __repr__(self):
         return 'config({})'.format(repr(self.__store))
 
-    def add_section(self, section):
+    def add_section(self, section, schema=None):
         if isinstance(section, str):
             if section not in self.__store:
                 self.__store[section] = dict()
+            if schema is not None:
+                self.__schema[section] = schema
+            else:
+                if section in self.__schema:
+                    del self.__schema[section]
             return self.__store[section]
         else:
             raise TypeError('Invalid section key: ' + repr(section))
@@ -98,21 +147,32 @@ class config:
             ret = default
         return ret
 
-    def get_bool(self, section, key):
+    def get_bool(self, section, key, default=False):
+        ret = default
         temp = self.get(section, key)
         if isinstance(temp, str):
-            if temp.lower() in ['yes', 'true', '1']:
-                return True
+            if default:
+                if temp.lower() in ['no', 'false', '0']:
+                    ret = False
             else:
-                return False
+                if temp.lower() in ['yes', 'true', '1']:
+                    ret = True
         else:
-            return bool(temp)
+            ret = bool(temp)
+        return ret
+
+    def get_tod(self, section, key, default=None):
+        ret = default
+        nt = mktod(self.get(section, key))
+        if nt is not None:
+            ret = nt
+        return ret
 
     def write(self, file):
-        json.dump(self.__store, file, indent=1)
+        json.dump(self.__store, file, indent=1, cls=_configEncoder)
 
     def dumps(self):
-        return json.dumps(self.__store, indent=1)
+        return json.dumps(self.__store, indent=1, cls=_configEncoder)
 
     def dictcopy(self):
         """Return a copy of the configuration as a dictionary object."""
@@ -139,13 +199,14 @@ class config:
 
     def reads(self, s):
         """Read config from a JSON-encoded string"""
-        self.addconf(json.loads(s))
+        self.addconf(json.loads(s, object_hook=_config_object))
 
     def read(self, file):
         """Read config from open file-like"""
-        self.addconf(json.load(file))
+        self.addconf(json.load(file, object_hook=_config_object))
 
     def addconf(self, obj):
+        """Add all sections and values from obj to self"""
         if not isinstance(obj, dict):
             raise TypeError('Configuration file is not dict: ' +
                             obj.__class__.__name__)
