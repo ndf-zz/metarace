@@ -96,6 +96,10 @@ class config:
     def has_option(self, section, key):
         return section in self.__store and key in self.__store[section]
 
+    def has_value(self, section, key):
+        return self.has_option(section,
+                               key) and self.__store[section][key] is not None
+
     def sections(self):
         for sec in self.__store:
             yield sec
@@ -218,10 +222,11 @@ class config:
                         # assume str
                         ret = self.get_str(section, key, ret)
                 else:
-                    _log.debug('Default used for %r', key)
+                    pass
+                    #_log.debug('Default used for %r:%r', section, key)
             else:
-                # schema does not require a value
-                _log.debug('No value assigned for option %r', key)
+                pass
+                #_log.debug('No value assigned for option %r:%r', section,key)
         else:
             _log.debug('Requested value %r:%r not in schema', section, key)
             if self.has_option(section, key):
@@ -243,12 +248,14 @@ class config:
                     attr = schema['attr']
                     val = self.get_value(section, option)
                     setattr(obj, attr, val)
-                    _log.debug('Export option:%r, attr:%r, val:%r', option,
-                               attr, val)
+                    #_log.debug('Export option:%r, attr:%r, val:%r', option,
+                    #           attr, val)
                 else:
-                    _log.debug('Skip option: %r', option)
+                    pass
+                    #_log.debug('Skip option: %r', option)
             else:
-                _log.debug('Option: %r type none', option)
+                pass
+                #_log.debug('Option: %r type none', option)
 
     def import_section(self, section, obj):
         """Copy values from obj into section according to schema"""
@@ -265,12 +272,14 @@ class config:
                     attr = schema['attr']
                     val = getattr(obj, attr)
                     self.set(section, option, val)
-                    _log.debug('Import option:%r, attr:%r, val:%r', option,
-                               attr, val)
+                    #_log.debug('Import option:%r, attr:%r, val:%r', option,
+                    #attr, val)
                 else:
-                    _log.debug('Skip option: %r', option)
+                    pass
+                    #_log.debug('Skip option: %r', option)
             else:
-                _log.debug('Option: %r type none', option)
+                pass
+                #_log.debug('Option: %r type none', option)
 
     def write(self, file):
         json.dump(self.__store, file, indent=1, cls=_configEncoder)
