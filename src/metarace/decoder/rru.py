@@ -43,8 +43,10 @@ _REPLIES = [
     'BEACONGET',
     'PREWARN',
 ]
-# Documented configuration parameter. If default is not None, the
-# value will be set in _sane().
+# Internal Decoder configuration parameters,
+# Some of these may be accessed through the
+# sysconf/jsonconfig schema below.
+# Values are sent to decoder in _sane().
 _CONFINFO = {
     '01': {
         'label': 'Push Pre-Warn',
@@ -75,6 +77,7 @@ _CONFINFO = {
         'label': 'Operation Mode',
         # assume usb-timing is required unless explicity configured otherwise
         'default': '06',
+        '00': 'active extension',
         '05': 'usb-kiosk',
         '06': 'usb-timing',
         '07': 'usb-store&copy'
@@ -205,6 +208,130 @@ _LOOP_STATES = {
     '03': 'Overvoltage Error'
 }
 
+_CONFIG_SCHEMA = {
+    'ttype': {
+        'prompt': 'Race Result USB Active Decoder',
+        'control': 'section'
+    },
+    'allowstored': {
+        'type': 'bool',
+        'subtext': 'Report stored passings?',
+        'prompt': 'Allow Stored:',
+        'hint': 'Stored passings will be reported as normal passings',
+        'control': 'check',
+        'default': True
+    },
+    'loopid': {
+        'attr': '07',
+        'prompt': 'Loop ID:',
+        'hint': 'Active loop ID',
+        'control': 'choice',
+        'options': {
+            '00': '1 (Base)',
+            '01': '2',
+            '02': '3',
+            '03': '4',
+            '04': '5',
+            '05': '6',
+            '06': '7',
+            '07': '8'
+        },
+        'default': '00'
+    },
+    'looppower': {
+        'attr': '08',
+        'prompt': 'Loop Power:',
+        'hint': 'Loop activation power',
+        'type': 'float',
+        'control': 'short',
+        'subtext': '%',
+        'default': 30.0,
+    },
+    'channel': {
+        'attr': '06',
+        'prompt': 'Channel ID:',
+        'hint': 'Race Result wireless channel ID',
+        'control': 'choice',
+        'options': {
+            '00': '1',
+            '01': '2',
+            '02': '3',
+            '03': '4',
+            '04': '5',
+            '05': '6',
+            '06': '7',
+            '07': '8',
+            'auto': 'Auto (Site Survey)',
+        },
+    },
+    'hwopts': {
+        'control': 'section',
+        'prompt': 'Hardware Setup',
+    },
+    'impulse': {
+        'prompt': 'Option Jack:',
+        'control': 'choice',
+        'attr': '03',
+        'hint': 'Use the option jack for impulse in or beep output',
+        'options': {
+            '00': 'Impulse Input',
+            '01': 'Beep Output'
+        },
+        'default': '00',
+    },
+    'mode': {
+        'attr': '05',
+        'control': 'choice',
+        'prompt': 'Mode:',
+        'hint': 'Specify extension timing mode',
+        'default': '06',
+        'options': {
+            '00': 'Active Extension RS-232',
+            '06': 'USB TIming Box',
+            '05': 'USB Kiosk',
+            '07': 'USB Store & Copy',
+        },
+    },
+    'usedtr': {
+        'attr': '0b',
+        'type': 'bool',
+        'subtext': 'Use DTR line?',
+        'prompt': 'DTR Sync:',
+        'hint': 'Use DTR signal to synchronise decoder with host computer',
+        'control': 'check',
+        'default': True
+    },
+    'charge': {
+        'attr': '0a',
+        'type': 'bool',
+        'subtext': 'Charge via USB connection?',
+        'prompt': 'Charge:',
+        'hint': 'Charger decoder internal battery using USB power',
+        'control': 'check',
+        'default': True
+    },
+    'shutdown': {
+        'attr': '04',
+        'type': 'bool',
+        'subtext': 'Shutdown on power loss?',
+        'prompt': 'Shutdown:',
+        'hint': 'Automatically shutdown decoder on power loss',
+        'control': 'check',
+        'default': False
+    },
+    'chanswitch': {
+        'attr': '0c',
+        'prompt': 'Channel Switch:',
+        'hint': 'Alternate channel switching',
+        'control': 'choice',
+        'options': {
+            '00': 'Disabled (V1)',
+            '01': 'Automatic',
+            '02': 'Forced (V2 Only)'
+        },
+    },
+}
+
 
 class rru(decoder):
     """Race Result USB Active Decoder"""
@@ -231,7 +358,7 @@ class rru(decoder):
         self._curreply = None  # current multi-line response mode
         self._lastpassing = 0
         self._lastrequest = None
-        self._request_pending = False
+        self._request_pending = 1
         self._allowstored = False
         self._autochannelid = None
         self._refcount = 0
@@ -250,7 +377,7 @@ class rru(decoder):
 
     def connected(self):
         """Return true if decoder is connected"""
-        return self._boxname is not None and self._io is not None
+        return self._boxname is not None and self._io is not None and self._request_pending < 10
 
     # Device-specific functions
     def _close(self):
@@ -263,7 +390,7 @@ class rru(decoder):
 
     def _port(self, port):
         """Re-establish connection to supplied device port."""
-        self._request_pending = False
+        self._request_pending = 1
         self._rrustamp = None
         self._rruht = None
         self._close()
@@ -277,22 +404,42 @@ class rru(decoder):
         s = serial.Serial(baudrate=_RRU_BAUD,
                           rtscts=False,
                           timeout=_RRU_IOTIMEOUT)
-        s.dtr = 0  # This must be set _before_ open()
+        s.dtr = 0
         s.port = port
         s.open()
         self._io = s
         self._sane()
+        self._cqueue.put(('_pendclr', ''))
 
     def _sane(self, data=None):
         """Load system config and then check decoder is properly configured"""
+        sysconf.add_section('rru', _CONFIG_SCHEMA)
+        self._allowstored = sysconf.get_value('rru', 'allowstored')
+        _log.debug('Allow stored passings: %r', self._allowstored)
         setconfs = {}
-        if sysconf.has_option('rru', 'allowstored'):
-            self._allowstored = strops.confopt_bool(
-                sysconf.get('rru', 'allowstored'))
-            _log.info('Allow stored passings: %r', self._allowstored)
-        if sysconf.has_option('rru', 'decoderconfig'):
-            setconfs = sysconf.get('rru', 'decoderconfig')
-            _log.debug('Loaded %r config options from sysconf', len(setconfs))
+        for opt in ('loopid', 'channel', 'impulse', 'chanswitch', 'mode'):
+            nv = sysconf.get_value('rru', opt)
+            if nv is not None:
+                lbl = _CONFINFO[_CONFIG_SCHEMA[opt]['attr']]['label']
+                setconfs[lbl] = nv
+                _log.debug('Read value: %r = %r from sysconf', lbl, nv)
+        for opt in ('usedtr', 'charge', 'shutdown'):
+            if sysconf.has_value('rru', opt):
+                nv = '00'
+                if sysconf.get_value('rru', opt):
+                    nv = '01'
+                lbl = _CONFINFO[_CONFIG_SCHEMA[opt]['attr']]['label']
+                setconfs[lbl] = nv
+                _log.debug('Read value: %r = %r from sysconf', lbl, nv)
+        if sysconf.has_value('rru', 'looppower'):
+            # WTF Race Result? 0x0-0x64
+            nv = round(sysconf.get_value('rru', 'looppower'))
+            nv = '%02x' % ((min(100, max(0, nv))))
+            lbl = _CONFINFO[_CONFIG_SCHEMA['looppower']['attr']]['label']
+            setconfs[lbl] = nv
+            _log.debug('Read value: %r = %r from sysconf', lbl, nv)
+
+        # re-build internal configuration
         self._config = {}
         for opt in _CONFINFO:
             ko = _CONFINFO[opt]
@@ -309,6 +456,9 @@ class rru(decoder):
         # if channel id set already by site survey, keep it
         if self._autochannelid is not None:
             self._config['06'] = self._autochannelid
+
+        # Clear any messages in queue
+        self._dump_queue()
 
         # Set protocol
         self.write('ASCII')
@@ -332,8 +482,6 @@ class rru(decoder):
         self.write('EPOCHREFGET')
         # Request current number of ticks
         self.write('TIMESTAMPGET')
-        # Request loop ID
-        self.write('CONFGET;07')
         # Request current memory status
         self.write('PASSINGINFOGET')
 
@@ -368,6 +516,7 @@ class rru(decoder):
         sleep(0.2)
         _log.debug('Clear DTR')
         self._io.dtr = 0
+        self._cqueue.put(('_pendclr', ''))
 
     def _start_session(self, data=None):
         """Reset decoder to start a new session"""
@@ -385,26 +534,38 @@ class rru(decoder):
         _log.info('Stop session')
 
     def _clear(self, data=None):
-        _log.debug('Performing box reset')
+        _log.info('Requesting new session')
+        self._rrustamp = None
         self._boxname = None
         self._write('RESET')
         while True:
             m = self._readline()
             #_log.debug('RECV: %r', m)
             if m == 'AUTOBOOT':
+                sleep(1.0)
                 break
-        self._rrustamp = None
         self._lastrequest = 0
         self._lastpassing = 0
-        # Queue 'sane' config options before sync request
         self._sane()
-        self.sync()
+
+    def _dump_queue(self):
+        try:
+            while not self._cqueue.empty():
+                m = self._cqueue.get_nowait()
+                _log.debug('Dumping command: %r', m)
+                self._cqueue.task_done()
+        except Exception as e:
+            _log.debug('$s emptying queue: %s', e.__class__.__name__, e)
 
     def _write(self, msg):
         if self._io is not None:
             ob = (msg + _RRU_EOL)
             self._io.write(ob.encode(_RRU_ENCODING))
-            #_log.debug('SEND: %r', ob)
+            _log.debug('SEND: %r', ob)
+
+    def _pendclr(self, msg):
+        _log.debug('Enable passing request')
+        self._request_pending = 0
 
     def _tstotod(self, ts):
         """Convert a race result timestamp to time of day."""
@@ -495,13 +656,16 @@ class rru(decoder):
         self._rrustamp = int(stime, 16)
         _log.debug('Reference ticks: %r @ %r', self._rrustamp,
                    self._rruht.rawtime())
+        if self._rrustamp == 0:
+            _log.info('Decoder time is not set, requesting sync')
+            self.sync()
 
     def _timestampchk(self, ticks):
         """Receive the number of ticks on the decoder."""
         tcnt = int(ticks, 16)
-        _log.info('Box tick count: %r', tcnt)
+        _log.debug('Box tick count: %r', tcnt)
         if tcnt > _RRU_REFTHRESH:
-            _log.info('Tick threshold exceeded, adjusting ref')
+            _log.info('Box tick threshold exceeded, adjusting ref')
             self.write('EPOCHREFADJ1D')
 
     def _passinginfomsg(self, mv):
@@ -515,11 +679,14 @@ class rru(decoder):
                 pltime = self._tstotod(mv[4])
                 _log.info('Info %r Passings, %r@%s - %r@%s', pcount, pfirst,
                           pftime.rawtime(2), plast, pltime.rawtime(2))
-                if plast + 1 < self._lastpassing:
-                    _log.warning(
-                        'Decoder memory/ID mismatch last=%r, req=%r, clear/sync required.',
-                        plast, self._lastpassing)
+                if self._lastrequest is None:
                     self._lastpassing = plast + 1
+                else:
+                    if plast + 1 < self._lastpassing:
+                        _log.warning(
+                            'Decoder memory/ID mismatch last=%r, req=%r, clear/sync required.',
+                            plast, self._lastpassing)
+                        self._lastpassing = plast + 1
             else:
                 _log.info('Info No Passings')
         else:
@@ -593,7 +760,7 @@ class rru(decoder):
             resp = int(mv[0], 16)
             rcount = int(mv[1], 16)
             if resp != self._lastrequest:
-                _log.error('Sequence mismatch request: %r, response: %r',
+                _log.debug('Sequence mismatch request: %r, response: %r',
                            self._lastrequest, resp)
                 self._lastpassing = 0
             elif rcount > 0:
@@ -703,7 +870,7 @@ class rru(decoder):
                 self._curreply = mv[0]
             elif mv[0] == 'EOR':
                 if self._curreply in ['PASSINGGET', 'PASSINGIDERROR']:
-                    self._request_pending = False
+                    self._request_pending = 0
                 if self._curreply == 'SITESURVEY':
                     self._chansurf()
                 self._curreply = None
@@ -717,6 +884,15 @@ class rru(decoder):
                         self._curreply = 'PASSINGIDERROR'
                     else:
                         _log.debug('%r error: %r', self._curreply, mv[1])
+            elif mv[0] == 'AUTOBOOT':
+                _log.warning('Re-connecting restarted decoder')
+                self._request_pending = 1
+                self._sane()
+            elif 'rrActive' in mv[0]:
+                _log.warning('Decoder reset - waiting for AUTOBOOT')
+                self._request_pending = 1
+                sleep(3.0)
+                self._dump_queue()
             else:
                 if self._curreply is not None:
                     self._handlereply(mv)
@@ -743,7 +919,7 @@ class rru(decoder):
         """Queue a passingget request if the reftime is set."""
         if self._rrustamp is not None:
             if not self._request_pending:
-                self._request_pending = True
+                self._request_pending = 1
                 es = 'PASSINGGET;{0:08x}'.format(self._lastpassing)
                 self._lastrequest = self._lastpassing
                 self.write(es)
@@ -751,6 +927,8 @@ class rru(decoder):
                 if self._refcount > _RRU_REFCHECK:
                     self.write('TIMESTAMPGET')
                     self._refcount = 0
+            else:
+                self._request_pending += 1
 
     def run(self):
         """Decoder main loop."""
@@ -771,7 +949,7 @@ class rru(decoder):
                                 refetch = True
                                 break
                         else:
-                            #_log.debug('RECV: %r', l)
+                            _log.debug('RECV: %r', l)
                             self._procline(l)
                             if self._curreply == 'PREWARN':
                                 # Note: this does not work
