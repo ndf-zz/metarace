@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""export result files in a thread"""
+"""export result files in a subprocess"""
 
 import threading
 import subprocess
@@ -8,12 +8,61 @@ import os
 
 import metarace
 
-MIRROR_CMD = 'echo'  # Command/Argument defaults
-MIRROR_ARGS = ['dummy', 'srcdir={srcdir}', 'dstdir={dstdir}']
-MIRROR_TIMEOUT = 30
+# Default Rsync options:
+#  -a archive mode
+#  -z compress file data during the transfer
+#  -L transform symlink into referent file/dir
+_RSYNC_OPTS = '-azL'
+
+# Password file for TCP daemon connections
+_RSYNC_PWD = 'rsync.pwd'
 
 _log = logging.getLogger('metarace.export')
 _log.setLevel(logging.DEBUG)
+
+_CONFIG_SCHEMA = {
+    'ttype': {
+        'prompt': 'Result Export',
+        'control': 'section',
+    },
+    'method': {
+        'prompt': 'Method:',
+        'hint': 'Export mechanism',
+        'control': 'choice',
+        'options': {
+            'ssh': 'Rsync over SSH',
+            'rsync': 'Rsync TCP daemon',
+            'shell': 'Export script',
+        },
+    },
+    'timeout': {
+        'prompt': 'Timeout:',
+        'subtext': 'seconds',
+        'hint': 'Export command timeout',
+        'control': 'short',
+        'type': 'int',
+        'default': 30
+    },
+    'host': {
+        'prompt': 'Hostname:',
+        'hint': 'Optional hostname, IP or SSH host to connect to',
+    },
+    'port': {
+        'prompt': 'Port:',
+        'subtext': '(TCP daemon only)',
+        'hint': 'Optional TCP port for rsync TCP daemon',
+        'type': 'int',
+        'control': 'short',
+    },
+    'username': {
+        'prompt': 'Username:',
+        'hint': 'Optional username on remote host',
+    },
+    'basepath': {
+        'prompt': 'Basepath:',
+        'hint': 'Optional base path on remote server (without trailing slash)',
+    }
+}
 
 
 class mirror(threading.Thread):
@@ -22,11 +71,9 @@ class mirror(threading.Thread):
     def __init__(self,
                  callback=None,
                  callbackdata=None,
-                 localpath='.',
+                 localpath=None,
                  remotepath=None,
-                 mirrorcmd=None,
-                 arguments=None,
-                 data=None):
+                 mirrorcmd=None):
         """Construct mirror thread object."""
         threading.Thread.__init__(self, daemon=True)
         self.__cb = None
@@ -35,32 +82,24 @@ class mirror(threading.Thread):
         self.__cbdata = None
         if callbackdata is not None:
             self.__cbdata = callbackdata
-        self.__localpath = localpath
+        self.__localpath = '.'
+        if localpath is not None:
+            self.__localpath = localpath
         self.__remotepath = ''
         if remotepath is not None:
             self.__remotepath = remotepath
-
-        # config starts with module defaults
-        self.__mirrorcmd = MIRROR_CMD
-        self.__arguments = MIRROR_ARGS
-        self.__timeout = MIRROR_TIMEOUT
-
-        # then overwrite from sysconf - if present
-        if metarace.sysconf.has_section('export'):
-            if metarace.sysconf.has_option('export', 'command'):
-                self.__mirrorcmd = metarace.sysconf.get('export', 'command')
-            if metarace.sysconf.has_option('export', 'arguments'):
-                self.__arguments = metarace.sysconf.get('export', 'arguments')
-            if metarace.sysconf.has_option('export', 'timeout'):
-                self.__timeout = metarace.sysconf.get('export', 'timeout')
-
-        # and then finally allow override in object creation
-        if mirrorcmd:
+        self.__mirrorcmd = ''
+        if isinstance(mirrorcmd, str) and mirrorcmd:
             self.__mirrorcmd = mirrorcmd
-        if arguments:
-            self.__arguments = arguments
 
-        self.__data = data
+        # read configuration from sysconf
+        metarace.sysconf.add_section('export', _CONFIG_SCHEMA)
+        self.__method = metarace.sysconf.get_value('export', 'method')
+        self.__timeout = metarace.sysconf.get_value('export', 'timeout')
+        self.__host = metarace.sysconf.get_value('export', 'host')
+        self.__port = metarace.sysconf.get_value('export', 'port')
+        self.__username = metarace.sysconf.get_value('export', 'username')
+        self.__basepath = metarace.sysconf.get_value('export', 'basepath')
 
     def set_remotepath(self, pathstr):
         """Set or clear the remote path value."""
@@ -81,29 +120,64 @@ class mirror(threading.Thread):
 
     def run(self):
         """Called via threading.Thread.start()."""
-        running = True
-        _log.debug('Starting')
+        if self.__method is None:
+            _log.info('Export method not set, files not mirrored')
+            return None
+
+        # prepare command line
+        _log.debug('Starting export method=%r', self.__method)
+        if self.__method == 'shell':
+            if self.__mirrorcmd:
+                arglist = (self.__mirrorcmd, self.__remotepath)
+            else:
+                _log.warning('No mirrorcmd specified, export cancelled')
+                return None
+        elif self.__method == 'ssh':
+            dest = self.__remotepath
+            if self.__basepath:
+                dest = os.path.join(self.__basepath, dest)
+            if self.__host:
+                dest = self.__host + ':' + dest
+            if self.__username:
+                dest = self.__username + '@' + dest
+            arglist = ('rsync', _RSYNC_OPTS, self.__localpath, dest)
+        elif self.__method == 'rsync':
+            if self.__host:
+                pwarg = '--password-file=' + metarace.default_file('rsync.pwd')
+                host = self.__host
+                if self.__port is not None:
+                    host = host + ':' + str(self.__port)
+                if self.__username is not None:
+                    host = self.__username + '@' + host
+                host = 'rsync://' + host
+                dest = self.__remotepath
+                if self.__basepath:
+                    dest = os.path.join(self.__basepath, dest)
+                dest = host + '/' + dest
+                arglist = ('rsync', pwarg, _RSYNC_OPTS, self.__localpath, dest)
+            else:
+                _log.info('TCP host missing, export ignored')
+                return None
+        else:
+            _log.info('Unknown export method %r ignored', self.__method)
+            return None
+
         ret = None
         try:
-            # format errors in arguments caught as exception
-            arglist = [
-                a.format(srcdir=self.__localpath,
-                         dstdir=self.__remotepath,
-                         command=self.__mirrorcmd,
-                         data=self.__data) for a in self.__arguments
-            ]
-            arglist.insert(0, self.__mirrorcmd)
-
             _log.debug('Calling subprocess: %r', arglist)
-            ret = subprocess.run(arglist,
+            res = subprocess.run(arglist,
                                  timeout=self.__timeout,
                                  check=True,
                                  capture_output=True)
             if self.__cb is not None:
-                self.__cb(ret, self.__cbdata)
+                self.__cb(res, self.__cbdata)
+            ret = res.returncode
         except subprocess.CalledProcessError as e:
-            _log.error('%r returned %r: %s', self.__mirrorcmd, e.returncode,
-                       e.stderr.decode('utf8', 'ignore'))
+            _log.debug('%r stderr: %r', self.__method, e.stderr)
+            _log.error('Export command failed with error: %r', e.returncode)
+        except subprocess.TimeoutExpired as e:
+            _log.debug('%r stderr: %r', self.__method, e.stderr)
+            _log.error('Timeout waiting for export command to complete')
         except Exception as e:
             _log.error('%s: %s', e.__class__.__name__, e)
         _log.debug('Complete: Returned %r', ret)
