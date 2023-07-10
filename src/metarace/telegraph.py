@@ -128,7 +128,7 @@ _CONFIG_SCHEMA = {
             '1': '1 - At least once',
             '2': '2 - Exactly once'
         },
-        'default': 1,
+        'default': 0,
     },
     'deftopic': {
         'prompt': 'Default Topic:',
