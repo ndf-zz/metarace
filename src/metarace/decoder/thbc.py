@@ -91,13 +91,229 @@ CONFIG_FLAGS = {
     CONFIG_ACTIVE_LOOP: 'Active Loop',
     CONFIG_SPARE: '[spare]'
 }
-DEFAULT_IPCFG = {
-    'IP': '192.168.0.10',
-    'Netmask': '255.255.255.0',
-    'Gateway': '0.0.0.0',
-    'Host': '192.168.0.255'
-}
 DEFPORT = '/dev/ttyS0'
+
+_CONFIG_SCHEMA = {
+    'loopsec': {
+        'prompt': 'Chronelec/Tag Heuer Protime RC Decoder',
+        'control': 'section'
+    },
+    'activeloop': {
+        'prompt': 'Loop Type:',
+        'subtext': 'Active?',
+        'hint': 'If set, provide power to connected loops',
+        'control': 'check',
+        'type': 'bool',
+        'default': True,
+        'index': CONFIG_ACTIVE_LOOP,
+    },
+    'lvl': {
+        'prompt': 'Level:',
+        'subtext': '(0 to 99)',
+        'hint': 'Accept passing when read level exceeds this value',
+        'control': 'short',
+        'type': 'int',
+    },
+    'detectmax': {
+        'prompt': 'Detect Max:',
+        'subtext': 'Yes?',
+        'hint':
+        'If set, decoder attempts to report time associated with maximum reading',
+        'control': 'check',
+        'type': 'bool',
+        'default': False,
+        'index': CONFIG_MAX,
+    },
+    'syncsec': {
+        'prompt': 'Synchronisation',
+        'control': 'section',
+    },
+    'gpssync': {
+        'prompt': 'GPS:',
+        'subtext': 'Set time by GPS?',
+        'hint': 'If supported by decoder, set time using GPS',
+        'control': 'check',
+        'type': 'bool',
+        'default': False,
+        'index': CONFIG_GPS,
+    },
+    'cellsync': {
+        'prompt': 'Sync In:',
+        'subtext': 'Set time by CELL?',
+        'hint':
+        'If set, an impulse on CELL will set the decoder time to Sync Hour and Sync Min',
+        'control': 'check',
+        'type': 'bool',
+        'default': False,
+        'index': CONFIG_CELLSYNC,
+    },
+    'synchour': {
+        'prompt': 'Sync Hour:',
+        'subtext': '(0 to 24)',
+        'control': 'short',
+        'type': 'int',
+        'default': 0,
+        'index': CONFIG_CELLTOD_HOUR,
+    },
+    'syncmin': {
+        'prompt': 'Sync Min:',
+        'subtext': '(0 to 59)',
+        'control': 'short',
+        'type': 'int',
+        'default': 0,
+        'index': CONFIG_CELLTOD_MIN,
+    },
+    'syncpulse': {
+        'prompt': 'Trig Out:',
+        'subtext': 'Yes?',
+        'hint': 'Assert trigger out periodically according to Trig Interval',
+        'control': 'check',
+        'type': 'bool',
+        'default': False,
+        'index': CONFIG_PULSE,
+    },
+    'syncinterval': {
+        'prompt': 'Trig Interval:',
+        'subtext': '(seconds)',
+        'control': 'short',
+        'type': 'int',
+        'default': 60,
+        'index': CONFIG_PULSEINT,
+    },
+    'beepsec': {
+        'prompt': 'Audio Tone Configuration',
+        'control': 'section',
+    },
+    'statone': {
+        'prompt': 'STA Tone:',
+        'subtext': '(Hz)',
+        'control': 'short',
+        'type': 'int',
+        'default': 514,
+        'index': CONFIG_TONE_STA,
+    },
+    'boxtone': {
+        'prompt': 'BOX Tone:',
+        'subtext': '(Hz)',
+        'control': 'short',
+        'type': 'int',
+        'default': 770,
+        'index': CONFIG_TONE_BOX,
+    },
+    'mantone': {
+        'prompt': 'MAN Tone:',
+        'subtext': '(Hz)',
+        'control': 'short',
+        'type': 'int',
+        'default': 686,
+        'index': CONFIG_TONE_MAN,
+    },
+    'celltone': {
+        'prompt': 'CELL Tone:',
+        'subtext': '(Hz)',
+        'control': 'short',
+        'type': 'int',
+        'default': 611,
+        'index': CONFIG_TONE_CEL,
+    },
+    'bxxtone': {
+        'prompt': 'BXX Tone:',
+        'subtext': '(Hz)',
+        'control': 'short',
+        'type': 'int',
+        'default': 915,
+        'index': CONFIG_TONE_BXX,
+    },
+    'hwsec': {
+        'prompt': 'Hardware Options',
+        'hint': 'These options are not used',
+        'control': 'none',
+    },
+    'protocol': {
+        'prompt': 'Protocol:',
+        'subtext': '(undocumented)',
+        'control': 'none',
+        'type': 'int',
+        'default': 0,
+        'index': CONFIG_PROT,
+    },
+    'tod': {
+        'prompt': 'Time of Day:',
+        'subtext': 'Yes?',
+        'hint': 'Required for normal use',
+        'control': 'none',
+        'type': 'bool',
+        'default': True,
+        'index': CONFIG_TOD,
+    },
+    'tzhr': {
+        'prompt': 'Time Zone:',
+        'subtext': '(hour)',
+        'control': 'none',
+        'type': 'int',
+        'default': 0,
+        'index': CONFIG_TZ_HOUR,
+    },
+    'tzmin': {
+        'prompt': 'Time Zone:',
+        'subtext': '(min)',
+        'control': 'none',
+        'type': 'int',
+        'default': 0,
+        'index': CONFIG_TZ_MIN,
+    },
+    'serprint': {
+        'prompt': 'Serial Print:',
+        'subtext': 'Yes?',
+        'hint': 'Serial printer connected on aux port',
+        'control': 'none',
+        'type': 'bool',
+        'default': False,
+        'index': CONFIG_PRINT,
+    },
+    'distfibre': {
+        'prompt': 'Distant Decoder:',
+        'subtext': 'Fibre?',
+        'hint': 'Distant decoder connected by fibre optic link',
+        'control': 'none',
+        'type': 'bool',
+        'default': False,
+        'index': CONFIG_FIBRE,
+    },
+    'dist485': {
+        'prompt': 'Distant Decoder:',
+        'subtext': 'RS-485?',
+        'hint': 'Distant decoder connected via RS-485',
+        'control': 'none',
+        'type': 'bool',
+        'default': False,
+        'index': CONFIG_485,
+    },
+    'ipconf': {
+        'prompt': 'IP Configuration',
+        'control': 'section',
+    },
+    'ipaddr': {
+        'prompt': 'IP:',
+        'hint': 'IP address of decoder',
+        'default': '',
+    },
+    'netmask': {
+        'prompt': 'Netmask:',
+        'hint': 'Netmask',
+        'default': '',
+    },
+    'host': {
+        'prompt': 'Host:',
+        'hint': 'Address decoder reports to',
+        'default': '',
+    },
+    'gateway': {
+        'prompt': 'Gateway:',
+        'hint': 'Gateway IP',
+        'default': '',
+    },
+}
 
 
 def reflect(dat, width):
@@ -249,40 +465,52 @@ class thbc(decoder):
 
     def _ipcfg(self, data=None):
         """Alter the attached decoder's IP address."""
-        ipcfg = sysconf.get('thbc', 'ipconfig')
+        sysconf.add_section('thbc', _CONFIG_SCHEMA)
         cmd = b'\x09\x09'
-        for i in ['IP', 'Netmask', 'Gateway', 'Host']:
-            if i not in ipcfg:
-                ipcfg[i] = DEFAULT_IPCFG[i]
-            cmd += socket.inet_aton(socket.gethostbyname(ipcfg[i]))
-        _log.info('Attempting IP config update')
+        defval = socket.inet_aton(socket.gethostbyname(''))
+        for opt in ['ipaddr', 'netmask', 'gateway', 'host']:
+            dv = defval
+            try:
+                nv = sysconf.get_value('thbc', opt)
+                hn = socket.gethostbyname(nv)
+                _log.debug('Updating config %s %r',
+                           _CONFIG_SCHEMA[opt]['prompt'], hn)
+                dv = socket.inet_aton(hn)
+            except Exception as e:
+                _log.info('%s reading IP config %r: %s', e.__class__.__name__,
+                          opt, e)
+            cmd += dv
+        _log.info('Starting IP config update')
         self._v3_cmd(cmd)
 
     def _sane(self, data=None):
         """Check decoder config against system settings."""
+        sysconf.add_section('thbc', _CONFIG_SCHEMA)
         doconf = False
         if self._boxname is not None:
-            if sysconf.has_option('thbc', 'decoderconfig'):
-                oconf = sysconf.get('thbc', 'decoderconfig')
-                for flag in self._decoderconfig:
-                    key = CONFIG_FLAGS[flag]
-                    if key in oconf:
-                        if oconf[key] != self._decoderconfig[flag]:
-                            _log.info('Key mismatch: %r', key)
-                            self._decoderconfig[flag] = oconf[key]
+            for key in _CONFIG_SCHEMA:
+                if 'index' in _CONFIG_SCHEMA[key]:
+                    nv = sysconf.get_value('thbc', key)
+                    if nv is not None:
+                        flag = _CONFIG_SCHEMA[key]['index']
+                        if self._decoderconfig[flag] != nv:
+                            _log.debug('Config key %r differs: %r != %r', key,
+                                       self._decoderconfig[flag], nv)
+                            self._decoderconfig[flag] = nv
                             doconf = True
         else:
             _log.info('Decoder not connected')
 
         # re-write config if required
         if doconf:
-            _log.info('Re-configuring %r', self._boxname)
+            _log.info('Updating %r config', self._boxname)
             self._set_config()
 
-        # force decoder levels
-        if sysconf.has_option('thbc', 'levels'):
-            lvl = sysconf.get('thbc', 'levels')
-            self._setlvl(box=lvl[0], sta=lvl[1])
+        # force decoder threshold level
+        lvl = sysconf.get_value('thbc', 'lvl')
+        if lvl is not None:
+            _log.info('Setting detection levels to: %r', lvl)
+            self._setlvl(lvl)
 
     def _v3_cmd(self, cmdstr=b''):
         """Pack and send a v3 command directly to port."""
@@ -345,11 +573,11 @@ class thbc(decoder):
         cmd[4] = 0xff & (timestruct[0] - 2000)  # year, after 2000
         self._v3_cmd(bytes(cmd))
 
-    def _setlvl(self, box='10', sta='10'):
+    def _setlvl(self, lvl=10):
         """Set the read level on box and sta channels."""
-        # TODO: verify opts
-        self.write(BOXLVL + box.encode(THBC_ENCODING))
-        self.write(STALVL + sta.encode(THBC_ENCODING))
+        lstr = '%02d' % (max(0, min(99, lvl)))
+        self.write(BOXLVL + lstr.encode(THBC_ENCODING))
+        self.write(STALVL + lstr.encode(THBC_ENCODING))
 
     def _set_time_cmd(self, t):
         """Return a set time command string for the provided time of day."""
@@ -402,7 +630,7 @@ class thbc(decoder):
         self._decoderipconfig['Mask'] = socket.inet_ntoa(msg[31:35])
         self._decoderipconfig['Gateway'] = socket.inet_ntoa(msg[35:39])
         self._decoderipconfig['Host'] = socket.inet_ntoa(msg[39:43])
-        for key in ['IP', 'Mask', 'Gateway', 'Host']:
+        for key in ['IP', 'Mask', 'Host', 'Gateway']:
             _log.debug('%r: %r', key, self._decoderipconfig[key])
 
     def _parse_message(self, msg, ack=True):
@@ -450,7 +678,7 @@ class thbc(decoder):
                                 self._write(ACKCMD)
                 else:
                     _log.debug('Invalid message: %r', msg)
-            elif msg[0] == STATSTART:  # Status message
+            elif msg[0] == STATSTART[0]:  # Status message
                 data = msg[1:22]
                 pvec = data.decode(THBC_ENCODING).split()
                 if len(pvec) == 5:
@@ -479,14 +707,14 @@ class thbc(decoder):
             if ch == LF and len(self._rdbuf) > 0 and self._rdbuf[-1] == CR[0]:
                 # Return ends the current 'message', if preceeded by return
                 self._rdbuf += ch  # include trailing newline
-                #_log.debug('RECV: %r', self._rdbuf)
+                _log.debug('RECV: %r', self._rdbuf)
                 t = self._parse_message(self._rdbuf.lstrip(b'\0'))
                 if t is not None:
                     self._trig(t)
                 self._rdbuf = b''
             elif len(self._rdbuf) > 40 and b'\x1e\x86\x98' in self._rdbuf:
                 # Assume acknowledge from IP Command
-                #_log.debug('RECV: %r', self._rdbuf)
+                _log.debug('RECV: %r', self._rdbuf)
                 self._rdbuf = b''
                 self._ipcompletion()
             else:
@@ -496,7 +724,7 @@ class thbc(decoder):
     def _write(self, msg):
         if self._io is not None:
             self._io.write(msg)
-            #_log.debug('SEND: %r', msg)
+            _log.debug('SEND: %r', msg)
 
     def run(self):
         """Decoder main loop."""
