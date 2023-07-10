@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# homeslice
+TODO
+*.notes
+
 # Distribution / packaging
 .Python
 build/
