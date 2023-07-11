@@ -35,6 +35,7 @@ import re
 import logging
 from datetime import datetime
 from dateutil.parser import isoparse, parse as dateparse
+from bisect import bisect_left as _bisect
 
 # module log object
 _log = logging.getLogger('metarace.tod')
@@ -555,10 +556,9 @@ for c in ['ntr', 'caught', 'rel', 'abort', 'otl', 'dnf', 'dns', 'dsq']:
 class todlist:
     """ToD list helper class for managing splits and ranks."""
 
-    def __init__(self, lbl='', rounding=ROUNDING):
+    def __init__(self, lbl=''):
         self.__label = lbl
         self.__store = []
-        self.__round = rounding
 
     def __iter__(self):
         return self.__store.__iter__()
@@ -589,23 +589,9 @@ class todlist:
             lsec = lt[1]
             count += 1
         return ret
-        """Return current 0-based rank for given bib."""
-        ret = None
-        i = 0
-        r = 0
-        last = None
-        for lt in self.__store:
-            if last is not None:
-                if lt != last:
-                    r = i
-            i += 1
-            if lt.refid == bib and lt.index == series:
-                ret = r
-                break
-            last = lt
-        return ret
 
     def clear(self):
+        """Clear list"""
         self.__store = []
         return 0
 
@@ -621,39 +607,19 @@ class todlist:
                 i += 1
         return i
 
-    def insert(self, pri=None, sec=None, bib=None, series='', prec=3):
+    def insert(self, pri=None, sec=None, bib=None, series=''):
         """Insert primary tod and secondary tod into ordered list."""
         ret = None
-        trunc = True
         if isinstance(pri, str) and pri in FAKETIMES:
             pri = FAKETIMES[pri]
-            trunc = False  # retain precision for primary comparison
 
         if isinstance(pri, tod):
             if bib is None:
                 bib = pri.index
             if sec is None:
                 sec = ZERO
-            if trunc:
-                pri = pri.places(prec, rounding=self.__round, flag='TLP')
-                sec = sec.places(prec, rounding=self.__round, flag='TLP')
             rt0 = tod(pri, chan=self.__label, refid=bib, index=series)
             rt1 = tod(sec, chan=self.__label, refid=bib, index=series)
-            last = None
-            i = 0
-            found = False
-            for lt in self.__store:
-                if rt0 < lt[0]:  # primary time is faster, insert ok
-                    self.__store.insert(i, [rt0, rt1])
-                    found = True
-                    break
-                elif rt0 == lt[0]:  # primary same, compare on secondary
-                    if rt1 < lt[1]:  # secondary time faster - insert ok
-                        self.__store.insert(i, [rt0, rt1])
-                        found = True
-                        break
-                i += 1
-            if not found:
-                self.__store.append([rt0, rt1])
-            ret = i
+            ret = _bisect(self.__store, (rt0, rt1))
+            self.__store.insert(ret, (rt0, rt1))
         return ret
