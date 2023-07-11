@@ -60,6 +60,8 @@ MILL = decimal.Decimal(1000000)
 
 # default rounding is toward zero
 ROUNDING = decimal.ROUND_DOWN
+TRUNCATE = decimal.ROUND_DOWN
+ROUND = decimal.ROUND_HALF_EVEN
 
 
 def now(index='', chan='CLK', refid='', source=''):
@@ -323,11 +325,18 @@ class tod:
                 obj[attr] = val
         return obj
 
+    def round(self, places=4):
+        """Return a new rounded time value."""
+        return self.places(places, ROUND, 'ROUND')
+
     def truncate(self, places=4):
         """Return a new truncated time value."""
+        return self.places(places, TRUNCATE, 'TRUNC')
+
+    def places(self, places=4, rounding=ROUNDING, flag='PLACES'):
         return self.__class__(timeval=self.timeval.quantize(QUANT[places],
-                                                            rounding=ROUNDING),
-                              chan='TRUNC')
+                                                            rounding=rounding),
+                              chan=flag)
 
     def as_hours(self, places=0):
         """Return decimal value in hours, truncated to the desired places."""
@@ -546,9 +555,10 @@ for c in ['ntr', 'caught', 'rel', 'abort', 'otl', 'dnf', 'dns', 'dsq']:
 class todlist:
     """ToD list helper class for managing splits and ranks."""
 
-    def __init__(self, lbl=''):
+    def __init__(self, lbl='', rounding=ROUNDING):
         self.__label = lbl
         self.__store = []
+        self.__round = rounding
 
     def __iter__(self):
         return self.__store.__iter__()
@@ -625,8 +635,8 @@ class todlist:
             if sec is None:
                 sec = ZERO
             if trunc:
-                pri = pri.truncate(prec)
-                sec = sec.truncate(prec)
+                pri = pri.places(prec, rounding=self.__round, flag='TLP')
+                sec = sec.places(prec, rounding=self.__round, flag='TLP')
             rt0 = tod(pri, chan=self.__label, refid=bib, index=series)
             rt1 = tod(sec, chan=self.__label, refid=bib, index=series)
             last = None
