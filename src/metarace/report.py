@@ -5231,6 +5231,8 @@ class report:
                  font=None,
                  strikethrough=False,
                  underline=False):
+        tw = 0
+        th = self.line_height
         if msg:
             baseline = _CELL_BASELINE * self.line_height
             l = Pango.Layout.new(self.p)
@@ -5277,7 +5279,7 @@ class report:
                 ) * PANGO_INVSCALE
                 uth = h + underoft - 0.5 * underthick
                 self.drawline(oft, uth, oft + tw, uth, underthick)
-            return (tw, th)
+        return (tw, th)
 
     def placemark(self, w, h):
         """Draw a crosshair mark at w,h"""
@@ -5299,6 +5301,8 @@ class report:
                    maxwidth=None,
                    underline=False):
         # TODO: replace with text_cell
+        tw = 0
+        th = self.line_height
         if msg:
             baseline = _CELL_BASELINE * self.line_height
 
@@ -5346,6 +5350,8 @@ class report:
                   maxwidth=None,
                   underline=False):
         # TODO: replace with text_cell
+        tw = 0
+        th = self.line_height
         if msg:
             baseline = _CELL_BASELINE * self.line_height
 
@@ -5391,6 +5397,8 @@ class report:
                   font=None,
                   width=None,
                   halign=Pango.Alignment.LEFT):
+        tw = 0
+        th = self.line_height
         if text:
             if width is None:
                 width = self.body_width
@@ -5406,10 +5414,12 @@ class report:
             PangoCairo.update_context(self.c, self.p)
             l.context_changed()
             PangoCairo.show_layout(self.c, l)
-            return (tw, th)
+        return (tw, th)
 
     def text_cent(self, w, h, msg, font=None, halign=Pango.Alignment.CENTER):
         # TODO: Replace with text_box
+        tw = 0
+        th = self.line_height
         if msg:
             l = Pango.Layout.new(self.p)
             l.set_alignment(halign)
@@ -5421,9 +5431,11 @@ class report:
             PangoCairo.update_context(self.c, self.p)
             l.context_changed()
             PangoCairo.show_layout(self.c, l)
-            return (tw, th)
+        return (tw, th)
 
     def text_path(self, w, h, msg, font=None):
+        tw = 0
+        th = self.line_height
         if msg:
             l = Pango.Layout.new(self.p)
             if font is not None:
@@ -5435,7 +5447,7 @@ class report:
             l.context_changed()
             PangoCairo.layout_path(self.c, l)
             self.c.fill()
-            return (tw, th)
+        return (tw, th)
 
     def draw_provisional(self):
         self.c.save()
