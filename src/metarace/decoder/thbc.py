@@ -13,7 +13,7 @@ from . import (decoder, DECODER_LOG_LEVEL)
 from metarace import sysconf
 from metarace import tod
 
-_log = logging.getLogger('metarace.decoder.thbc')
+_log = logging.getLogger('decoder.thbc')
 _log.setLevel(logging.DEBUG)
 
 THBC_BAUD = 19200

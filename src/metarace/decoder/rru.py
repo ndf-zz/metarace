@@ -13,7 +13,7 @@ from metarace import tod
 from metarace import sysconf
 from metarace import strops
 
-_log = logging.getLogger('metarace.decoder.rru')
+_log = logging.getLogger('decoder.rru')
 _log.setLevel(logging.DEBUG)
 
 _RRU_BAUD = 19200
@@ -822,7 +822,7 @@ class rru(decoder):
                 cv = nv
         _log.debug('Site survey: %s', ' '.join(lv))
         if ch is not None:
-            _log.info('Selected channel %r (%d%%)', ch, cv)
+            _log.info('Auto-selected channel %r, Noise: %d%%', ch, cv)
             sv = '{0:02x}'.format(ch - 1)
             self._autochannelid = sv
             m = 'CONFSET;06;{}'.format(sv)

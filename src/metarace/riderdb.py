@@ -10,7 +10,7 @@ import grapheme
 import metarace
 from metarace import strops
 
-_log = logging.getLogger('metarace.riderdb')
+_log = logging.getLogger('riderdb')
 _log.setLevel(logging.DEBUG)
 
 # default values when columns omitted

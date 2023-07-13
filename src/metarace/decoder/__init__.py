@@ -7,7 +7,7 @@ import logging
 
 from metarace import tod
 
-_log = logging.getLogger('metarace.decoder')
+_log = logging.getLogger('decoder')
 _log.setLevel(logging.DEBUG)
 DECODER_LOG_LEVEL = 15
 logging.addLevelName(DECODER_LOG_LEVEL, 'DECODER')

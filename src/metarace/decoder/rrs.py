@@ -10,7 +10,7 @@ from . import (decoder, DECODER_LOG_LEVEL)
 from metarace import sysconf
 from metarace import tod
 
-_log = logging.getLogger('metarace.decoder.rrs')
+_log = logging.getLogger('decoder.rrs')
 _log.setLevel(logging.DEBUG)
 
 # desired target protocol level

@@ -38,7 +38,7 @@ from dateutil.parser import isoparse, parse as dateparse
 from bisect import bisect_left as _bisect
 
 # module log object
-_log = logging.getLogger('metarace.tod')
+_log = logging.getLogger('tod')
 _log.setLevel(logging.DEBUG)
 
 # Formatting and truncation constants

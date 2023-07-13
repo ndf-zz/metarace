@@ -8,7 +8,7 @@ import csv
 import metarace
 from metarace import strops
 
-_log = logging.getLogger('metarace.eventdb')
+_log = logging.getLogger('eventdb')
 _log.setLevel(logging.DEBUG)
 
 # Note: These are for the trackmeet module, roadmeet re-defines race types

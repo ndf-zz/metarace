@@ -26,7 +26,7 @@ from metarace import strops
 from metarace import htlib
 from metarace import jsonconfig
 
-_log = logging.getLogger('metarace.report')
+_log = logging.getLogger('report')
 _log.setLevel(logging.DEBUG)
 
 # JSON report API versioning

@@ -37,7 +37,7 @@ import logging
 from metarace.tod import tod, fromobj, mktod
 from metarace.strops import confopt_chan, CHAN_UNKNOWN
 
-_log = logging.getLogger('metarace.jsonconfig')
+_log = logging.getLogger('jsonconfig')
 _log.setLevel(logging.DEBUG)
 
 

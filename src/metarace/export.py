@@ -17,7 +17,7 @@ _RSYNC_OPTS = '-azL'
 # Password file for TCP daemon connections
 _RSYNC_PWD = 'rsync.pwd'
 
-_log = logging.getLogger('metarace.export')
+_log = logging.getLogger('export')
 _log.setLevel(logging.DEBUG)
 
 _CONFIG_SCHEMA = {

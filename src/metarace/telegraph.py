@@ -58,7 +58,7 @@ import metarace
 QUEUE_TIMEOUT = 2
 
 # module logger
-_log = logging.getLogger('metarace.telegraph')
+_log = logging.getLogger('telegraph')
 _log.setLevel(logging.DEBUG)
 
 _CONFIG_SCHEMA = {
@@ -283,7 +283,7 @@ class telegraph(threading.Thread):
 
         if metarace.sysconf.get_value('telegraph', 'debug'):
             _log.debug('Enabling mqtt/paho debug')
-            mqlog = logging.getLogger('metarace.telegraph.mqtt')
+            mqlog = logging.getLogger('telegraph.mqtt')
             mqlog.setLevel(logging.DEBUG)
             self.__client.enable_logger(mqlog)
 
