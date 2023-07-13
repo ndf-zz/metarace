@@ -707,14 +707,14 @@ class thbc(decoder):
             if ch == LF and len(self._rdbuf) > 0 and self._rdbuf[-1] == CR[0]:
                 # Return ends the current 'message', if preceeded by return
                 self._rdbuf += ch  # include trailing newline
-                _log.debug('RECV: %r', self._rdbuf)
+                #_log.debug('RECV: %r', self._rdbuf)
                 t = self._parse_message(self._rdbuf.lstrip(b'\0'))
                 if t is not None:
                     self._trig(t)
                 self._rdbuf = b''
             elif len(self._rdbuf) > 40 and b'\x1e\x86\x98' in self._rdbuf:
                 # Assume acknowledge from IP Command
-                _log.debug('RECV: %r', self._rdbuf)
+                #_log.debug('RECV: %r', self._rdbuf)
                 self._rdbuf = b''
                 self._ipcompletion()
             else:
@@ -724,7 +724,7 @@ class thbc(decoder):
     def _write(self, msg):
         if self._io is not None:
             self._io.write(msg)
-            _log.debug('SEND: %r', msg)
+            #_log.debug('SEND: %r', msg)
 
     def run(self):
         """Decoder main loop."""

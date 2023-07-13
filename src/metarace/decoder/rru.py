@@ -561,7 +561,7 @@ class rru(decoder):
         if self._io is not None:
             ob = (msg + _RRU_EOL)
             self._io.write(ob.encode(_RRU_ENCODING))
-            _log.debug('SEND: %r', ob)
+            #_log.debug('SEND: %r', ob)
 
     def _pendclr(self, msg):
         _log.debug('Enable passing request')
@@ -949,7 +949,7 @@ class rru(decoder):
                                 refetch = True
                                 break
                         else:
-                            _log.debug('RECV: %r', l)
+                            #_log.debug('RECV: %r', l)
                             self._procline(l)
                             if self._curreply == 'PREWARN':
                                 # Note: this does not work
