@@ -13,7 +13,7 @@ try:
 except ImportError:
     print('Python >= 3.9 is required to use this module')
 
-VERSION = '2.1.2'
+VERSION = '2.1.3'
 DATA_PATH = os.path.realpath(
     os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
@@ -57,7 +57,7 @@ def init():
     # if required, create new system default file
     if copyconf:
         _log.info('Creating default system config %s', SYSCONF)
-        with savefile(os.path.join(DEFAULTS_PATH, SYSCONF)) as f:
+        with savefile(os.path.join(DEFAULTS_PATH, SYSCONF), perm=0o600) as f:
             sysconf.write(f)
 
 
@@ -184,9 +184,15 @@ class savefile:
        moved atomically.
     """
 
-    def __init__(self, filename, mode='t', encoding='utf-8', tempdir='.'):
+    def __init__(self,
+                 filename,
+                 mode='t',
+                 encoding='utf-8',
+                 tempdir='.',
+                 perm=0o644):
         self.__sfile = filename
         self.__path = tempdir
+        self.__perm = perm
         if mode == 'b':
             encoding = None
         self.__tfile = NamedTemporaryFile(mode='w' + mode,
@@ -204,7 +210,7 @@ class savefile:
         if exc_type is not None:
             return False  # raise exception
         # otherwise, file is saved ok in temp file
-        os.chmod(self.__tfile.name, 0o644)
+        os.chmod(self.__tfile.name, self.__perm)
         try:
             os.rename(self.__tfile.name, self.__sfile)
             #_log.debug('os.rename: %r,%r', self.__tfile.name, self.__sfile)
