@@ -59,34 +59,40 @@ _RIDER_SCHEMA = {
         'control': 'short',
         'attr': 'no',
         'defer': True,
+        'default': '',
     },
     'series': {
         'prompt': 'Series:',
         'control': 'short',
         'attr': 'series',
         'defer': True,
+        'default': '',
     },
     'first': {
         'prompt': 'First Name:',
         'attr': 'first',
         'defer': True,
+        'default': '',
     },
     'last': {
         'prompt': 'Last Name:',
         'attr': 'last',
         'defer': True,
+        'default': '',
     },
     'org': {
         'prompt': 'Organisation:',
         'attr': 'org',
         'defer': True,
         'hint': 'Club or team affiliation',
+        'default': '',
     },
     'cat': {
         'prompt': 'Categories:',
         'attr': 'cat',
         'defer': True,
         'hint': 'Space separated list of categories',
+        'default': '',
     },
     'nat': {
         'prompt': 'Nationality:',
@@ -94,12 +100,14 @@ _RIDER_SCHEMA = {
         'defer': True,
         'hint': '3 letter IOC country code eg: AUS, GBR, JPN',
         'control': 'short',
+        'default': '',
     },
     'ref': {
         'prompt': 'Transponder:',
         'attr': 'ref',
         'defer': True,
         'control': 'short',
+        'default': '',
     },
     'uci': {
         'prompt': 'UCI ID:',
@@ -107,6 +115,7 @@ _RIDER_SCHEMA = {
         'defer': True,
         'control': 'short',
         'hint': '11 digit UCI ID',
+        'default': '',
     },
     'dob': {
         'prompt': 'Date of Birth:',
@@ -115,6 +124,7 @@ _RIDER_SCHEMA = {
         'defer': True,
         'subtext': '(YYYY-MM-DD)',
         'hint': 'ISO8601 Date of birth eg: 2012-01-25',
+        'default': '',
     },
     'sex': {
         'prompt': 'Sex:',
@@ -123,12 +133,14 @@ _RIDER_SCHEMA = {
         'defer': True,
         'hint': 'Sex of participant',
         'attr': 'sex',
+        'default': '',
     },
     'note': {
         'prompt': 'Notes:',
         'attr': 'note',
         'defer': True,
         'hint': 'Supplementary rider notes',
+        'default': '',
     },
 }
 
@@ -144,6 +156,7 @@ _CATEGORY_SCHEMA = {
         'attr': 'no',
         'hint': 'Category ID or handicap group',
         'defer': True,
+        'default': '',
     },
     'series': {
         'prompt': 'Series:',
@@ -151,24 +164,28 @@ _CATEGORY_SCHEMA = {
         'readonly': True,
         'attr': 'series',
         'defer': True,
+        'default': '',
     },
     'first': {
         'prompt': 'Title:',
         'attr': 'first',
         'hint': 'Category title',
         'defer': True,
+        'default': '',
     },
     'last': {
         'prompt': 'Subtitle:',
         'attr': 'last',
         'hint': 'Category subtitle',
         'defer': True,
+        'default': '',
     },
     'note': {
         'prompt': 'Footer:',
         'attr': 'note',
         'defer': True,
         'hint': 'Supplementary footer text for reports',
+        'default': '',
     },
     'uci': {
         'prompt': 'Start Offset:',
@@ -176,6 +193,7 @@ _CATEGORY_SCHEMA = {
         'defer': True,
         'control': 'short',
         'hint': 'Start time offset from event start',
+        'default': '',
     },
     'cat': {
         'prompt': 'Target:',
@@ -184,6 +202,7 @@ _CATEGORY_SCHEMA = {
         'subtext': 'laps',
         'defer': True,
         'hint': 'Target number of laps for this category',
+        'default': '',
     },
     'ref': {
         'prompt': 'Distance:',
@@ -192,6 +211,7 @@ _CATEGORY_SCHEMA = {
         'control': 'short',
         'subtext': 'km',
         'hint': 'Category distance override',
+        'default': '',
     },
     'org': {
         'prompt': 'Lap Prefix:',
@@ -199,6 +219,7 @@ _CATEGORY_SCHEMA = {
         'control': 'short',
         'defer': True,
         'hint': 'Optional category lap prefix',
+        'default': '',
     },
 }
 
@@ -213,6 +234,7 @@ _TEAM_SCHEMA = {
         'control': 'short',
         'attr': 'no',
         'defer': True,
+        'default': '',
     },
     'series': {
         'prompt': 'Series:',
@@ -220,12 +242,14 @@ _TEAM_SCHEMA = {
         'readonly': True,
         'attr': 'series',
         'defer': True,
+        'default': '',
     },
     'first': {
         'prompt': 'Name:',
         'attr': 'first',
         'hint': 'Team name',
         'defer': True,
+        'default': '',
     },
     'last': {
         'prompt': 'Short Name:',
@@ -234,6 +258,7 @@ _TEAM_SCHEMA = {
         'subtext': '(~12 characters)',
         'hint': 'Abbreviated team name for reports',
         'defer': True,
+        'default': '',
     },
     'nat': {
         'prompt': 'Nationality:',
@@ -241,6 +266,7 @@ _TEAM_SCHEMA = {
         'defer': True,
         'hint': '3 letter IOC country code eg: AUS, GBR, JPN',
         'control': 'short',
+        'default': '',
     },
     'uci': {
         'prompt': 'UCI ID:',
@@ -248,6 +274,7 @@ _TEAM_SCHEMA = {
         'defer': True,
         'control': 'short',
         'hint': 'Team UCI ID',
+        'default': '',
     },
     'sex': {
         'prompt': 'Division:',
@@ -256,6 +283,7 @@ _TEAM_SCHEMA = {
         'defer': True,
         'hint': 'UCI division of team eg: WTT WTW PRT',
         'attr': 'sex',
+        'default': '',
     },
     'ref': {
         'prompt': 'Start Time:',
@@ -264,12 +292,14 @@ _TEAM_SCHEMA = {
         'control': 'short',
         'subtext': '(Team TT)',
         'hint': 'Team TT Start Time',
+        'default': '',
     },
     'note': {
         'prompt': 'Notes:',
         'attr': 'note',
         'defer': True,
         'hint': 'Supplementary team notes',
+        'default': '',
     },
 }
 

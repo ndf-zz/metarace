@@ -76,7 +76,6 @@ _CONFIG_SCHEMA = {
         'control': 'short',
         'hint': 'TCP port number of MQTT broker',
         'type': 'int',
-        'default': 1883,
     },
     'usetls': {
         'prompt': 'Security:',
@@ -116,7 +115,7 @@ _CONFIG_SCHEMA = {
         'type': 'bool',
         'control': 'check',
         'hint': 'Request persistent session on broker',
-        'default': False,
+        'default': True,
     },
     'qos': {
         'prompt': 'QoS:',
@@ -261,6 +260,8 @@ class telegraph(threading.Thread):
         metarace.sysconf.add_section('telegraph', _CONFIG_SCHEMA)
         self.__host = metarace.sysconf.get_value('telegraph', 'host')
         self.__port = metarace.sysconf.get_value('telegraph', 'port')
+        if self.__port is None:
+            self.__port = 1883
         self.__deftopic = metarace.sysconf.get_value('telegraph', 'deftopic')
         self.__qos = metarace.sysconf.get_value('telegraph', 'qos')
         self.__persist = metarace.sysconf.get_value('telegraph', 'persist')
@@ -288,7 +289,7 @@ class telegraph(threading.Thread):
 
         if metarace.sysconf.get_value('telegraph', 'usetls'):
             _log.debug('Enabling TLS connection')
-            if not metarace.sysconf.has_option('telegraph', 'port'):
+            if not metarace.sysconf.has_value('telegraph', 'port'):
                 # Update port for TLS if not exlicitly set
                 self.__port = 8883
                 _log.debug('Set port to %r', self.__port)
