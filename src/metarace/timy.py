@@ -71,7 +71,7 @@ _TCMDS = ('EXIT', 'PORT', 'MSG', 'TRIG', 'RCLR')
 # Logging
 _log = logging.getLogger('timy')
 _log.setLevel(logging.DEBUG)
-_TIMER_LOG_LEVEL = 25
+_TIMER_LOG_LEVEL = 15
 logging.addLevelName(_TIMER_LOG_LEVEL, 'TIMER')
 
 _CONFIG_SCHEMA = {
