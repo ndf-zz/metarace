@@ -471,6 +471,17 @@ class rider():
 
         return ret
 
+    def name_bib(self):
+        """Return rider name with bib and without org."""
+        ret = None
+        nkey = 'nb'
+        if nkey not in self.__strcache:
+            ret = self.get_bibstr() + ' ' + self.fitname(48)
+            self.__strcache[nkey] = ret
+        else:
+            ret = self.__strcache[nkey]
+        return ret
+
     def resname_bib(self):
         """Return rider name formatted for results with bib."""
         ret = None
