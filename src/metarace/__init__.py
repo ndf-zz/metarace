@@ -132,7 +132,8 @@ def default_file(filename=''):
             os.stat(check)
             ret = check
         except Exception as e:
-            _log.debug('%s: %s', e.__class__.__name__, e)
+            # ignore file not found and path errors
+            pass
     return ret
 
 
@@ -142,7 +143,6 @@ def resource_text(name=''):
     if basefile in ['..', '.', '', None]:
         raise FileNotFoundError('Invalid resource name: ' + repr(name))
     t = files(RESOURCE_PKG).joinpath(basefile)
-    _log.debug('Fetching %r from resource %r', basefile, t)
     if t is not None and t.is_file():
         return t.read_text(encoding='utf-8')
     else:
@@ -164,7 +164,6 @@ def resource_file(name=''):
     if basefile in ['..', '.', '', None]:
         raise FileNotFoundError('Invalid resource name: ' + repr(name))
     t = files(RESOURCE_PKG).joinpath(basefile)
-    _log.debug('Fetching %r from resource %r', basefile, t)
     if t is not None and t.is_file():
         return as_file(t)
     else:
@@ -213,7 +212,6 @@ class savefile:
         os.chmod(self.__tfile.name, self.__perm)
         try:
             os.rename(self.__tfile.name, self.__sfile)
-            #_log.debug('os.rename: %r,%r', self.__tfile.name, self.__sfile)
         except OSError as e:
             _log.debug('os.rename failed: %s', e)
             copyfile(self.__tfile.name, self.__sfile)
