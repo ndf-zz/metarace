@@ -137,12 +137,13 @@ _CONFIG_SCHEMA = {
         'default': False,
         'index': CONFIG_GPS,
     },
+    # cell sync only applies to a stopped decoder
     'cellsync': {
         'prompt': 'Sync In:',
-        'subtext': 'Set time by CELL?',
+        'subtext': 'Start decoder by CELL?',
         'hint':
-        'If set, an impulse on CELL will set the decoder time to Sync Hour and Sync Min',
-        'control': 'check',
+        'If set, an impulse on CELL will start a stopped decoder with time set to Sync Hour and Sync Min',
+        'control': 'none',
         'type': 'bool',
         'default': False,
         'index': CONFIG_CELLSYNC,
@@ -150,7 +151,7 @@ _CONFIG_SCHEMA = {
     'synchour': {
         'prompt': 'Sync Hour:',
         'subtext': '(0 to 24)',
-        'control': 'short',
+        'control': 'none',
         'type': 'int',
         'default': 0,
         'index': CONFIG_CELLTOD_HOUR,
@@ -158,7 +159,7 @@ _CONFIG_SCHEMA = {
     'syncmin': {
         'prompt': 'Sync Min:',
         'subtext': '(0 to 59)',
-        'control': 'short',
+        'control': 'none',
         'type': 'int',
         'default': 0,
         'index': CONFIG_CELLTOD_MIN,
