@@ -19,8 +19,9 @@ the library, they are available separately:
 ## Work in Progress
 
    - include grapheme support in strops
-   - update pango text layouts to align vertically by text baseline
-   - re-write report library for better sectioning and dynamic updates
+   - re-write report library for better sectioning
+   - overhaul PDF text rendering
+   - replace xls export with xlsx
    - module documentation
    - sample scripts
 
@@ -34,10 +35,10 @@ the library, they are available separately:
    - meet folder locking
 
 
-### jsonconfig: Configuration File Wrapper
+### jsonconfig: Configuration Options
 
-A thin wrapper on a dictionary-based configuration
-with JSON export and import.
+Schema defined dictionary-like
+configuration with JSON export and import.
 
 
 ### riderdb: CSV-backed Competitor Information
@@ -84,20 +85,6 @@ Swiss Timing UNT4 protocol wrapper, for legacy devices
 and DHI communications.
 
 
-### sender: Legacy DHI Scoreboard Interface
-
-Thread object for drawing text on a
-[Caprica](https://github.com/ndf-zz/caprica)
-or Galactica DHI scoreboard over TCP,
-UDP and serial connections.
-
-
-### gemini: Numeric LED Scoreboard Interface
-
-Thread object for writing to a pair of Swiss Timing Gemini
-numeric LED boards, and lap count displays.
-
-
 ### countback: Accumulate and Compare Count of Places
 
 Represent a countback of places and allow for simple
@@ -116,14 +103,13 @@ Create sectioned reports and save to PDF, HTML, XLS and JSON.
 
 ### export: Result Export and Mirroring
 
-Execute a process on the host system to
-mirror result files to a remote server,
-or to run a script.
+Mirror export files to a remote host using rsync over ssh,
+rsync TCP daemon or by running a local script.
 
 
 ### eventdb: CSV Event List
 
-Store details for events within a meet.
+Store details for multple events within a meet.
 
 
 ## Requirements
@@ -138,6 +124,7 @@ System requirements:
    - Python gi-cairo
    - tex-gyre (optional, recommended)
    - evince (optional, recommended)
+   - fonts-noto (optional)
    - mosquitto (optional)
    - libreoffice (optional)
 
@@ -152,9 +139,8 @@ Python packages:
 
 ## Installation
 
-Check that your python
-version is at least 3.9 before installing. This library will
-not work with python versions less than 3.9.
+Check that your python version is at least 3.9 before installing.
+This library will not work with python versions less than 3.9.
 
 
 ### Debian 11+
@@ -167,14 +153,14 @@ Install system requirements with apt:
 
 Optionally add fonts, PDF viewer and MQTT broker:
 
-	$ sudo apt install tex-gyre evince mosquitto
+	$ sudo apt install tex-gyre fonts-noto evince mosquitto
 
 Create a virtualenv for metarace and associated packages:
 
-	$ python3 -m venv --system-site-packages mrv
+	$ python3 -m venv --system-site-packages venv
 
 Activate the virtualenv and install packages with pip:
 
-	$ source ./mrv/bin/activate
-	(mrv) $ pip3 install metarace
+	$ source ./venv/bin/activate
+	(venv) $ pip3 install metarace
 
