@@ -889,7 +889,7 @@ class rru(decoder):
                 self._request_pending = 1
                 self._sane()
             elif 'rrActive' in mv[0]:
-                _log.warning('Decoder reset - waiting for AUTOBOOT')
+                _log.warning('Decoder reset - waiting for it to start')
                 self._request_pending = 1
                 sleep(3.0)
                 self._dump_queue()
@@ -967,7 +967,7 @@ class rru(decoder):
                 pass
             except serial.SerialException as e:
                 self._close()
-                _log.error('%s: %s', e.__class__.__name__, e)
+                _log.error('%s, decoder disconnected', e.__class__.__name__)
             except Exception as e:
                 _log.critical('%s: %s', e.__class__.__name__, e)
                 self._running = False
