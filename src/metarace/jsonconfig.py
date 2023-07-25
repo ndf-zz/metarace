@@ -33,6 +33,7 @@
 
 import json
 import os
+import csv
 import logging
 from metarace.tod import tod, fromobj, mktod
 from metarace.strops import confopt_chan, CHAN_UNKNOWN
@@ -256,6 +257,32 @@ class config:
             else:
                 pass
                 #_log.debug('Option: %r type none', option)
+
+    def import_csv(self, filename, defaults=None):
+        """Import values from csv into self according to schema"""
+        with open(filename, encoding='utf-8') as f:
+            section = None
+            cr = csv.reader(f)
+            for r in cr:
+                if len(r) > 1 and r[0]:
+                    key = r[0].strip()
+                    val = r[1].strip()
+                    if key.lower() == 'section':
+                        section = val
+                        self.add_section(section)
+                        _log.debug('CSV import set section to %r', section)
+                        if defaults is not None:
+                            self.merge(defaults, section)
+                    elif section is not None:
+                        self.set(section, key, val)
+                        nv = self.get_value(section, key)
+                        _log.debug('CSV Import key %r: %r => (%s) %r', key,
+                                   val, nv.__class__.__name__, nv)
+                        # Write back schema-adjusted value
+                        self.set(section, key, nv)
+                    else:
+                        _log.debug('CSV import key %r ignored, no section',
+                                   key)
 
     def import_section(self, section, obj):
         """Copy values from obj into section according to schema"""
