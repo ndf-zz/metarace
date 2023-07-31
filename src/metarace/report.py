@@ -87,20 +87,20 @@ _CELL_BASELINE = 0.715
 PANGO_SCALE = float(Pango.SCALE)
 PANGO_INVSCALE = 1.0 / float(Pango.SCALE)
 FEPSILON = 0.0001  # float epsilon
-BODYFONT = 'serif 7.0'  # body text
-BODYOBLIQUE = 'serif italic 7.0'  # body text oblique
-BODYBOLDFONT = 'serif bold 7.0'  # bold body text
-BODYSMALL = 'serif 6.0'  # small body text
-MONOSPACEFONT = 'monospace Bold 7.0'  # monospaced text
-SECTIONFONT = 'sans-serif Bold 7.0'  # section headings
-SUBHEADFONT = 'serif italic 7.0'  # section subheadings
-TITLEFONT = 'sans-serif bold 8.0'  # page title
-SUBTITLEFONT = 'sans-serif bold 7.5'  # page subtitle
-HOSTFONT = 'sans-serif oblique 7.0'  # page title
-ANNOTFONT = 'sans-serif oblique 6.0'  # header and footer annotations
-PROVFONT = 'sans-serif bold Ultra-Condensed 90'  # provisonal underlay font
-GAMUTSTDFONT = 'sans-serif bold condensed'  # default gamut standard font
-GAMUTOBFONT = 'sans-serif bold condensed italic'  # default gamut oblique font
+BODYFONT = 'Nimbus Roman, Serif, 7.0'  # body text
+BODYOBLIQUE = 'Nimbus Roman, Serif, Italic 7.0'  # body text italic
+BODYBOLDFONT = 'Nimbus Roman, Serif, Bold 7.0'  # bold body text
+BODYSMALL = 'Nimbus Roman, Serif, 6.0'  # small body text
+MONOSPACEFONT = 'Nimbus Mono PS, Monospace, Bold 7.0'  # monospaced text
+SECTIONFONT = 'Nimbus Sans, Sans-serif, Bold 7.0'  # section headings
+SUBHEADFONT = 'Nimbus Roman, Serif, Italic 7.0'  # section subheadings
+TITLEFONT = 'Nimbus Sans, Sans-serif, Bold 8.0'  # page title
+SUBTITLEFONT = 'Nimbus Sans, Sans-serif, Bold 7.5'  # page subtitle
+HOSTFONT = 'Nimbus Sans, Sans-serif, Italic 7.0'  # page title
+ANNOTFONT = 'Nimbus Sans, Sans-serif, Italic 6.0'  # header and footer annotations
+PROVFONT = 'Nimbus Sans Narrow, Sans-serif, Bold 90'  # provisonal underlay font
+GAMUTSTDFONT = 'Nimbus Sans Narrow, Sans-serif, Bold'  # default gamut standard font
+GAMUTOBFONT = 'Nimbus Sans Narrow, Sans-serif, Bold Oblique'  # default gamut oblique font
 LINE_HEIGHT = mm2pt(5.0)  # body text line height
 PAGE_OVERFLOW = mm2pt(3.0)  # tolerated section overflow
 SECTION_HEIGHT = mm2pt(5.3)  # height of section title
@@ -3876,6 +3876,13 @@ class report:
         self.strings['timestamp'] = (
             str(datetime.date.today().strftime('%A, %B %d %Y ')) +
             tod.now().meridiem())
+        self.strings[
+            'watermark'] = 'Report: %s; Library: %s; Template: %s %r ' % (
+                APIVERSION, metarace.VERSION, self.template_version,
+                self.template_descr)
+        if metarace.sysconf.has_value('report', 'watermark'):
+            self.strings['watermark'] += metarace.sysconf.get(
+                'report', 'watermark')
 
         # Status and context values
         self.provisional = False
@@ -4014,11 +4021,16 @@ class report:
                 cr.reads(metarace.resource_text(metarace.PDF_TEMPLATE))
             except Exception as e:
                 _log.error('%s loading template: %s', e.__class__.__name__, e)
+        self.template_version = ''
+        self.template_descr = ''
         if cr.has_option('description', 'text'):
             _log.debug('API: %s, template: %s', APIVERSION,
                        cr.get('description', 'text'))
+            self.template_descr = cr.get('description', 'text')
         else:
             _log.debug('API: %s, template: UNKNOWN', APIVERSION)
+        if cr.has_option('description', 'version'):
+            self.template_version = cr.get('description', 'version')
 
         # read in page options
         if cr.has_option('page', 'width'):
