@@ -715,6 +715,8 @@ class rru(decoder):
             if adata:
                 aval = int(adata, 16)
                 activestore = (int(adata, 16) & 0x40) == 0x40
+                if activestore:
+                    _log.debug('Stored passing %s: %r', tagid, adata)
             if tagid == _RRU_MARKER:
                 tagid = ''
 
