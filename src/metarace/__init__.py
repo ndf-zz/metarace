@@ -3,7 +3,6 @@
 
 import os
 import logging
-import fcntl
 import errno
 from tempfile import NamedTemporaryFile
 from shutil import copyfile
@@ -12,8 +11,18 @@ try:
     from importlib.resources import files, as_file
 except ImportError:
     print('Python >= 3.9 is required to use this module')
+flockstyle = None
+try:
+    import fcntl
+    flockstyle = 'o-g'
+except ImportError:
+    pass
+if flockstyle is None:
+    # possibly a windows machine
+    import msvcrt
+    flockstyle = 'deviant'
 
-VERSION = '2.1.4'
+VERSION = '2.1.5'
 DATA_PATH = os.path.realpath(
     os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
@@ -213,21 +222,27 @@ class savefile:
         try:
             os.rename(self.__tfile.name, self.__sfile)
         except OSError as e:
-            _log.debug('os.rename failed: %s', e)
             copyfile(self.__tfile.name, self.__sfile)
-            _log.warn('Un-safely moved file: %r', self.__sfile)
             os.unlink(self.__tfile.name)
         return True
 
 
 def lockpath(configpath):
     """Open an advisory lock file in the meet config path."""
+    if flockstyle is None:
+        _log.error('Meet path locking not available')
+        return None
     lf = None
     lfn = os.path.join(configpath, '.lock')
     try:
         lf = open(lfn, 'a+b')
-        fcntl.flock(lf, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        _log.debug('Config lock %r acquired', lfn)
+        if flockstyle == 'o-g':
+            fcntl.flock(lf, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _log.debug('Config lock %r acquired by fcntl', lfn)
+        else:
+            lf.seek(0)
+            msvcrt.locking(lf.fileno(), msvcrt.LK_NBLCK, 1)
+            _log.debug('Config lock %r acquired by msvcrt', lfn)
     except Exception as e:
         if lf is not None:
             lf.close()
