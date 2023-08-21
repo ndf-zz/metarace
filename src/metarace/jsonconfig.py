@@ -16,7 +16,7 @@
   prompt : (str) Text prompt for option
   subtext : (str) Supplementary text for option
   hint : (str) Tooltip, additional info for option
-  places : (int) Decimal places for float and tod types
+  places : (int) Decimal places for decimal, float and tod types
   defer : (bool) Defer writing changes to object
   readonly : (bool) Control should not allow editing value
   options : (dict) Map of option keys to displayed values
@@ -35,6 +35,7 @@ import json
 import os
 import csv
 import logging
+from decimal import Decimal
 from metarace.tod import tod, fromobj, mktod
 from metarace.strops import confopt_chan, CHAN_UNKNOWN
 
@@ -48,6 +49,8 @@ def _config_object(obj):
         return fromobj(obj)
     elif '__agg__' in obj:
         return tod(obj['timeval'])
+    elif '__dec__' in obj:
+        return Decimal(obj['value'])
     return obj
 
 
@@ -57,6 +60,8 @@ class _configEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, tod):
             return obj.serialize()
+        elif isinstance(obj, Decimal):
+            return {'__dec__': True, 'value': str(obj)}
         return json.JSONEncoder.default(self, obj)
 
 
@@ -117,6 +122,14 @@ class config:
             self.__store[section][key] = value
         else:
             raise TypeError('Invalid option key: ' + repr(key))
+
+    def get_decimal(self, section, key, default=None):
+        ret = default
+        try:
+            ret = Decimal(self.get(section, key))
+        except Exception:
+            pass
+        return ret
 
     def get_float(self, section, key, default=None):
         ret = default
