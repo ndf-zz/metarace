@@ -101,6 +101,10 @@ class mirror(threading.Thread):
         self.__username = metarace.sysconf.get_value('export', 'username')
         self.__basepath = metarace.sysconf.get_value('export', 'basepath')
 
+        # save return code and output
+        self.returncode = None
+        self.stderr = None
+
     def set_remotepath(self, pathstr):
         """Set or clear the remote path value."""
         self.__remotepath = pathstr
@@ -171,10 +175,12 @@ class mirror(threading.Thread):
                                  capture_output=True)
             if self.__cb is not None:
                 self.__cb(res, self.__cbdata)
+            self.returncode = res.returncode
             ret = res.returncode
         except subprocess.CalledProcessError as e:
             _log.debug('%r stderr: %r', self.__method, e.stderr)
             _log.error('Export command failed with error: %r', e.returncode)
+            self.stderr = e.stderr
         except subprocess.TimeoutExpired as e:
             _log.debug('%r stderr: %r', self.__method, e.stderr)
             _log.error('Timeout waiting for export command to complete')
