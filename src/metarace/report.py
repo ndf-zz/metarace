@@ -623,7 +623,7 @@ class dual_ittt_startlist:
             f.write('\n')
 
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return False
 
 
@@ -825,7 +825,7 @@ class signon_list:
                 htlib.table(htlib.tbody(trows), {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return False
 
 
@@ -1019,7 +1019,7 @@ class twocol_startlist:
                 htlib.table(htlib.tbody(trows), {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return False
 
 
@@ -1210,7 +1210,7 @@ class sprintround:
                 htlib.table(htlib.tbody(trows), {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return ''
 
 
@@ -1415,7 +1415,7 @@ class sprintfinal:
                 htlib.table(htlib.tbody(trows), {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return ''
 
 
@@ -1614,7 +1614,7 @@ class rttstartlist:
                 htlib.table(htlib.tbody(trows), {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return None
 
 
@@ -2415,7 +2415,7 @@ class judge24rep:
                             {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return None
 
 
@@ -2679,7 +2679,7 @@ class judgerep:
                             {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return None
 
 
@@ -3109,7 +3109,7 @@ class gamut:
         if len(self.lines) > 0:
             pass
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return None
 
 
@@ -3335,7 +3335,7 @@ class threecol_section:
                             {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return None
 
 
@@ -3576,7 +3576,7 @@ class section:
                             {'class': report.tablestyle}))
             f.write('\n')
         if self.footer:
-            f.write(self.footer.strip() + '\n')
+            f.write(htlib.p(self.footer.strip()))
         return None
 
 
