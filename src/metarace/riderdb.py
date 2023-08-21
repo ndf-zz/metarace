@@ -30,6 +30,8 @@ _RIDER_COLUMNS = {
     'dob': 'DoB',
     'sex': 'Sex',
     'note': 'Notes',
+    'seed': 'Seeding',
+    'data': 'Data Reference',
 }
 
 # Category column headings
@@ -46,6 +48,8 @@ _CATEGORY_COLUMNS = {
     'nat': 'Nationality',
     'dob': 'DoB',
     'sex': 'Sex',
+    'seed': 'Seeding',
+    'data': 'Data Reference',
 }
 
 # Config schema for a rider
@@ -308,7 +312,7 @@ _RESERVED_SERIES = ('spare', 'cat', 'team', 'ds')
 
 # legacy csv file ordering
 _DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'cat', 'series', 'ref',
-                         'uci', 'dob', 'nat', 'sex', 'note')
+                         'uci', 'dob', 'nat', 'sex', 'note', 'seed', 'data')
 
 # Alternative column header strings lookup
 _ALT_COLUMNS = {
@@ -341,6 +345,8 @@ _ALT_COLUMNS = {
     'dat': 'dob',
     'not': 'note',
     'foo': 'note',
+    'see': 'seed',
+    'dat': 'data',
 }
 
 
