@@ -2781,12 +2781,12 @@ class teampage:
                 tnoft = 0
                 tnwidth = report.col3_width
                 while tnwidth > 1.0:
-                    tnwidth -= mm2pt(0.4)
-                    tnoft += mm2pt(0.2)
+                    tnwidth -= mm2pt(0.2)
+                    tnoft += mm2pt(0.1)
                     chh = report.teamname_height(tname, tnwidth)
                     if (chh - fnh) > FEPSILON:
-                        tnwidth += mm2pt(0.4)
-                        tnoft -= mm2pt(0.2)
+                        tnwidth += mm2pt(0.2)
+                        tnoft -= mm2pt(0.1)
                         break
 
                 tnh = max(tnh, fnh)
@@ -2821,7 +2821,7 @@ class teampage:
 
                 # optionally draw ds
                 if ds is not None:
-                    report.text_cent(left + tcw + 0.5 * tnw, pageoft,
+                    report.text_cent(left + tnoft + 0.5 * tnwidth, pageoft,
                                      'DS: ' + ds, report.fonts['body'])
                     pageoft += localline
                 # draw riders
@@ -2855,7 +2855,7 @@ class teampage:
                 mv.append('{} starters.'.format(rcount))
             if self.footer:
                 mv.append(self.footer)
-            msg = '\t'.join(mv)
+            msg = '\u2003'.join(mv)
             report.text_cent(report.midpagew, report.h, msg,
                              report.fonts['subhead'])
             report.h += report.line_height
@@ -4647,7 +4647,7 @@ class report:
         if self.fonts['section'] is not None:
             l.set_font_description(self.fonts['section'])
         l.set_width(int(Pango.SCALE * width + 1))
-        l.set_wrap(Pango.WrapMode.WORD_CHAR)
+        l.set_wrap(Pango.WrapMode.WORD)
         l.set_alignment(Pango.Alignment.LEFT)
         l.set_text(text, -1)
         (tw, th) = l.get_pixel_size()
@@ -4939,25 +4939,25 @@ class report:
         self.drawbox(x, h, x + width - mm2pt(0.5), h + height - mm2pt(0.5),
                      alpha)
         if key:
-            self.text_left(x + mm2pt(0.5), h - (0.07 * height), key,
-                           fonts['key'])
+            self.gtext_left(x + mm2pt(0.5), h + 0.15 * height, key,
+                            fonts['key'])
         if data is not None:
             if data['name']:
-                self.fit_text(x + 0.4 * width,
-                              h + (0.05 * height),
-                              data['name'],
-                              0.55 * width,
-                              right=True,
-                              font=fonts['text'])
+                self.gfit_text(x + width - mm2pt(1.0),
+                               h + (0.05 * height),
+                               data['name'],
+                               width - mm2pt(1.5),
+                               right=True,
+                               font=fonts['text'])
             if data['gcline']:
-                self.text_right(x + width - mm2pt(1.0), h + (0.30 * height),
-                                data['gcline'], fonts['gcline'])
+                self.gtext_right(x + width - mm2pt(1.0), h + (0.30 * height),
+                                 data['gcline'], fonts['gcline'])
             if data['ltext']:
-                self.text_left(x + mm2pt(0.5), h + (0.66 * height),
-                               data['ltext'], fonts['text'])
+                self.gtext_left(x + mm2pt(0.5), h + (0.66 * height),
+                                data['ltext'], fonts['text'])
             if data['rtext']:
-                self.text_right(x + width - mm2pt(1.0), h + (0.66 * height),
-                                data['rtext'], fonts['text'])
+                self.gtext_right(x + width - mm2pt(1.0), h + (0.66 * height),
+                                 data['rtext'], fonts['text'])
             if data['dnf']:
                 self.drawline(x + mm2pt(0.5),
                               h + height - mm2pt(1.0),
@@ -5293,6 +5293,66 @@ class report:
                 self.drawline(oft, uth, oft + tw, uth, underthick)
         return (tw, th)
 
+    def gfit_text(self,
+                  w,
+                  h,
+                  msg,
+                  maxwidth,
+                  right=False,
+                  font=None,
+                  strikethrough=False,
+                  underline=False):
+        tw = 0
+        th = self.line_height
+        if msg:
+            baseline = _CELL_BASELINE * self.line_height
+            l = Pango.Layout.new(self.p)
+            if right:
+                l.set_alignment(Pango.Alignment.RIGHT)
+                l.set_ellipsize(Pango.EllipsizeMode.START)
+            else:
+                l.set_alignment(Pango.Alignment.LEFT)
+                l.set_ellipsize(Pango.EllipsizeMode.END)
+            if font is not None:
+                l.set_font_description(font)
+
+            l.set_wrap(Pango.WrapMode.WORD_CHAR)
+            l.set_text(msg, -1)
+            l.set_width(int(maxwidth * PANGO_SCALE))
+            l.set_height(0)
+            intr, logr = l.get_extents()
+            fnbaseline = l.get_baseline() * PANGO_INVSCALE
+            thof = logr.y * PANGO_INVSCALE
+            twof = logr.x * PANGO_INVSCALE
+            tw = logr.width * PANGO_INVSCALE
+            th = logr.height * PANGO_INVSCALE
+            oft = w + twof
+            if right:
+                oft = w - (tw + twof)
+            self.c.move_to(oft, h)
+            #self.c.move_to(oft, h + (baseline - fnbaseline) + thof)
+            PangoCairo.update_context(self.c, self.p)
+            l.context_changed()
+            PangoCairo.show_layout(self.c, l)
+
+            metrics = None
+            if strikethrough or underline:
+                metrics = l.get_context().get_metrics(font)
+            if strikethrough:
+                strikethick = metrics.get_strikethrough_thickness(
+                ) * PANGO_INVSCALE
+                strikeoft = baseline - metrics.get_strikethrough_position(
+                ) * PANGO_INVSCALE
+                sth = h + strikeoft - 0.5 * strikethick
+                self.drawline(oft, sth, oft + tw, sth, strikethick)
+            if underline:
+                underthick = metrics.get_underline_thickness() * PANGO_INVSCALE
+                underoft = baseline - metrics.get_underline_position(
+                ) * PANGO_INVSCALE
+                uth = h + underoft - 0.5 * underthick
+                self.drawline(oft, uth, oft + tw, uth, underthick)
+        return (tw, th)
+
     def placemark(self, w, h):
         """Draw a crosshair mark at w,h"""
         self.drawline(w, h - 2.5, w, h + 2.5, 0.10)
@@ -5331,6 +5391,55 @@ class report:
             th = logr.height * PANGO_INVSCALE
             oft = w - (tw + twof)
             self.c.move_to(oft, h + (baseline - fnbaseline) + thof)
+            PangoCairo.update_context(self.c, self.p)
+            l.context_changed()
+            PangoCairo.show_layout(self.c, l)
+
+            metrics = None
+            if underline or strikethrough:
+                metrics = l.get_context().get_metrics(font)
+            if strikethrough:
+                strikethick = metrics.get_strikethrough_thickness(
+                ) * PANGO_INVSCALE
+                strikeoft = baseline - metrics.get_strikethrough_position(
+                ) * PANGO_INVSCALE
+                sth = h + strikeoft - 0.5 * strikethick
+                self.drawline(oft, sth, oft + tw, sth, strikethick)
+            if underline:
+                underthick = metrics.get_underline_thickness() * PANGO_INVSCALE
+                underoft = baseline - metrics.get_underline_position(
+                ) * PANGO_INVSCALE
+                uth = h + underoft - 0.5 * underthick
+                self.drawline(oft, uth, oft + tw, uth, underthick)
+        return (tw, th)
+
+    def gtext_right(self,
+                    w,
+                    h,
+                    msg,
+                    font=None,
+                    strikethrough=False,
+                    maxwidth=None,
+                    underline=False):
+        # TODO: replace with text_cell
+        tw = 0
+        th = self.line_height
+        if msg:
+            baseline = _CELL_BASELINE * self.line_height
+
+            l = Pango.Layout.new(self.p)
+            l.set_alignment(Pango.Alignment.RIGHT)
+            if font is not None:
+                l.set_font_description(font)
+            l.set_text(msg, -1)
+            intr, logr = l.get_extents()
+            fnbaseline = l.get_baseline() * PANGO_INVSCALE
+            thof = logr.y * PANGO_INVSCALE
+            twof = logr.x * PANGO_INVSCALE
+            tw = logr.width * PANGO_INVSCALE
+            th = logr.height * PANGO_INVSCALE
+            oft = w - (tw + twof)
+            self.c.move_to(oft, h)
             PangoCairo.update_context(self.c, self.p)
             l.context_changed()
             PangoCairo.show_layout(self.c, l)
@@ -5402,6 +5511,56 @@ class report:
                 self.drawline(oft, uth, oft + tw, uth, underthick)
         return (tw, th)
 
+    def gtext_left(self,
+                   w,
+                   h,
+                   msg,
+                   font=None,
+                   strikethrough=False,
+                   maxwidth=None,
+                   underline=False):
+        # TODO: replace with text_cell
+        tw = 0
+        th = self.line_height
+        if msg:
+            baseline = _CELL_BASELINE * self.line_height
+
+            l = Pango.Layout.new(self.p)
+            l.set_alignment(Pango.Alignment.LEFT)
+            if font is not None:
+                l.set_font_description(font)
+            l.set_text(msg, -1)
+            intr, logr = l.get_extents()
+            fnbaseline = l.get_baseline() * PANGO_INVSCALE
+            thof = logr.y * PANGO_INVSCALE
+            twof = logr.x * PANGO_INVSCALE
+            tw = logr.width * PANGO_INVSCALE
+            th = logr.height * PANGO_INVSCALE
+            oft = w + twof
+            self.c.move_to(oft, h)
+            #self.c.move_to(oft, h + (baseline - fnbaseline) + thof)
+            PangoCairo.update_context(self.c, self.p)
+            l.context_changed()
+            PangoCairo.show_layout(self.c, l)
+
+            metrics = None
+            if underline or strikethrough:
+                metrics = l.get_context().get_metrics(font)
+            if strikethrough:
+                strikethick = metrics.get_strikethrough_thickness(
+                ) * PANGO_INVSCALE
+                strikeoft = baseline - metrics.get_strikethrough_position(
+                ) * PANGO_INVSCALE
+                sth = h + strikeoft - 0.5 * strikethick
+                self.drawline(oft, sth, oft + tw, sth, strikethick)
+            if underline:
+                underthick = metrics.get_underline_thickness() * PANGO_INVSCALE
+                underoft = baseline - metrics.get_underline_position(
+                ) * PANGO_INVSCALE
+                uth = h + underoft - 0.5 * underthick
+                self.drawline(oft, uth, oft + tw, uth, underthick)
+        return (tw, th)
+
     def text_para(self,
                   w,
                   h,
@@ -5418,7 +5577,7 @@ class report:
             if font is not None:
                 l.set_font_description(font)
             l.set_width(int(Pango.SCALE * width + 1))
-            l.set_wrap(Pango.WrapMode.WORD_CHAR)
+            l.set_wrap(Pango.WrapMode.WORD)
             l.set_alignment(halign)
             l.set_text(text, -1)
             (tw, th) = l.get_pixel_size()
