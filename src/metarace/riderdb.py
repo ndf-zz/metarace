@@ -342,7 +342,6 @@ _ALT_COLUMNS = {
     'tra': 'ref',
     'dis': 'ref',
     'gen': 'sex',
-    'dat': 'dob',
     'not': 'note',
     'foo': 'note',
     'see': 'seed',
