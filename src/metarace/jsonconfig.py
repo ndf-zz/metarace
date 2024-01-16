@@ -271,6 +271,24 @@ class config:
                 pass
                 #_log.debug('Option: %r type none', option)
 
+    def export_dict(self, section):
+        """Return section as dict according to schema"""
+        ret = {}
+        if section not in self.__schema:
+            _log.error('No schema for section export %r', section)
+            return None
+        for option in self.__schema[section]:
+            schema = self.__schema[section][option]
+            otype = 'txt'
+            if 'type' in schema:
+                otype = schema['type']
+            if otype != 'none':
+                val = self.get_value(section, option)
+                ret[option] = val
+            else:
+                pass
+        return ret
+
     def import_csv(self, filename, defaults=None):
         """Import values from csv into self according to schema"""
         with open(filename, encoding='utf-8') as f:
