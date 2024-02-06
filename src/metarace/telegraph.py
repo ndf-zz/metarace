@@ -238,10 +238,12 @@ class telegraph(threading.Thread):
                      topic=None,
                      qos=None,
                      retain=False,
-                     cls=None):
+                     cls=None,
+                     indent=None):
         """Pack the provided object into JSON and publish to topic."""
         try:
-            self.publish(json.dumps(obj, cls=cls), topic, qos, retain)
+            self.publish(json.dumps(obj, cls=cls, indent=indent), topic, qos,
+                         retain)
         except Exception as e:
             _log.error('Error publishing object %r: %s', obj, e)
 
