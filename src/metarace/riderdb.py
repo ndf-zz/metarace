@@ -424,6 +424,20 @@ class rider():
         """Return a list of categories for this rider"""
         return (c.upper() for c in self['cat'].split())
 
+    def add_cat(self, cat):
+        """Add cat to rider"""
+        cset = set((c.upper() for c in self['cat'].split()))
+        cset.add(cat.upper())
+        self['cat'] = ' '.join(cset)
+
+    def del_cat(self, cat):
+        """Remove cat from rider"""
+        cset = set((c.upper() for c in self['cat'].split()))
+        rem = cat.upper()
+        if rem in cset:
+            cset.remove(rem)
+            self['cat'] = ' '.join(cset)
+
     def get_row(self, coldump=_DEFAULT_COLUMN_ORDER):
         """Return a row ready to export."""
         return (str(self[c]) for c in coldump)
