@@ -1281,6 +1281,7 @@ class sprintfinal:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
             report.h += report.line_height
+        heatlbls = False
         hof = report.h
         if len(self.lines) > 0:
             for i in self.lines:
@@ -1294,10 +1295,17 @@ class sprintfinal:
                 hr = hl + 3.0 * hw
 
                 # place heat headings
-                report.text_cent(h1t, hof, 'Heat 1', report.fonts['subhead'])
-                report.text_cent(h2t, hof, 'Heat 2', report.fonts['subhead'])
-                report.text_cent(h3t, hof, 'Heat 3', report.fonts['subhead'])
-                hof += report.line_height
+                if not heatlbls:
+                    report.text_cent(h1t, hof, 'Heat 1',
+                                     report.fonts['subhead'])
+                    report.text_cent(h2t, hof, 'Heat 2',
+                                     report.fonts['subhead'])
+                    report.text_cent(h3t, hof, 'Heat 3',
+                                     report.fonts['subhead'])
+                    hof += report.line_height
+                    heatlbls = True
+                else:
+                    hof += 0.3 * report.line_height
 
                 heat = ''
                 if i[0]:
@@ -1310,9 +1318,12 @@ class sprintfinal:
                 bl = report.get_baseline(hof)
                 hb = report.get_baseline(hof + report.line_height)
                 # draw heat lines
-                report.drawline(hl, bl, hr, bl)
-                report.drawline(h12, ht, h12, hb)
-                report.drawline(h23, ht, h23, hb)
+                if not heat.startswith('bye'):
+                    report.drawline(hl, bl, hr, bl)
+                    report.drawline(h12, ht + 0.1 * report.line_height, h12,
+                                    hb - 0.1 * report.line_height)
+                    report.drawline(h23, ht + 0.1 * report.line_height, h23,
+                                    hb - 0.1 * report.line_height)
 
                 # draw all the "a" rider info
                 report.sprint_rider(i[1], report.body_left + hw, hof)
@@ -1337,6 +1348,13 @@ class sprintfinal:
                 #if len(i[2]) > 7 and i[2][7]:
                 #report.text_left(hl, hof, i[2][7], report.fonts[u'body'])
                 hof += report.line_height
+
+                # cross-out heat three if not required
+                if i[2][4] and i[2][5] or i[1][4] and i[1][5]:
+                    report.drawline(h23 + 0.4 * report.line_height,
+                                    hb - 0.2 * report.line_height,
+                                    hr - 0.4 * report.line_height,
+                                    ht + 0.2 * report.line_height)
 
         report.h = hof
         if self.footer:
