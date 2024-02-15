@@ -5187,6 +5187,9 @@ class report:
         if rvec[2]:  # rider name
             self.text_left(w + mm2pt(6.0), h, rvec[2], self.fonts['body'])
             doline = False
+        if rvec[3]:  # qualifying time
+            self.text_left(w + mm2pt(45.0), h, 'Q: ' + rvec[3],
+                           self.fonts['bodyoblique'])
         if doline:
             self.drawline(w + mm2pt(1.0), baseline, w + mm2pt(50), baseline)
         # ignore cat/xtra in sprint rounds
