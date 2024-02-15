@@ -528,17 +528,19 @@ class agg(tod):
 ZERO = tod()
 ONE = tod(1)
 MINUTE = tod('1:00')
-MAX = tod('23h59:59.999990')  # largest val possible for tod
+MAX = tod('23h59:59.999980')  # largest val possible for tod
 MAXELAP = tod('23h30:00')  # max displayed elapsed time
 
 # Fake times for special cases
 # these are unused tods that sort correctly when compared
 FAKETIMES = {
     'catch': tod(ZERO, chan='catch'),
+    'win': tod(ZERO, chan='catch'),
     'w/o': tod(ZERO, chan='w/o'),
+    'ntr': tod(ZERO, chan='ntr'),
     'max': tod(MAX, chan='max'),
-    'ntr': tod(MAX, chan='ntr'),
     'caught': tod(MAX, chan='caught'),
+    'lose': tod(MAX, chan='caught'),
     'rel': tod(MAX, chan='rel'),
     'abort': tod(MAX, chan='abort'),
     'otl': tod(MAX, chan='otl'),
@@ -548,7 +550,10 @@ FAKETIMES = {
 }
 extra = decimal.Decimal('0.000001')
 cof = decimal.Decimal('0.000001')
-for c in ['ntr', 'caught', 'rel', 'abort', 'otl', 'dnf', 'dns', 'dsq']:
+for c in [
+        'catch', 'win', 'w/o', 'ntr', 'caught', 'lose', 'rel', 'abort', 'otl',
+        'dnf', 'dns', 'dsq'
+]:
     FAKETIMES[c].timeval += cof
     cof += extra
 
