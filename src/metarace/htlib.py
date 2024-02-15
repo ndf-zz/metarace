@@ -98,14 +98,8 @@ def emptypage():
                         '"use strict";let pageReload=null;function rl(){setTimeout(function(){history.go(0)},10);return false}function pageInit(){pageReload=document.getElementById("pageReload");pageReload.addEventListener("click",rl)}window.addEventListener("load",pageInit,false);'
                     ), ),
             )),
-            body((
-                '__REPORT_NAV__',
-                main((
-                    h2('__REPORT_TITLE__'),
-                    '__REPORT_CONTENT__',
-                ),
-                     attrs={'class': 'container'}),
-            ),
+            body((main(
+                ('__REPORT_CONTENT__', ), attrs={'class': 'container'}), ),
                  attrs={}),
         ), {'lang': 'en'})))
 

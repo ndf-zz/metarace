@@ -3909,6 +3909,7 @@ class report:
         self.eventid = None  # stage no or other identifier
         self.customlinks = []  # manual override links
         self.navbar = ''  # meet navigation
+        self.showcard = True  # display meta card with HTML exports
         self.shortname = None
         self.prevlink = None
         self.nextlink = None
@@ -4375,13 +4376,15 @@ class report:
 
     def macrowrite(self, file=None, text=''):
         """Write text to file substituting macros in text."""
-        titlestr = ''
+        ttvec = []
         for s in ['title', 'subtitle']:
             if s in self.strings and self.strings[s]:
-                titlestr += self.strings[s] + ' '
-        ret = text.replace('__REPORT_NAV__', self.navbar)
-        ret = ret.replace('__REPORT_TITLE__',
-                          htlib.escapetext(titlestr.strip()))
+                ttvec.append(self.strings[s])
+        titlestr = ' '.join(ttvec)
+        ret = text
+        if '__REPORT_TITLE__' in ret:
+            ret = ret.replace('__REPORT_TITLE__', htlib.escapetext(titlestr))
+
         for s in self.strings:
             mackey = '__' + s.upper().strip() + '__'
             if mackey in ret:
@@ -4492,45 +4495,60 @@ class report:
         """Output the html in text report body."""
         cw = file
 
-        metalist = []
-        for s in ['datestr', 'docstr', 'diststr', 'commstr', 'orgstr']:
-            if s in self.strings and self.strings[s]:
-                metalist.append((ICONMAP[s], [self.strings[s].strip()]))
-        if len(linktypes) > 0:
-            linkmsg = ['Download as:']
-            for xtn in linktypes:
-                xmsg = xtn
-                if xtn in FILETYPES:
-                    xmsg = FILETYPES[xtn]
-                linkmsg.append(' [')
-                linkmsg.append(htlib.a(xmsg, {'href': linkbase + '.' + xtn}))
-                linkmsg.append(']')
-            metalist.append((ICONMAP['download'], linkmsg))
-        if len(metalist) > 0:
-            pmark = None
-            if self.provisional:  # add prov marker
-                pmark = htlib.span('Provisional', {
-                    'id': 'pgre',
-                    'class': 'badge bg-warning'
-                })
-            carditems = []
-            for li in metalist:
-                items = [htlib.i('', {'class': li[0]})]
-                for c in li[1]:
-                    items.append(c)
-                if pmark is not None:
-                    items.append(pmark)
-                carditems.append(
-                    htlib.li(
-                        items,
-                        {'class': 'list-group-item list-group-item-secondary'
-                         }))
+        if self.showcard:
+            ttvec = []
+            for s in ['title', 'subtitle']:
+                if s in self.strings and self.strings[s]:
+                    ttvec.append(self.strings[s])
+            titlestr = ' '.join(ttvec)
+
+            if self.navbar:
+                cw.write(self.navbar + '\n')
+            if titlestr:
+                cw.write(htlib.h2(titlestr.strip(), {'class': 'mb-4'}))
+            if 'host' in self.strings and self.strings['host']:
+                cw.write(htlib.p(self.strings['host'], {'class': 'lead'}))
+
+            metalist = []
+            for s in ['datestr', 'docstr', 'diststr', 'commstr', 'orgstr']:
+                if s in self.strings and self.strings[s]:
+                    metalist.append((ICONMAP[s], [self.strings[s].strip()]))
+            if len(linktypes) > 0:
+                linkmsg = ['Download as:']
+                for xtn in linktypes:
+                    xmsg = xtn
+                    if xtn in FILETYPES:
+                        xmsg = FILETYPES[xtn]
+                    linkmsg.append(' [')
+                    linkmsg.append(
+                        htlib.a(xmsg, {'href': linkbase + '.' + xtn}))
+                    linkmsg.append(']')
+                metalist.append((ICONMAP['download'], linkmsg))
+            if len(metalist) > 0:
                 pmark = None
-            cw.write(
-                htlib.div(
-                    htlib.ul(carditems,
-                             {'class': 'list-group list-group-flush'}),
-                    {'class': 'card bg-light mb-4 small'}) + '\n')
+                if self.provisional:  # add prov marker
+                    pmark = htlib.span('Provisional', {
+                        'id': 'pgre',
+                        'class': 'badge bg-warning'
+                    })
+                carditems = []
+                for li in metalist:
+                    items = [htlib.i('', {'class': li[0]})]
+                    for c in li[1]:
+                        items.append(c)
+                    if pmark is not None:
+                        items.append(pmark)
+                    carditems.append(
+                        htlib.li(items, {
+                            'class':
+                            'list-group-item list-group-item-secondary'
+                        }))
+                    pmark = None
+                cw.write(
+                    htlib.div(
+                        htlib.ul(carditems,
+                                 {'class': 'list-group list-group-flush'}),
+                        {'class': 'card bg-light mb-4 small'}) + '\n')
 
         # output all the sections...
         for s in self.sections:
