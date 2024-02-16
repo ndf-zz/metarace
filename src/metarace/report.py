@@ -4434,10 +4434,10 @@ class report:
         if self.prevlink:
             navbar.append(
                 htlib.a(
-                    htlib.span((), {"class": "bi-caret-left"}), {
+                    '\u2bc7', {
                         'href': self.prevlink + '.html',
-                        'class': 'nav-link',
-                        'title': 'Previous'
+                        'title': 'Previous',
+                        'class': 'btn btn-secondary'
                     }))
         if self.indexlink:
             hrf = self.indexlink
@@ -4450,17 +4450,17 @@ class report:
                 hrf = './'
 
             navbar.append(
-                htlib.a(htlib.span((), {"class": "bi-caret-up"}), {
+                htlib.a('\u2bc5', {
                     'href': hrf,
-                    'class': 'nav-link',
-                    'title': 'Index'
+                    'title': 'Index',
+                    'class': 'btn btn-secondary'
                 }))
         if self.startlink:
             navbar.append(
                 htlib.a(
                     htlib.span((), {"class": "bi-file-earmark-person"}), {
                         'href': self.startlink + '.html',
-                        'class': 'nav-link',
+                        'class': 'btn btn-secondary',
                         'title': 'Startlist'
                     }))
         if self.resultlink:
@@ -4468,28 +4468,28 @@ class report:
                 htlib.a(
                     htlib.span((), {"class": "bi-file-earmark-text"}), {
                         'href': self.resultlink + '.html',
-                        'class': 'nav-link',
+                        'class': 'btn btn-secondary',
                         'title': 'Result'
                     }))
         if self.provisional:  # add refresh button
             navbar.append(
-                htlib.span(
-                    (), {
+                htlib.button(
+                    '\u2b6e', {
                         'id': 'pageReload',
                         'title': 'Reload',
-                        "class": "nav-link bi-arrow-repeat"
+                        "class": "btn btn-secondary"
                     }))
         if self.nextlink:
             navbar.append(
                 htlib.a(
-                    htlib.span((), {"class": "bi-caret-right"}), {
+                    '\u2bc8', {
                         'href': self.nextlink + '.html',
                         'title': 'Next',
-                        'class': 'nav-link'
+                        'class': 'btn btn-secondary'
                     }))
         brand = None
         if self.shortname:
-            brand = htlib.a(htlib.escapetext(self.shortname), {
+            brand = htlib.a(self.shortname, {
                 'href': './',
                 'class': 'navbar-brand'
             })
@@ -4497,10 +4497,8 @@ class report:
             if not brand:
                 brand = htlib.a('', {'href': '#', 'class': 'navbar-brand'})
             self.navbar = htlib.header(
-                htlib.nav(
-                    (brand,
-                     htlib.p(navbar, {'class': 'navbar-nav d-flex flex-row'})),
-                    {'class': u'container'}),
+                htlib.nav((brand, htlib.p(navbar, {'class': 'nav-item mb-0'})),
+                          {'class': u'container'}),
                 {
                     'class':
                     'navbar sticky-top navbar-expand-sm navbar-dark bg-dark mb-4'
