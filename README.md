@@ -18,9 +18,12 @@ the library, they are available separately:
 
 ## Work in Progress
 
-   - include grapheme support in strops
-   - re-write report library for better sectioning
+   - overhaul report sections and event index for trackmeet
    - overhaul PDF text rendering
+   - re-write report library
+   - remove html templates
+   - add js utils for in-page reports
+   - include grapheme support in all strops
    - replace xls export with xlsx
    - module documentation
    - sample scripts

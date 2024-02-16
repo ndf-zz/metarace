@@ -67,41 +67,22 @@ def comment(elements=(' ', )):
 
 # return a valid but empty html template
 def emptypage():
-    return '\n'.join((
-        doctype(),
-        html((
-            head((
-                meta(attrs={'charset': 'utf-8'}),
-                meta(
-                    attrs={
-                        'name': 'viewport',
-                        'content': 'width=device-width, initial-scale=1'
-                    }),
-                title('__REPORT_TITLE__'),
-                link(
-                    attrs={
-                        'href':
-                        'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
-                        'integrity':
-                        'sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM',
-                        'crossorigin': 'anonymous',
-                        'rel': 'stylesheet'
-                    }),
-                link(
-                    attrs={
-                        'href':
-                        'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css',
-                        'rel': 'stylesheet'
-                    }),
-                script(
-                    element(
-                        '"use strict";let pageReload=null;function rl(){setTimeout(function(){history.go(0)},10);return false}function pageInit(){pageReload=document.getElementById("pageReload");pageReload.addEventListener("click",rl)}window.addEventListener("load",pageInit,false);'
-                    ), ),
-            )),
-            body((main(
-                ('__REPORT_CONTENT__', ), attrs={'class': 'container'}), ),
-                 attrs={}),
-        ), {'lang': 'en'})))
+    return '\n'.join(
+        (doctype(),
+         html((
+             head((
+                 meta(attrs={'charset': 'utf-8'}),
+                 meta(
+                     attrs={
+                         'name': 'viewport',
+                         'content': 'width=device-width, initial-scale=1'
+                     }),
+                 title('__REPORT_TITLE__'),
+             )),
+             body((main(
+                 ('__REPORT_CONTENT__', ), attrs={'class': 'container'}), ),
+                  attrs={}),
+         ), {'lang': 'en'})))
 
 
 # Declare all the empty types

@@ -303,12 +303,14 @@ def vec2htmllinkrow(vec=[], xtn='', rep=None):
         cols.append(htlib.td(rtxt))
     else:  # Old-style trackmeet event index
         if rowmap[4]:
-            cols.append(htlib.td(htlib.a(rowmap[2],
-                                         {'href': rowmap[4] + xtn})))
+            url = rowmap[4] + xtn
+            if rowmap[5]:  # in-page target
+                url += '#' + rowmap[5]
+            cols.append(htlib.td(htlib.a(rowmap[2], {'href': url})))
         else:
             cols.append(htlib.td(rowmap[2]))
         cols.append(htlib.td(rowmap[3]))
-        cols.append(htlib.td(rowmap[5]))
+        # cols.append(htlib.td(rowmap[5]))
     return htlib.tr(cols)
 
 
@@ -342,7 +344,7 @@ def vec2htmlhead(vec=[]):
 class dual_ittt_startlist:
     """Two-up time trial for individual riders (eg track pursuit)."""
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.heading = None
         self.status = None
@@ -355,6 +357,7 @@ class dual_ittt_startlist:
         self.fslbl = 'Front Straight'
         self.bslbl = 'Back Straight'
         self.lcount = 0
+        self.nobreak = False
         self.pairs = False
         self.h = None
 
@@ -422,6 +425,11 @@ class dual_ittt_startlist:
         if self.get_h(report) <= (remainder + report.page_overflow):
             return (self, None)
 
+        # Special case: Don't break if possible
+        if self.nobreak and report.pagefrac() > FEPSILON:
+            # move entire section onto next page
+            return (pagebreak(0.01), self)
+
         # Special case 2: Not enough space for minimum content
         chk = dual_ittt_startlist()
         chk.heading = self.heading
@@ -438,7 +446,7 @@ class dual_ittt_startlist:
             chk.lines = self.lines[0:2]
         if chk.get_h(report) > remainder:
             # move entire section onto next page
-            return (pagebreak(), self)
+            return (pagebreak(0.01), self)
 
         # Standard case - section crosses page break, determines
         # ret: content on current page
@@ -586,7 +594,7 @@ class dual_ittt_startlist:
     def draw_text(self, report, f, xtn):
         """Output program element in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         dual = False
@@ -629,7 +637,7 @@ class dual_ittt_startlist:
 
 class signon_list:
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.status = None
         self.heading = None
@@ -808,7 +816,7 @@ class signon_list:
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
@@ -831,7 +839,7 @@ class signon_list:
 
 class twocol_startlist:
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.heading = None
         self.status = None
@@ -840,6 +848,7 @@ class twocol_startlist:
         self.timestr = None
         self.lines = []
         self.lcount = 0
+        self.nobreak = False
         self.even = False
         self.preh = None
         self.h = None
@@ -915,7 +924,7 @@ class twocol_startlist:
                 return (ret, rem)
             else:
                 # we are somewhere on the page - insert break and try again
-                return (pagebreak(), self)
+                return (pagebreak(0.01), self)
 
     def draw_pdf(self, report):
         """Output a single section to the page."""
@@ -1002,7 +1011,7 @@ class twocol_startlist:
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
@@ -1025,7 +1034,7 @@ class twocol_startlist:
 
 class sprintround:
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.heading = None
         self.status = None
@@ -1035,6 +1044,7 @@ class sprintround:
         self.footer = None
         self.lines = []  # maps to 'heats', include riders?
         self.lcount = 0
+        self.nobreak = False
         self.h = None
 
     def serialize(self, rep, sectionid=None):
@@ -1077,7 +1087,7 @@ class sprintround:
                     'Section ' + repr(self.heading) +
                     ' will not fit on a page and will not break.')
             # move entire section onto next page
-            return (pagebreak(), self)
+            return (pagebreak(0.01), self)
 
     def draw_pdf(self, report):
         """Output a single section to the page."""
@@ -1180,7 +1190,7 @@ class sprintround:
     def draw_text(self, report, f, xtn):
         """Output program element in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
@@ -1216,7 +1226,7 @@ class sprintround:
 
 class sprintfinal:
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.status = None
         self.heading = None
@@ -1226,6 +1236,7 @@ class sprintfinal:
         self.footer = None
         self.lines = []  # maps to 'contests'
         self.lcount = 0
+        self.nobreak = False
         self.h = None
 
     def serialize(self, rep, sectionid=None):
@@ -1268,7 +1279,7 @@ class sprintfinal:
                     'Section ' + repr(self.heading) +
                     ' will not fit on a page and will not break.')
             # move entire section onto next page
-            return (pagebreak(), self)
+            return (pagebreak(0.01), self)
 
     def draw_pdf(self, report):
         """Output a single section to the page."""
@@ -1409,7 +1420,7 @@ class sprintfinal:
     def draw_text(self, report, f, xtn):
         """Output program element in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
@@ -1440,7 +1451,7 @@ class sprintfinal:
 class rttstartlist:
     """Time trial start list."""
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.heading = None
         self.status = None
@@ -1610,7 +1621,7 @@ class rttstartlist:
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
@@ -1639,7 +1650,7 @@ class rttstartlist:
 class bullet_text:
     """List of bullet items, each one a non-breaking pango para."""
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.status = None
         self.heading = None  # scalar
@@ -1812,7 +1823,7 @@ class bullet_text:
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
@@ -1831,7 +1842,7 @@ class bullet_text:
 class preformat_text:
     """Block of pre-formatted/monospaced plain text."""
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.status = None
         self.heading = None  # scalar
@@ -1841,6 +1852,7 @@ class preformat_text:
         self.units = None
         self.lines = []  # list of scalars
         self.lcount = 0  # last count of lines/len
+        self.nobreak = False
         self.h = None  # computed height on page
 
     def serialize(self, rep, sectionid=None):
@@ -1879,6 +1891,11 @@ class preformat_text:
         # Special case 1: Entire section will fit on page
         if self.get_h(report) <= (remainder + report.page_overflow):
             return (self, None)
+
+        # Special case: Don't break if possible
+        if self.nobreak and report.pagefrac() > FEPSILON:
+            # move entire section onto next page
+            return (pagebreak(0.01), self)
 
         # Special case 2: Not enough space for minimum content
         chk = preformat_text()
@@ -1976,7 +1993,7 @@ class preformat_text:
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if len(self.lines) > 0:
@@ -1991,7 +2008,7 @@ class preformat_text:
 class event_index:
     """Copy of plain section, but in text output text links."""
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.status = None
         self.heading = None  # scalar
@@ -2163,7 +2180,7 @@ class event_index:
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
@@ -2192,7 +2209,7 @@ class event_index:
 
 class judge24rep:
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.heading = None
         self.status = None
@@ -2409,7 +2426,7 @@ class judge24rep:
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
@@ -2439,7 +2456,7 @@ class judge24rep:
 
 class judgerep:
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.heading = None
         self.status = None
@@ -2673,7 +2690,7 @@ class judgerep:
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
@@ -2704,7 +2721,7 @@ class judgerep:
 class teampage:
     """One-page teams race startlist, with individuals in 3 columns."""
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.heading = None
         self.status = None
@@ -2928,7 +2945,7 @@ class teampage:
         """Write out a section in html."""
         # These are not normally output on team page - but left as option
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
         if self.footer:
@@ -2966,7 +2983,7 @@ class teampage:
 class gamut:
     """Whole view of the entire tour - aka crossoff."""
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.heading = None
         self.status = None
@@ -3120,7 +3137,7 @@ class gamut:
         """Write out a section in html."""
         return None  # Skip section on web output
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
@@ -3133,7 +3150,7 @@ class gamut:
 
 class threecol_section:
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.heading = None
         self.status = None
@@ -3326,7 +3343,7 @@ class threecol_section:
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
@@ -3359,7 +3376,7 @@ class threecol_section:
 
 class section:
 
-    def __init__(self, secid=None):
+    def __init__(self, secid=''):
         self.sectionid = secid
         self.heading = None
         self.status = None
@@ -3370,6 +3387,7 @@ class section:
         self.lines = []
         self.lcount = 0
         self.grey = True
+        self.nobreak = False
         self.h = None
 
     def serialize(self, rep, sectionid=None):
@@ -3411,11 +3429,16 @@ class section:
     def truncate(self, remainder, report):
         """Return a copy of the section up to page break."""
 
-        # Special case 1: Entire section will fit on page
+        # Special case: Entire section will fit on page
         if self.get_h(report) <= (remainder + report.page_overflow):
             return (self, None)
 
-        # Special case 2: Not enough space for minimum content
+        # Special case: Don't break if possible
+        if self.nobreak and report.pagefrac() > FEPSILON:
+            # move entire section onto next page
+            return (pagebreak(0.01), self)
+
+        # Special case: Not enough space for minimum content
         chk = section()
         chk.heading = self.heading
         chk.subheading = self.subheading
@@ -3567,7 +3590,7 @@ class section:
     def draw_text(self, report, f, xtn):
         """Write out a section in html."""
         if self.heading:
-            f.write(htlib.h3(self.heading.strip()))
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
         if self.subheading:
             f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
 
@@ -4382,8 +4405,15 @@ class report:
                 ttvec.append(self.strings[s])
         titlestr = ' '.join(ttvec)
         ret = text
+        if '__SERIALNO__' in ret:
+            # workaround - until templates removed
+            ret = ret.replace(
+                '__SERIALNO__',
+                'data-serialno=' + htlib.quoteattr(self.serialno))
         if '__REPORT_TITLE__' in ret:
             ret = ret.replace('__REPORT_TITLE__', htlib.escapetext(titlestr))
+        if '__REPORT_NAV__' in ret:
+            ret = ret.replace('__REPORT_NAV__', self.navbar)
 
         for s in self.strings:
             mackey = '__' + s.upper().strip() + '__'
@@ -4502,8 +4532,6 @@ class report:
                     ttvec.append(self.strings[s])
             titlestr = ' '.join(ttvec)
 
-            if self.navbar:
-                cw.write(self.navbar + '\n')
             if titlestr:
                 cw.write(htlib.h2(titlestr.strip(), {'class': 'mb-4'}))
             if 'host' in self.strings and self.strings['host']:
@@ -4551,6 +4579,11 @@ class report:
                         {'class': 'card bg-light mb-4 small'}) + '\n')
 
         # output all the sections...
+        secmap = {}
+        for s in self.sections:
+            secid = mksectionid(secmap, s.sectionid)
+            secmap[secid] = secid
+            s.sectionid = secid
         for s in self.sections:
             if type(s) is not pagebreak:
                 s.draw_text(self, cw, htmlxtn)  # call into section
