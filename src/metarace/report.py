@@ -410,7 +410,7 @@ class dual_ittt_startlist:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             if self.fslbl or self.bslbl:
                 self.h += report.line_height
             if self.footer:
@@ -504,7 +504,7 @@ class dual_ittt_startlist:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         dolanes = False
         dual = False
         if self.fslbl:
@@ -675,7 +675,7 @@ class signon_list:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             if self.footer:
                 self.h += report.line_height
             self.lcount = len(self.lines)
@@ -748,7 +748,7 @@ class signon_list:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
 
         colof = report.body_left
         hof = report.h
@@ -880,8 +880,8 @@ class twocol_startlist:
                 self.h += report.section_height
                 self.preh += report.section_height
             if self.subheading:
-                self.h += report.line_height
-                self.preh += report.line_height
+                self.h += report.section_height
+                self.preh += report.section_height
             if self.timestr:
                 self.h += report.line_height
                 self.preh += report.line_height
@@ -936,7 +936,7 @@ class twocol_startlist:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
 
         #colof = report.body_left-mm2pt(10.0)
         colof = report.body_left
@@ -1070,7 +1070,7 @@ class sprintround:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             if self.footer:
                 self.h += report.line_height
             self.lcount = len(self.lines)
@@ -1099,7 +1099,7 @@ class sprintround:
         if self.subheading is not None:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         hof = report.h
         if len(self.lines) > 0:
             for i in self.lines:
@@ -1262,7 +1262,7 @@ class sprintfinal:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             if self.footer:
                 self.h += report.line_height
             self.lcount = len(self.lines)
@@ -1291,7 +1291,7 @@ class sprintfinal:
         if self.subheading is not None:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         heatlbls = False
         hof = report.h
         if len(self.lines) > 0:
@@ -1488,7 +1488,7 @@ class rttstartlist:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             if self.footer:
                 self.h += report.line_height
             self.lcount = len(self.lines)
@@ -1560,7 +1560,7 @@ class rttstartlist:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         cnt = 1
         if len(self.lines) > 0:
             if self.colheader:
@@ -1690,7 +1690,7 @@ class bullet_text:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             if self.footer:
                 self.h += report.line_height
             for line in self.lines:
@@ -1764,7 +1764,7 @@ class bullet_text:
         if self.subheading is not None:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         if len(self.lines) > 0:
             if self.width is None:  # override by caller allowed
                 self.width = report.body_width - mm2pt(15 + 10)
@@ -1881,7 +1881,7 @@ class preformat_text:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             self.lcount = len(self.lines)
         return self.h
 
@@ -1953,7 +1953,7 @@ class preformat_text:
         if self.subheading is not None:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         if len(self.lines) > 0:
             rows = []
             if self.colheader:
@@ -2047,7 +2047,7 @@ class event_index:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             self.lcount = len(self.lines)
         return self.h
 
@@ -2117,7 +2117,7 @@ class event_index:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         if len(self.lines) > 0:
             rows = []
             if self.colheader:
@@ -2250,7 +2250,7 @@ class judge24rep:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             if self.footer:
                 self.h += report.line_height
         return self.h
@@ -2334,7 +2334,7 @@ class judge24rep:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         cnt = 0
         if len(self.lines) > 0:
             if self.colheader:
@@ -2497,7 +2497,7 @@ class judgerep:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             if self.footer:
                 self.h += report.line_height
         return self.h
@@ -2581,7 +2581,7 @@ class judgerep:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         cnt = 0
         if len(self.lines) > 0:
             if self.colheader:
@@ -2793,7 +2793,7 @@ class teampage:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
             glen -= report.section_height
         if self.footer:
             glen -= report.line_height
@@ -3047,7 +3047,7 @@ class gamut:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
             glen -= report.section_height
         if self.footer:
             glen -= report.line_height
@@ -3189,7 +3189,7 @@ class threecol_section:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             if self.footer:
                 self.h += report.line_height
         return self.h
@@ -3264,7 +3264,7 @@ class threecol_section:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         cnt = 0
         if len(self.lines) > 0:
             if self.colheader:
@@ -3421,7 +3421,7 @@ class section:
             if self.heading:
                 self.h += report.section_height
             if self.subheading:
-                self.h += report.line_height
+                self.h += report.section_height
             if self.footer:
                 self.h += report.line_height
         return self.h
@@ -3501,7 +3501,7 @@ class section:
         if self.subheading:
             report.text_cent(report.midpagew, report.h, self.subheading,
                              report.fonts['subhead'])
-            report.h += report.line_height
+            report.h += report.section_height
         cnt = 0
         if len(self.lines) > 0:
             if self.colheader:
@@ -4088,8 +4088,8 @@ class report:
         if cr.has_option('page', 'minbreak'):
             self.minbreak = str2align(cr.get('page', 'minbreak'))
         self.section_height = SECTION_HEIGHT
-        if cr.has_option('page', 'secheight'):
-            self.section_height = str2len(cr.get('page', 'secheight'))
+        if cr.has_option('page', 'section_height'):
+            self.section_height = str2len(cr.get('page', 'section_height'))
         self.line_height = LINE_HEIGHT
         if cr.has_option('page', 'lineheight'):
             self.line_height = str2len(cr.get('page', 'lineheight'))
@@ -4434,7 +4434,7 @@ class report:
         if self.prevlink:
             navbar.append(
                 htlib.a(
-                    '\u2bc7', {
+                    htlib.span((), {"class": "bi-caret-left"}), {
                         'href': self.prevlink + '.html',
                         'title': 'Previous',
                         'class': 'btn btn-secondary'
@@ -4450,7 +4450,7 @@ class report:
                 hrf = './'
 
             navbar.append(
-                htlib.a('\u2bc5', {
+                htlib.a(htlib.span((), {"class": "bi-caret-up"}), {
                     'href': hrf,
                     'title': 'Index',
                     'class': 'btn btn-secondary'
@@ -4474,7 +4474,7 @@ class report:
         if self.provisional:  # add refresh button
             navbar.append(
                 htlib.button(
-                    '\u2b6e', {
+                    htlib.span((), {"class": "bi-arrow-repeat"}), {
                         'id': 'pageReload',
                         'title': 'Reload',
                         "class": "btn btn-secondary"
@@ -4482,7 +4482,7 @@ class report:
         if self.nextlink:
             navbar.append(
                 htlib.a(
-                    '\u2bc8', {
+                    htlib.span((), {"class": "bi-caret-right"}), {
                         'href': self.nextlink + '.html',
                         'title': 'Next',
                         'class': 'btn btn-secondary'
