@@ -373,7 +373,7 @@ def get_header(cols=_DEFAULT_COLUMN_ORDER, hdrs=_RIDER_COLUMNS):
 
 def cellnorm(unistr):
     """Normalise supplied string, then return a version with printing chars."""
-    return normalize('NFC', unistr).translate(strops.PRINT_UTRANS)
+    return normalize('NFC', unistr.strip()).translate(strops.PRINT_UTRANS)
 
 
 class rider():
