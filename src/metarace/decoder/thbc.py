@@ -653,8 +653,10 @@ class thbc(decoder):
                             cstr = 'C2'
                         elif pvec[0] == 'MAN':
                             cstr = 'C0'
-                        if pvec[5] == '3':  # LOW BATTERY ALERT
+                        if pvec[5] == '2':  # LOW BATTERY ALERT
                             _log.warning('Low battery on %r', rstr)
+                        elif pvec[5] == '3':  # BATTERY FAILURE ALERT
+                            _log.warning('Faulty battery on %r', rstr)
                         ret = tod.tod(pvec[2],
                                       index=istr,
                                       chan=cstr,
