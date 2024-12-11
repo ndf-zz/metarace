@@ -23,6 +23,7 @@ defracetypes = [
     'points',
     'madison',
     'omnium',
+    'tempo',
     'classification',
     'hour',
     'competition',
