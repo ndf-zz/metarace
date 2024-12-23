@@ -10,6 +10,8 @@ the library, they are available separately:
    - [roadmeet](https://github.com/ndf-zz/metarace-roadmeet) : Timing
      and results for UCI Part 2 Road Races, UCI Part 5 Cyclo-Cross,
      criterium, road handicap and ad-hoc time trial events.
+   - [trackmeet](https://github.com/ndf-zz/metarace-trackmeet) : Timing
+     and results for UCI Part 3 Track Races.
    - [tagreg](https://github.com/ndf-zz/metarace-tagreg) : Transponder
      id management.
    - [ttstart](https://github.com/ndf-zz/metarace-ttstart) : Time
@@ -108,11 +110,6 @@ Create sectioned reports and save to PDF, HTML, XLS and JSON.
 
 Mirror export files to a remote host using rsync over ssh,
 rsync TCP daemon or by running a local script.
-
-
-### eventdb: CSV Event List
-
-Store details for multple events within a meet.
 
 
 ## Requirements
