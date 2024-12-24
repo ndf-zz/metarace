@@ -34,6 +34,48 @@ _RIDER_COLUMNS = {
     'data': 'Data Reference',
 }
 
+# Alternative column header strings lookup
+_ALT_COLUMNS = {
+    'id': 'no',
+    'ride': 'no',
+    'numb': 'no',
+    'cid': 'no',
+    'code': 'no',
+    'bib': 'no',
+    'inde': 'no',
+    'no.': 'no',
+    'seri': 'series',
+    'type': 'series',
+    'firs': 'first',
+    'name': 'first',
+    'titl': 'first',
+    'last': 'last',
+    'subt': 'last',
+    'surn': 'last',
+    'orga': 'org',
+    'club': 'org',
+    'team': 'org',
+    'laps': 'org',
+    'lap': 'org',
+    'cats': 'cat',
+    'cate': 'cat',
+    'targ': 'cat',
+    'lice': 'uci',
+    'star': 'uci',
+    'ucii': 'uci',
+    'refi': 'ref',
+    'rfid': 'ref',
+    'tran': 'ref',
+    'disp': 'ref',
+    'gend': 'sex',
+    'nati': 'nat',
+    'note': 'note',
+    'foot': 'note',
+    'rank': 'seed',
+    'data': 'data',
+    'date': 'dob',
+}
+
 # Category column headings
 _CATEGORY_COLUMNS = {
     'no': 'ID',
@@ -161,6 +203,51 @@ _RIDER_SCHEMA = {
         'hint': 'Supplementary rider notes',
         'default': '',
     },
+}
+
+# Config schema for rider series
+_SERIES_SCHEMA = {
+    'rtype': {
+        'prompt': 'Series',
+        'control': 'section',
+    },
+    'no': {
+        'prompt': 'ID:',
+        'control': 'short',
+        'attr': 'no',
+        'hint': 'Series ID',
+        'defer': True,
+        'default': '',
+    },
+    'series': {
+        'prompt': 'Series:',
+        'control': 'short',
+        'readonly': True,
+        'attr': 'series',
+        'defer': True,
+        'default': '',
+    },
+    'first': {
+        'prompt': 'Title:',
+        'attr': 'first',
+        'hint': 'Series title',
+        'defer': True,
+        'default': '',
+    },
+    'last': {
+        'prompt': 'Subtitle:',
+        'attr': 'last',
+        'hint': 'Series subtitle',
+        'defer': True,
+        'default': '',
+    },
+    'note': {
+        'prompt': 'Footer:',
+        'attr': 'note',
+        'defer': True,
+        'hint': 'Supplementary footer text for reports',
+        'default': '',
+    }
 }
 
 # Config schema for a category
@@ -323,49 +410,11 @@ _TEAM_SCHEMA = {
 }
 
 # reserved series
-_RESERVED_SERIES = ('spare', 'cat', 'team', 'ds')
+_RESERVED_SERIES = ('spare', 'cat', 'team', 'ds', 'series')
 
 # legacy csv file ordering
 _DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'cat', 'series', 'ref',
                          'uci', 'dob', 'nat', 'sex', 'note', 'seed', 'data')
-
-# Alternative column header strings lookup
-_ALT_COLUMNS = {
-    'id': 'no',
-    'ride': 'no',
-    'numb': 'no',
-    'cid': 'no',
-    'code': 'no',
-    'bib': 'no',
-    'inde': 'no',
-    'no.': 'no',
-    'seri': 'series',
-    'type': 'series',
-    'firs': 'first',
-    'name': 'first',
-    'titl': 'first',
-    'last': 'last',
-    'subt': 'last',
-    'surn': 'last',
-    'club': 'org',
-    'team': 'org',
-    'laps': 'org',
-    'lap': 'org',
-    'targ': 'cat',
-    'lice': 'uci',
-    'star': 'uci',
-    'ucii': 'uci',
-    'rfid': 'ref',
-    'tran': 'ref',
-    'disp': 'ref',
-    'gend': 'sex',
-    'nati': 'nat',
-    'note': 'note',
-    'foot': 'note',
-    'rank': 'seed',
-    'data': 'data',
-    'date': 'dob',
-}
 
 
 def primary_cat(catstr=''):
@@ -664,15 +713,18 @@ class riderdb():
         nr = rider()
         for i in range(0, len(colspec)):
             if len(r) > i:  # column data in row
-                val = cellnorm(r[i])
                 key = colspec[i]
+                val = cellnorm(r[i])
+                if key == 'series':
+                    val = val.lower()
                 nr[key] = val
         if nr['no']:
             if colkey(nr['no']) in _RIDER_COLUMNS:
                 _log.debug('Ignore column header: %r', r)
                 return None
         else:
-            _log.warning('Rider without number: %r', nr)
+            if nr['series'] != 'series':
+                _log.warning('Rider without number: %r', nr)
         return nr
 
     def load(self, csvfile=None, overwrite=False):
@@ -708,6 +760,8 @@ class riderdb():
 
     def listcats(self, series=None):
         """Return a set of categories assigned to riders in the riderdb"""
+        if series is not None:
+            series = series.lower()
         cats = set()
         for r in self.__store.values():
             if (series is not None
@@ -716,8 +770,35 @@ class riderdb():
                 cats.update(r.get_cats())
         return cats
 
+    def listseries(self):
+        """Return an ordered list of series ids in the riderdb"""
+        seen = set()
+        defined = []
+        anonymous = []
+        for r in self.__store.values():
+            rser = r['series']
+            if rser == 'series':
+                defined.append(r['no'])
+                seen.add(r['no'])
+            elif rser not in (
+                    'cat',
+                    'spare',
+                    'ds',
+                    'team',
+            ):
+                if rser not in seen:
+                    anonymous.append(rser)
+                    seen.add(rser)
+        for s in anonymous:
+            if s not in defined:
+                defined.append(s)
+        _log.debug('Returning rider series list: %r', defined)
+        return defined
+
     def biblistfromcat(self, cat, series=None):
         """Return a list of rider ids in the supplied category"""
+        if series is not None:
+            series = series.lower()
         ret = set()
         for r in self.__store.values():
             if (series is not None
@@ -727,6 +808,17 @@ class riderdb():
                     ret.add(r.get_bibstr())
         _log.debug('Found %d riders in cat %r, series %r', len(ret), cat,
                    series)
+        return ret
+
+    def biblistfromseries(self, series):
+        """Return a list of rider ids in the supplied series"""
+        if series is not None:
+            series = series.lower()
+        ret = set()
+        for r in self.__store.values():
+            if r['series'] == series:
+                ret.add(r.get_bibstr())
+        _log.debug('Found %d riders in series %r', len(ret), series)
         return ret
 
     def save(self, csvfile=None, columns=None):
@@ -739,7 +831,10 @@ class riderdb():
             cr = csv.writer(f, quoting=csv.QUOTE_ALL)
             cr.writerow(get_header(columns))
             for r in self.__store.values():
-                if r['series'] == 'cat':
+                if r['series'] in (
+                        'cat',
+                        'series',
+                ):
                     cats.append(r)
                 else:
                     cr.writerow(r.get_row(columns))
@@ -834,6 +929,8 @@ class riderdb():
 
     def next_rider(self, riderno, series=None):
         """Try to return next rider from series"""
+        if series is not None:
+            series = series.lower()
         ret = None
         curid = self.get_id(riderno, series)
         if curid is not None:
@@ -858,6 +955,8 @@ class riderdb():
 
     def add_empty(self, riderno, series=None):
         """Add a new entry for this rider and series"""
+        if series is not None:
+            series = series.lower()
         ret = None
         if series is None:
             riderno, series = strops.bibstr2bibser(riderno)
@@ -866,6 +965,8 @@ class riderdb():
 
     def get_rider(self, riderno, series=None):
         """If rider exists, return handle else return None"""
+        if series is not None:
+            series = series.lower()
         ret = None
         rkey = self.get_id(riderno, series)
         if rkey in self.__store:
@@ -877,6 +978,8 @@ class riderdb():
         ret = None
         if series is None:
             riderno, series = strops.bibstr2bibser(riderno)
+        if series is not None:
+            series = series.lower()
         rkey = (riderno.upper(), series.lower())
         if rkey in self.__store:
             ret = rkey
