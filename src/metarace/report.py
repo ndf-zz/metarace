@@ -30,7 +30,7 @@ _log = logging.getLogger('report')
 _log.setLevel(logging.DEBUG)
 
 # JSON report API versioning
-APIVERSION = '1.2.0'
+APIVERSION = '1.2.1'
 
 # xls cell styles
 XS_LEFT = xlwt.easyxf()
@@ -845,6 +845,7 @@ class twocol_startlist:
         self.status = None
         self.subheading = None
         self.footer = None
+        self.prizes = None
         self.timestr = None
         self.lines = []
         self.lcount = 0
@@ -862,6 +863,7 @@ class twocol_startlist:
         ret['status'] = self.status
         ret['subheading'] = self.subheading
         ret['footer'] = self.footer
+        ret['prizes'] = self.prizes
         ret['lines'] = self.lines
         ret['timestr'] = self.timestr
         ret['height'] = self.get_h(rep)
@@ -885,6 +887,9 @@ class twocol_startlist:
             if self.timestr:
                 self.h += report.line_height
                 self.preh += report.line_height
+            if self.prizes:
+                self.h += report.line_height
+                self.preh += report.line_height
             if self.footer:
                 self.h += report.line_height
                 self.preh += report.line_height
@@ -893,10 +898,16 @@ class twocol_startlist:
 
     def truncate(self, remainder, report):
         """Return a copy of the section up to page break."""
+
         # program event sections do not break ...
         if self.get_h(report) <= (remainder + report.page_overflow):
             return (self, None)
         else:
+            # Special case: Don't break if possible
+            if self.nobreak and report.pagefrac() > FEPSILON:
+                # move entire section onto next page
+                return (pagebreak(0.01), self)
+
             if report.pagefrac() < FEPSILON:  # avoid error
                 # there's a whole page's worth of space here, but a
                 # break is required
@@ -908,6 +919,7 @@ class twocol_startlist:
                 rem = twocol_startlist()
                 ret.heading = self.heading
                 ret.subheading = self.subheading
+                ret.prizes = self.prizes
                 ret.footer = self.footer
                 if ret.footer:
                     ret.footer += ' Continued over\u2026'
@@ -916,6 +928,7 @@ class twocol_startlist:
                 rem.heading = self.heading
                 rem.subheading = self.subheading
                 rem.footer = self.footer
+                rem.prizes = self.prizes
                 rem.timestr = self.timestr
                 if rem.heading:
                     if rem.heading.rfind('(continued)') < 0:
@@ -965,6 +978,10 @@ class twocol_startlist:
             report.drawline(report.body_right - mm2pt(20.0), baseline,
                             report.body_right, baseline)
             report.h += report.line_height
+        if self.prizes:
+            report.text_cent(report.midpagew, report.h, self.prizes,
+                             report.fonts['subhead'])
+            report.h += report.line_height
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
                              report.fonts['subhead'])
@@ -1002,6 +1019,9 @@ class twocol_startlist:
                 worksheet.write(row, 6, l[6], XS_LEFT)
                 row += 1
             row += 1
+        if self.prizes:
+            worksheet.write(row, 2, self.prizes.strip(), XS_SUBTITLE)
+            row += 1
         if self.footer:
             worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
             row += 2
@@ -1027,6 +1047,8 @@ class twocol_startlist:
             f.write(
                 htlib.table(htlib.tbody(trows), {'class': report.tablestyle}))
             f.write('\n')
+        if self.prizes:
+            f.write(htlib.p(self.prizes.strip(), {'class': 'text-italic'}))
         if self.footer:
             f.write(htlib.p(self.footer.strip()))
         return False
@@ -3383,6 +3405,7 @@ class section:
         self.subheading = None
         self.colheader = None
         self.units = None
+        self.prizes = None
         self.footer = None
         self.lines = []
         self.lcount = 0
@@ -3402,6 +3425,7 @@ class section:
         ret['subheading'] = self.subheading
         ret['colheader'] = self.colheader
         ret['footer'] = self.footer
+        ret['prizes'] = self.prizes
         ret['units'] = self.units
         ret['lines'] = self.lines
         ret['height'] = self.get_h(rep)
@@ -3424,6 +3448,8 @@ class section:
                 self.h += report.section_height
             if self.footer:
                 self.h += report.line_height
+            if self.prizes:
+                self.h += report.line_height
         return self.h
 
     def truncate(self, remainder, report):
@@ -3444,6 +3470,7 @@ class section:
         chk.subheading = self.subheading
         chk.colheader = self.colheader
         chk.footer = self.footer
+        chk.prizes = self.prizes
         chk.units = self.units
         if len(self.lines) <= 4:  # special case, keep four or less together
             chk.lines = self.lines[0:]
@@ -3462,11 +3489,13 @@ class section:
         ret.subheading = self.subheading
         ret.colheader = self.colheader
         ret.footer = self.footer
+        ret.prizes = self.prizes
         ret.units = self.units
         rem.heading = self.heading
         rem.subheading = self.subheading
         rem.colheader = self.colheader
         rem.footer = self.footer
+        rem.prizes = self.prizes
         rem.units = self.units
         if rem.heading is not None:
             if rem.heading.rfind('(continued)') < 0:
@@ -3529,6 +3558,10 @@ class section:
             #eh = report.h	- for the column shade box
             #report.drawbox(report.col_oft_time-mm2pt(20.0), sh,
             #report.col_oft_time+mm2pt(1.0), eh, 0.07)
+        if self.prizes:
+            report.text_cent(report.midpagew, report.h, self.prizes,
+                             report.fonts['subhead'])
+            report.h += report.line_height
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
                              report.fonts['subhead'])
@@ -3581,6 +3614,9 @@ class section:
                     worksheet.write(row, k, l[k], XS_RIGHT)
                 row += 1
             row += 1
+        if self.prizes:
+            worksheet.write(row, 2, self.prizes.strip(), XS_SUBTITLE)
+            row += 1
         if self.footer:
             worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
             row += 2
@@ -3616,6 +3652,8 @@ class section:
                 htlib.table((hdr, htlib.tbody(trows)),
                             {'class': report.tablestyle}))
             f.write('\n')
+        if self.prizes:
+            f.write(htlib.p(self.prizes.strip(), {'class': 'text-italic'}))
         if self.footer:
             f.write(htlib.p(self.footer.strip()))
         return None
