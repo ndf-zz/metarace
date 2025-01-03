@@ -16,7 +16,7 @@ _log.setLevel(logging.DEBUG)
 # default values when columns omitted
 _RIDER_DEFAULTS = {}
 
-# Rider column headings
+# Internal rider column keys
 _RIDER_COLUMNS = {
     'no': 'Rider No',
     'series': 'Series',
@@ -34,7 +34,7 @@ _RIDER_COLUMNS = {
     'data': 'Data Reference',
 }
 
-# Alternative column header strings lookup
+# Column strings lookup
 _ALT_COLUMNS = {
     'id': 'no',
     'ride': 'no',
@@ -76,7 +76,7 @@ _ALT_COLUMNS = {
     'date': 'dob',
 }
 
-# Category column headings
+# Category columns
 _CATEGORY_COLUMNS = {
     'no': 'ID',
     'series': 'Series',
@@ -419,7 +419,7 @@ _DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'cat', 'series', 'ref',
 
 def primary_cat(catstr=''):
     """Return the primary cat from a catlist (legacy support)."""
-    ret = u''
+    ret = ''
     cv = catstr.split()
     if cv:
         ret = cv[0].upper()
@@ -440,7 +440,7 @@ def get_header(cols=_DEFAULT_COLUMN_ORDER, hdrs=_RIDER_COLUMNS):
 
 
 def cellnorm(unistr):
-    """Normalise supplied string, then return a version with printing chars."""
+    """Normalise supplied string, then return only printing chars."""
     return normalize('NFC', unistr.strip()).translate(strops.PRINT_UTRANS)
 
 
@@ -511,7 +511,7 @@ class rider():
         return (str(self[c]) for c in coldump)
 
     def set_notify(self, callback=None):
-        """Set or clear the notify callback for the event."""
+        """Set or clear the notify callback."""
         if callback is not None:
             self.__notify = callback
         else:
@@ -617,14 +617,39 @@ class rider():
                 fl = grapheme.length(fn)
                 ln = self['last'].strip().upper()
                 ll = grapheme.length(ln)
-                if fl + ll >= width:
+                flen = fl + ll
+                if fl and ll:
+                    flen += 1
+                if flen > width:
                     lshrt = ln.split('-')[-1].strip()
                     lsl = grapheme.length(lshrt)
-                    ln = lshrt
-                    if fl + lsl >= width:
+                    flen = fl + lsl
+                    if fl and lsl:
+                        flen += 1
+                    if flen > width and ln:
                         if fl > 2:
-                            fn = grapheme.slice(fn, end=1) + '.'
-                ret = ' '.join((fn, ln))
+                            fshrt = grapheme.slice(fn, end=1) + '.'
+                            fn = fshrt
+                            fsl = 2
+                            flen = fsl + ll
+                            if fsl and ll:
+                                flen += 1
+                            if flen > width:
+                                ln = lshrt
+                                flen = fsl + lsl
+                                if fsl and lsl:
+                                    flen += 1
+                                if flen > width:
+                                    if lsl <= width:
+                                        fn = ''
+                    else:
+                        ln = lshrt
+                if fn and ln:
+                    ret = ' '.join((fn, ln))
+                elif fn:
+                    ret = fn
+                else:
+                    ret = ln
                 if trunc and grapheme.length(ret) > width:
                     if width > 4:
                         ret = grapheme.slice(ret, end=width - 1) + '\u2026'

@@ -9,6 +9,7 @@
 
 import re
 from random import randint
+import grapheme
 
 # replace codepoints 0->255 with space unless overridden
 # "protective" against unencoded ascii strings and control chars
@@ -167,48 +168,66 @@ def heatsplit(heatstr):
 
 
 def fitname(first, last, width, trunc=False):
-    """Return a truncated name field for fixed-width display.
+    """Return a truncated name string of width or less graphemes
+       shortened to fit with priority:
 
-    Attempts to modify name to fit within width as follows:
-
-    'First Lastone-Lasttwo'
-
-	1: Split lastname ->	'First Lasttwo'
-	2: Abbreviate first -> 	'F. Lastone-Lasttwo'
-	3: Both ->		'F. Lasttwo'
-
-    If trunc is set, truncate and replace final char with
-    ellipsis '\u2026':		'F. Lastt...'
+          Firstnamer FAMILY-LASTNAME
+          Firstnamer LASTNAME
+          F. FAMILY-LASTNAME
+          F. LASTNAME
+          LASTNAME
+          F. LAST...
     """
+    # Note: Use rider.fitname() for a caching version
+
+    # Full name: 'Firstname FAMILY-LASTNAME'
     ret = ''
-    fstr = first.strip().title()
-    lstr = last.strip().upper()
-    if len(fstr) + len(lstr) >= width:
-        lshrt = lstr.split('-')[-1].strip()
-        if len(fstr) + len(lshrt) >= width:
-            fshrt = fstr
-            if fstr and len(fstr) > 1:
-                fshrt = fstr[0] + '.'
-            if len(fshrt) + len(lstr) >= width:
-                lstr = lshrt
-                if len(fstr) + len(lshrt) >= width:
-                    # Abbrev first with split last
-                    fstr = fshrt
-                else:
-                    # Full first with split last
-                    pass
-            else:
-                # Abbrev first with full last
-                fstr = fshrt
+    fn = first.strip().title()
+    fl = grapheme.length(fn)
+    ln = last.strip().upper()
+    ll = grapheme.length(ln)
+    flen = fl + ll
+    if fl and ll:
+        flen += 1
+    if flen > width:
+        # Try without hyphen: 'Firstname LASTNAME'
+        lshrt = ln.split('-')[-1].strip()
+        lsl = grapheme.length(lshrt)
+        flen = fl + lsl
+        if fl and lsl:
+            flen += 1
+        if flen > width and ln:
+            if fl > 2:
+                # Retry with abbreviated firstname: 'F. FAMILY-LASTNAME'
+                fshrt = grapheme.slice(fn, end=1) + '.'
+                fn = fshrt
+                fsl = 2
+                flen = fsl + ll
+                if fsl and ll:
+                    flen += 1
+                if flen > width:
+                    # Retry without hyphenated lastname: 'F. LASTNAME'
+                    ln = lshrt
+                    flen = fsl + lsl
+                    if fsl and lsl:
+                        flen += 1
+                    if flen > width:
+                        # Retry with only lastname: 'LASTNAME'
+                        if lsl <= width:
+                            fn = ''
         else:
-            # Full first with split last
-            lstr = lshrt
-    ret = ' '.join([fstr, lstr]).strip()
-    if trunc and len(ret) > width:
+            ln = lshrt
+    if fn and ln:
+        ret = ' '.join((fn, ln))
+    elif fn:
+        ret = fn
+    else:
+        ret = ln
+    if trunc and grapheme.length(ret) > width:
         if width > 4:
-            ret = ret[0:(width - 1)] + '\u2026'  # Ellipsis
+            ret = grapheme.slice(ret, end=width - 1) + '\u2026'
         else:
-            ret = ret[0:width]
+            ret = grapheme.slice(ret, end=width)
     return ret
 
 
