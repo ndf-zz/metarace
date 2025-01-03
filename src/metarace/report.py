@@ -30,7 +30,7 @@ _log = logging.getLogger('report')
 _log.setLevel(logging.DEBUG)
 
 # JSON report API versioning
-APIVERSION = '1.2.1'
+APIVERSION = '1.2.2'
 
 # xls cell styles
 XS_LEFT = xlwt.easyxf()
@@ -3979,6 +3979,8 @@ class report:
         self.startlink = None
         self.canonical = None
         self.pagemarks = False
+        self.meetcode = None
+        self.keywords = []
         self.s = None
         self.c = None
         self.p = None  # these are filled as required by the caller
@@ -4111,6 +4113,17 @@ class report:
             _log.debug('API: %s, template: UNKNOWN', APIVERSION)
         if cr.has_option('description', 'version'):
             self.template_version = cr.get('description', 'version')
+        if cr.has_option('description', 'keywords'):
+            kw = cr.get('description', 'keywords')
+            if isinstance(kw, list):
+                self.keywords = []
+                for k in kw:
+                    if isinstance(k, str):
+                        self.keywords.append(k)
+        if cr.has_option('description', 'meetcode'):
+            mc = cr.get('description', 'meetcode')
+            if isinstance(mc, str):
+                self.meetcode = mc
 
         # read in page options
         if cr.has_option('page', 'width'):
@@ -4386,10 +4399,11 @@ class report:
         rep['startlink'] = self.startlink
         rep['canonical'] = self.canonical
         rep['customlinks'] = self.customlinks
-        #rep['navbar'] = self.navbar
         rep['shortname'] = self.shortname
         rep['pagemarks'] = self.pagemarks
         rep['strings'] = self.strings
+        rep['meetcode'] = self.meetcode
+        rep['keywords'] = self.keywords
         rep['sections'] = []
         secmap = ret['sections']
         for s in self.sections:
@@ -5307,11 +5321,11 @@ class report:
             self.drawline(w, baseline, w + mm2pt(4), baseline)
         doline = True
         if len(rvec) > 1 and rvec[1]:  # rider no
-            self.text_right(w + mm2pt(10.0), h, rvec[1], self.fonts['body'])
+            self.text_right(w + mm2pt(8.0), h, rvec[1], self.fonts['body'])
             doline = False
         if len(rvec) > 2 and rvec[2]:  # rider name
             #self.text_left(w+mm2pt(11.0), h, rvec[2], self.fonts[u'body'])
-            self.fit_text(w + mm2pt(11.0),
+            self.fit_text(w + mm2pt(9.0),
                           h,
                           rvec[2],
                           mm2pt(50),
@@ -5320,7 +5334,7 @@ class report:
         if doline:
             self.drawline(w + mm2pt(8.0), baseline, w + mm2pt(60), baseline)
         if len(rvec) > 3 and rvec[3]:  # cat/hcap/draw/etc
-            self.text_left(w + mm2pt(62.0), h, rvec[3],
+            self.text_left(w + mm2pt(59.0), h, rvec[3],
                            self.fonts['bodyoblique'])
 
     def drawbox(self, x1, y1, x2, y2, alpha=0.1):
