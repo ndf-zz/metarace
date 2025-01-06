@@ -296,25 +296,28 @@ def mark2int(handicap):
     return ret
 
 
-def truncpad(srcline, length, align='l', ellipsis=True):
-    """Return srcline truncated and padded to length, aligned as requested."""
-    # truncate
-    if len(srcline) > length:
-        if ellipsis and length > 4:
-            ret = srcline[0:(length - 1)] + '\u2026'  # Ellipsis
+def truncpad(srcline, width, align='l', ellipsis=True):
+    """Return srcline truncated and padded to width aligned graphemes"""
+    curlen = grapheme.length(srcline)
+    if curlen > width:
+        # truncation
+        if ellipsis and width > 4:
+            ret = grapheme.slice(srcline, end=width - 1) + '\u2026'
         else:
-            ret = srcline[0:length]
+            ret = grapheme.slice(srcline, end=width)
+    elif curlen < width:
+        # padding
+        residual = width - curlen
+        if align == 'r':
+            ret = ' ' * residual + srcline
+        elif align == 'c':
+            prelen = residual // 2
+            postlen = residual - prelen
+            ret = ' ' * prelen + srcline + ' ' * postlen
+        else:
+            ret = srcline + ' ' * residual
     else:
-        # pad
-        if len(srcline) < length:
-            if align == 'l':
-                ret = srcline.ljust(length)
-            elif align == 'r':
-                ret = srcline.rjust(length)
-            else:
-                ret = srcline.center(length)
-        else:
-            ret = srcline
+        ret = srcline
     return ret
 
 
@@ -372,24 +375,29 @@ def reformat_biblist(bibstr):
 
 def riderlist_split(riderstr, rdb=None, series=''):
     """Filter, search and return a list of matching riders for entry."""
-    ret = []
     riderstr = riderstr.upper()
+    dstlist = []
 
-    # first do riderdb lookups
+    # extract categories and 'all' from riderstr
     if rdb is not None:
-        if riderstr.strip() == 'ALL':
-            riderstr = ''
-            for r in rdb:
-                # (bib, series), ...
-                if r[1] == series:
-                    ret.append(r[0])
-        else:
-            for cat in rdb.listcats(series):
-                if len(cat) > 0 and cat.upper() in riderstr:
-                    ret.extend(rdb.biblistfromcat(cat, series))
-                    riderstr = riderstr.replace(cat.upper(), '')
+        srclist = []
+        catnames = rdb.listcats(series)
+        for r in riderstr.split():
+            if r == 'ALL':
+                for rid in rdb.biblistfromseries(series):
+                    bib, ser = bibstr2bibser(rid)
+                    if ser == series:
+                        dstlist.append(bib)
+            elif r in catnames:
+                for rid in rdb.biblistfromcat(r, series):
+                    bib, ser = bibstr2bibser(rid)
+                    if ser == series:
+                        dstlist.append(bib)
+            else:
+                srclist.append(r)
+        riderstr = ' '.join(srclist)
 
-    # pass 2: append riders and expand any series if possible
+    # expand ranges in riderstr
     riderstr = reformat_placelist(riderstr)
     for nr in riderstr.split():
         if '-' in nr:
@@ -404,20 +412,27 @@ def riderlist_split(riderstr, rdb=None, series=''):
                         if start < end:
                             c = start
                             while c < end:
-                                ret.append(str(c))
+                                dstlist.append(str(c))
                                 c += 1
                         else:
-                            ret.append(l)
+                            dstlist.append(l)
                     else:
                         # one or both not ints
-                        ret.append(l)
+                        dstlist.append(l)
                 else:
                     pass
                 l = r
             if l is not None:  # catch final value
-                ret.append(l)
+                dstlist.append(l)
         else:
-            ret.append(nr)
+            dstlist.append(nr)
+
+    ret = []
+    rset = set()
+    for r in dstlist:
+        if r not in rset:
+            ret.append(r)
+            rset.add(r)
     return ret
 
 
@@ -473,7 +488,6 @@ def reformat_placelist(placestr):
     """Filter and return a canonically formatted place list."""
     if '-' not in placestr:
         return reformat_biblist(placestr)
-    # otherwise, do the hard substitutions...
     placestr = placestr.translate(PLACELIST_UTRANS).strip()
     placestr = re.sub(r'\s*\-\s*', r'-', placestr)  # remove surrounds
     placestr = re.sub(r'\-+', r'-', placestr)  # combine dupes
