@@ -1,0 +1,57 @@
+{
+ "description": {
+  "text": "Trackmeet Program A5 Booklet",
+  "version": "20250107",
+  "extra": "SPDX-License-Identifier: MIT"
+ },
+ "fonts": {
+  "title": "TeX Gyre Heros, Nimbus Sans, Sans-serif, Bold Italic 7.0",
+  "subtitle": "TeX Gyre Heros, Nimbus Sans, Sans-serif, Bold Italic 7.0",
+  "host": "TeX Gyre Heros, Nimbus Sans, Sans-serif, 6.8",
+  "headline": "TeX Gyre Heros, Nimbus Sans, Sans-serif, Bold Italic 6.6",
+  "section": "TeX Gyre Heros, Nimbus Sans, Sans-serif, Bold 6.8",
+  "subhead": "TeX Gyre Termes, Nimbus Roman, Serif, Italic 6.8",
+  "body": "TeX Gyre Termes, Nimbus Roman, Serif, 6.2",
+  "bodybold": "TeX Gyre Termes, Nimbus Roman, Serif, Bold 6.2",
+  "bodyoblique": "TeX Gyre Termes, Nimbus Roman, Serif, Italic 6.2",
+  "monospace": "TeX Gyre Cursor, Nimbus Mono PS, Monospace, Bold 6.2",
+  "bodysmall": "TeX Gyre TermesNimbus Roman, Serif, 5.8",
+  "footline": "TeX Gyre Heros, Nimbus Sans, Sans-serif, 6.2",
+  "timestamp": "TeX Gyre Heros, Nimbus Sans, Sans-serif, 4.5",
+  "provisional": "TeX Gyre Heros Cn, Nimbus Sans Narrow, Sans-serif, Bold 90",
+  "gamutstdfont": "TeX Gyre Heros Cn, Nimbus Sans Narrow, Sans-serif, Bold",
+  "gamutobfont": "TeX Gyre Heros Cn, Nimbus Sans Narrow, Sans-serif, Bold Oblique"
+ },
+ "colours": {
+  "dark": "0.06, 0.06, 0.06"
+ },
+ "elements": {
+  "title": "text, 5.0, 4.8, 0.0, title, dark, title",
+  "subtitle": "text, 5.0, 8.8, 0.0, subtitle, dark, subtitle",
+  "sublogo": "image, mid, 2, -5, 13.5, 1.0, 0.5, sublogo",
+  "htopline": "line, 5.0, 14, -5, 14, 0.5pt, dark,",
+  "header": "group, htopline, sublogo, title, subtitle",
+  "hbotline": "line, 5, -8, -5, -8, 0.5pt, dark,",
+  "timestamp": "text, 5, -4, 0.0, timestamp, white, timestamp",
+  "diststr": "text, 5, -8, 0.0, footline, dark,diststr",
+  "footer": "group, hbotline, timestamp, diststr",
+  "pagestr": "text, -5, -8, 1.0, footline, dark, pagestr",
+  "watermark": "text, -5, -4, 1.0, timestamp, white, watermark"
+ },
+ "page": {
+  "elements": "watermark header footer",
+  "html_template": "html_template.html",
+  "minbreak": "0.95",
+  "lineheight": "3.7",
+  "section_height": "4.2",
+  "width": "148mm",
+  "height": "210mm",
+  "sidemargin": "5.5mm",
+  "topmargin": "16mm",
+  "botmargin": "10mm",
+  "printmargin": "1mm",
+  "twocolwidth": "70mm",
+  "pageoverflow": "0.5mm",
+  "coverpage": "coverpage"
+ }
+}

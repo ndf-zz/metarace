@@ -10,7 +10,7 @@ from metarace import jsonconfig
 try:
     from importlib.resources import files, as_file
 except ImportError:
-    print('Python >= 3.9 is required to use this module')
+    print('Python >= 3.9 required to use this module')
 flockstyle = None
 try:
     import fcntl
@@ -30,6 +30,7 @@ RESOURCE_PKG = 'metarace.data'
 LOGO = 'metarace_icon.svg'
 SYSCONF = 'metarace.json'
 PDF_TEMPLATE = 'pdf_template.json'
+PROGRAM_TEMPLATE = 'program_template.json'
 LOGFILEFORMAT = '%(asctime)s %(levelname)s:%(name)s: %(message)s'
 LOGFORMAT = '%(levelname)s %(name)s: %(message)s'
 LOGLEVEL = logging.DEBUG  # default console log level

@@ -4003,18 +4003,24 @@ class report:
                        height=None,
                        sidemargin=None,
                        endmargin=None,
+                       topmargin=None,
+                       botmargin=None,
                        printmargin=None):
         """Overwrite any new values and then compute page geometry."""
         if width is not None:
             self.pagew = width
         if height is not None:
             self.pageh = height
+        if printmargin is not None:
+            self.printmargin = printmargin
         if sidemargin is not None:
             self.sidemargin = sidemargin
         if endmargin is not None:
             self.endmargin = endmargin
-        if printmargin is not None:
-            self.printmargin = printmargin
+        if topmargin is not None:
+            self.topmargin = topmargin
+        if botmargin is not None:
+            self.botmargin = botmargin
 
         # compute midpage values
         self.midpagew = self.pagew / 2.0
@@ -4041,8 +4047,8 @@ class report:
         self.col3t_roft = [
             self.col1t_right, self.col2t_right, self.col3t_right
         ]
-        self.body_top = self.endmargin
-        self.body_bot = self.pageh - self.endmargin
+        self.body_top = self.topmargin
+        self.body_bot = self.pageh - self.botmargin
         self.body_len = self.body_bot - self.body_top
 
     def loadconfig(self, template=None):
@@ -4053,6 +4059,8 @@ class report:
         self.pageh = 842.0
         self.sidemargin = mm2pt(25.5)
         self.endmargin = mm2pt(36.2)
+        self.topmargin = self.endmargin
+        self.botmargin = self.endmargin
         self.printmargin = mm2pt(5.0)
         self.minbreak = 0.75  # minimum page break threshold
 
@@ -4088,6 +4096,7 @@ class report:
 
         # read in from template
         cr = jsonconfig.config()
+        cr.add_section('description')
         cr.add_section('page')
         cr.add_section('elements')
         cr.add_section('fonts')
@@ -4096,11 +4105,11 @@ class report:
         tfile = metarace.PDF_TEMPLATE
         if template is not None:
             tfile = template
-        tfile = metarace.default_file(tfile)
-        if not cr.load(tfile):
+        srcfile = metarace.default_file(tfile)
+        if not cr.load(srcfile):
             try:
-                _log.debug('Loading default template from resource')
-                cr.reads(metarace.resource_text(metarace.PDF_TEMPLATE))
+                _log.debug('Load report template from resource %s', tfile)
+                cr.reads(metarace.resource_text(tfile))
             except Exception as e:
                 _log.error('%s loading template: %s', e.__class__.__name__, e)
         self.template_version = ''
@@ -4134,6 +4143,12 @@ class report:
             self.sidemargin = str2len(cr.get('page', 'sidemargin'))
         if cr.has_option('page', 'endmargin'):
             self.endmargin = str2len(cr.get('page', 'endmargin'))
+            self.topmargin = self.endmargin
+            self.botmargin = self.endmargin
+        if cr.has_option('page', 'topmargin'):
+            self.topmargin = str2len(cr.get('page', 'topmargin'))
+        if cr.has_option('page', 'botmargin'):
+            self.botmargin = str2len(cr.get('page', 'botmargin'))
         if cr.has_option('page', 'printmargin'):
             self.printmargin = str2len(cr.get('page', 'printmargin'))
         if cr.has_option('page', 'minbreak'):
@@ -4154,9 +4169,13 @@ class report:
         if cr.has_option('page', 'elements'):
             self.header = cr.get('page', 'elements').split()
         if cr.has_option('page', 'coverpage'):
-            self.coverpage = image_elem(
-                0.0, 0.0, self.pagew, self.pageh, 0.5, 0.5,
-                self.get_image(cr.get('page', 'coverpage')))
+            cph = self.get_image(cr.get('page', 'coverpage'))
+            if cph is not None:
+                _log.debug('Adding coverpage to report')
+                self.coverpage = image_elem(0.0, 0.0, self.pagew, self.pageh,
+                                            0.5, 0.5, cph)
+            else:
+                _log.info('Coverpage file not found - skipped')
 
         # read in font declarations
         for s in cr.options('fonts'):

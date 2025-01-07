@@ -1,7 +1,8 @@
 {
  "description": {
-  "text": "Middle Title (AC) TeX/Gyre",
-  "version": "20230731"
+  "text": "Generic Mid-Title A4 Paged",
+  "version": "20250107",
+  "extra": "SPDX-License-Identifier: MIT"
  },
  "fonts": {
   "title": "TeX Gyre Heros, Nimbus Sans, Sans-serif, Bold 8.5",
@@ -47,7 +48,8 @@
  },
  "page": {
   "elements": "watermark header footer",
-  "minbreak": "0.6",
+  "html_template": "html_template.html",
+  "minbreak": "0.75",
   "lineheight": "4.5",
   "sectionheight": "4.5"
  }
