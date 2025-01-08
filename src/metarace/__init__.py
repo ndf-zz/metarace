@@ -43,7 +43,7 @@ def init():
     """Shared metarace program initialisation."""
     copyconf = mk_data_path()
 
-    # Set global logging options
+    # set global logging options
     logging._srcfile = None
     logging.logThreads = 0
     logging.logProcesses = 0
@@ -72,7 +72,7 @@ def init():
 
 
 def mk_data_path():
-    """Create a shared data path if it does not yet exist."""
+    """Create shared data path if it does not yet exist."""
     ret = False
     if not os.path.exists(DATA_PATH):
         _log.info('Creating data directory: %r', DATA_PATH)
@@ -92,16 +92,22 @@ def mk_data_path():
 
 
 def config_path(configpath=None):
-    """Clean and check argument for a writeable meet configuration path."""
+    """Return a writeable meet configuration path.
+
+    Args:
+        configpath (str): Filename or path.
+
+    Returns:
+        str: Path to writeable meet folder or None if not available.
+
+    """
     ret = None
     if configpath is not None:
-        # sanitise into expected config path
         ret = configpath
-        if not os.path.isdir(ret):
+        if not os.path.isdir(ret) and os.path.isfile(ret):
             ret = os.path.dirname(ret)  # assume dangling path contains file
         ret = os.path.realpath(ret)
         _log.debug('Checking for meet %r using %r', configpath, ret)
-        # then check if the path exists
         if not os.path.exists(ret):
             try:
                 _log.info('Creating meet folder %r', ret)
@@ -109,7 +115,6 @@ def config_path(configpath=None):
             except Exception as e:
                 _log.error('Unable to create folder %r: %s', ret, e)
                 ret = None
-        # check the path is writable
         if ret is not None:
             try:
                 _log.debug('Checking folder %r for write access', ret)
@@ -128,6 +133,15 @@ def default_file(filename=''):
     are checked in order to find the first instance of filename:
         - current working directory
         - DEFAULTS_PATH
+
+    If file is not found, the original filename is returned.
+
+    Args:
+        filename (str): Filename to look up.
+
+    Returns:
+        str: Full path to filename in defaults or current directory.
+
     """
     basefile = os.path.basename(filename)
     if basefile in ['..', '.', '', None]:
@@ -138,38 +152,55 @@ def default_file(filename=''):
         pass
     else:
         try:
-            check = os.path.join(DEFAULTS_PATH, basefile)
-            os.stat(check)
-            ret = check
+            checkfile = os.path.join(DEFAULTS_PATH, basefile)
+            os.stat(checkfile)
+            ret = checkfile
         except Exception as e:
             # ignore file not found and path errors
             pass
     return ret
 
 
-def resource_text(name=''):
-    """Return a string from the contents of the named resource."""
+def resource_text(name='', encoding='utf-8'):
+    """Return string content of named resource.
+
+    Args:
+        name (str): Resource name.
+        encoding (str, optional): Text file encoding
+
+    Returns:
+        str: Text content of named resource.
+
+    Raises:
+        FileNotFoundError: If name not available.
+
+    """
     basefile = os.path.basename(name)
     if basefile in ['..', '.', '', None]:
         raise FileNotFoundError('Invalid resource name: ' + repr(name))
     t = files(RESOURCE_PKG).joinpath(basefile)
     if t is not None and t.is_file():
-        return t.read_text(encoding='utf-8')
+        return t.read_text(encoding=encoding)
     else:
         raise FileNotFoundError('Named resource not found: ' + repr(name))
 
 
 def resource_file(name=''):
-    """Return a temporary filename context manager for a named resource.
+    """Return temporary filename context manager for a named resource.
 
-    Note: This returns a context manager for a (potentially) temporary
-          filename on the filesystem, it must be used in a with statement
-          eg:
+    Note: Returns context manager for (potentially) temporary filename:
 
-          with resource_file('resource.svg') as r:
-              Gtk.Image.new_from_file(r)
+        with resource_file('resource.svg') as filename:
+            with open(filename) as file:
+                ...
+
+    Args:
+        name (str): Resource name.
+
+    Raises:
+        FileNotFoundError: If name not available.
+
     """
-
     basefile = os.path.basename(name)
     if basefile in ['..', '.', '', None]:
         raise FileNotFoundError('Invalid resource name: ' + repr(name))
@@ -183,14 +214,12 @@ def resource_file(name=''):
 class savefile:
     """Tempfile-backed save file contextmanager.
 
-       Creates a temporary file with the desired mode and encoding
-       and returns a context manager and writable file handle.
+    Create a temporary file with the desired mode and
+    encoding and return a context manager and writable
+    file handle.
 
-       On close, the temp file is atomically moved to the provided
-       filename (if possible).
-
-       Note: This function will log a warning if the file could not be
-       moved atomically.
+    On close the temporary file is moved to the provided
+    filename, or copied if os.rename is not possible.
     """
 
     def __init__(self,
@@ -228,43 +257,44 @@ class savefile:
         return True
 
 
-def lockpath(configpath):
-    """Open an advisory lock file in the meet config path."""
+def lockpath(path):
+    """Request advisory lockfile in path."""
     if flockstyle is None:
-        _log.error('Meet path locking not available')
+        _log.error('Path locking not available')
         return None
-    lf = None
-    lfn = os.path.join(configpath, '.lock')
+    lockfile = None
+    filename = os.path.join(path, '.lock')
     try:
-        lf = open(lfn, 'a+b')
+        lockfile = open(filename, 'a+b')
         if flockstyle == 'o-g':
-            fcntl.flock(lf, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            _log.debug('Config lock %r acquired by fcntl', lfn)
+            fcntl.flock(lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _log.debug('Path lock %r acquired by fcntl', filename)
         else:
-            lf.seek(0)
-            msvcrt.locking(lf.fileno(), msvcrt.LK_NBLCK, 1)
-            _log.debug('Config lock %r acquired by msvcrt', lfn)
+            lockfile.seek(0)
+            msvcrt.locking(lockfile.fileno(), msvcrt.LK_NBLCK, 1)
+            _log.debug('Path lock %r acquired by msvcrt', filename)
     except Exception as e:
-        if lf is not None:
-            lf.close()
-            lf = None
-        _log.error('Unable to acquire config lock %r: %s', lfn, e)
-    return lf
+        if lockfile is not None:
+            lockfile.close()
+            lockfile = None
+        _log.error('Unable to acquire path lock %r: %s', filename, e)
+    return lockfile
 
 
-def unlockpath(configpath, lockfile):
-    """Release advisory lock and remove lock file."""
-    lfn = os.path.join(configpath, '.lock')
-    os.unlink(lfn)
+def unlockpath(path, lockfile):
+    """Release advisory lockfile."""
+    filename = os.path.join(path, '.lock')
+    if os.path.exists(filename):
+        os.unlink(filename)
     lockfile.close()
-    _log.debug('Config lock %r released', lfn)
+    _log.debug('Path lock %r released', filename)
     return None
 
 
 LICENSETEXT = """
 MIT License
 
-Copyright (c) 2012-2023 Nathan Fraser and contributors
+Copyright (c) 2012-2025 Nathan Fraser and contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
