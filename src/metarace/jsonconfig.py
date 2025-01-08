@@ -1,27 +1,28 @@
 # SPDX-License-Identifier: MIT
 """JSON Configuration module.
 
-  Provides a thin wrapper on a dictionary-based configuration
-  with JSON export and import. The structure for a configuration
-  is a dictionary of sections, each of which contains a dictionary
-  of key/value pairs, where the key is a unicode string and the
-  value may be any base type supported by python & JSON.
+Sectioned configuration with JSON export and import,
+implemented as a dictionary of sections. Each section
+contains a dictionary of key/value pairs,
+where the key is a unicode string and the value may be any
+base type supported by python & JSON, as well as the
+metarace.tod types: tod and agg.
 
-  Config sections have support for schema-based descriptions with
-  the following keys:
+Config sections have support for schema-based descriptions
+with the following keys:
 
-  attr : (str) config attribute in object
-  type : (str) value type, one of:
+    attr : (str) config attribute in object
+    type : (str) value type, one of:
 		'none', 'str', 'tod', 'int', 'float', 'chan', 'bool'
-  prompt : (str) Text prompt for option
-  subtext : (str) Supplementary text for option
-  hint : (str) Tooltip, additional info for option
-  places : (int) Decimal places for decimal, float and tod types
-  defer : (bool) Defer writing changes to object
-  readonly : (bool) Control should not allow editing value
-  options : (dict) Map of option keys to displayed values
-  default : (misc) Default value for option
-  control: (str) edit control type, one of:
+    prompt : (str) Text prompt for option
+    subtext : (str) Supplementary text for option
+    hint : (str) Tooltip, additional info for option
+    places : (int) Decimal places for decimal, float and tod types
+    defer : (bool) Defer writing changes to object
+    readonly : (bool) Control should not allow editing value
+    options : (dict) Map of option keys to displayed values
+    default : (misc) Default value for option
+    control: (str) edit control type, one of:
 		'none' : no control should be displayed
 		'section' : no value is associated with the option
 		'text' : single line text entry
@@ -44,31 +45,29 @@ _log.setLevel(logging.DEBUG)
 
 
 def _config_object(obj):
-    """De-serialise tod objects from config."""
-    if '__tod__' in obj:
+    """De-serialise tod and Decimal objects from config."""
+    if '__tod__' in obj or '__agg__' in obj:
         return fromobj(obj)
-    elif '__agg__' in obj:
-        return tod(obj['timeval'])
     elif '__dec__' in obj:
         return Decimal(obj['value'])
     return obj
 
 
 class _configEncoder(json.JSONEncoder):
-    """Serialise tod objects to config."""
+    """Serialise tod and Decimal objects to config."""
 
     def default(self, obj):
         if isinstance(obj, tod):
             return obj.serialize()
         elif isinstance(obj, Decimal):
-            return {'__dec__': True, 'value': str(obj)}
+            return {'__dec__': 1, 'value': str(obj)}
         return json.JSONEncoder.default(self, obj)
 
 
 class config:
 
     def __init__(self, default={}):
-        """Create config object with a deep copy of the provided default."""
+        """Create config object with deep copy of the provided default."""
         self.__store = {}
         self.__schema = {}
         for section in default:
@@ -79,30 +78,42 @@ class config:
     def __str__(self):
         return json.dumps(self.__store, cls=_configEncoder)
 
-    def __unicode__(self):
-        return str(self.__str__())
-
     def __repr__(self):
         return 'config({})'.format(repr(self.__store))
 
     def add_section(self, section, schema=None):
+        """Add section to config, optionally overwriting schema.
+
+        Args:
+            section (str): Section identifier.
+            schema (dict, optional): Config schema dict.
+
+        Returns:
+            dict: Handle to config section dictionary.
+
+        Raises:
+            TypeError: If section key is not string.
+
+        """
         if isinstance(section, str):
             if section not in self.__store:
                 self.__store[section] = dict()
             if schema is not None:
-                # overwrite schema
                 self.__schema[section] = schema
             return self.__store[section]
         else:
             raise TypeError('Invalid section key: ' + repr(section))
 
     def has_section(self, section):
+        """Return True if section in config."""
         return section in self.__store
 
     def has_option(self, section, key):
+        """Return True if section and key in config."""
         return section in self.__store and key in self.__store[section]
 
     def has_value(self, section, key):
+        """Return True if section:key in config and value is not None."""
         return self.has_option(section,
                                key) and self.__store[section][key] is not None
 
@@ -203,7 +214,7 @@ class config:
         return ret
 
     def get_value(self, section, key):
-        """Return value according to schema"""
+        """Return config value according to schema."""
         ret = None
         schema = {}
         if section in self.__schema:
@@ -248,7 +259,7 @@ class config:
         return ret
 
     def export_section(self, section, obj):
-        """Copy values from section to obj according to schema"""
+        """Copy values from section to obj according to schema."""
         if section not in self.__schema:
             _log.error('No schema for section export %r', section)
             return False
@@ -272,7 +283,7 @@ class config:
                 #_log.debug('Option: %r type none', option)
 
     def export_dict(self, section):
-        """Return section as dict according to schema"""
+        """Return section as dict according to schema."""
         ret = {}
         if section not in self.__schema:
             _log.error('No schema for section export %r', section)
@@ -290,7 +301,7 @@ class config:
         return ret
 
     def import_csv(self, filename, defaults=None):
-        """Import values from csv into self according to schema"""
+        """Import values from csv into self according to schema."""
         with open(filename, encoding='utf-8') as f:
             section = None
             cr = csv.reader(f)
@@ -316,7 +327,7 @@ class config:
                                    key)
 
     def import_section(self, section, obj):
-        """Copy values from obj into section according to schema"""
+        """Copy values from obj into section according to schema."""
         if section not in self.__schema:
             _log.error('No schema for section import %r', section)
             return False
@@ -340,9 +351,11 @@ class config:
                 #_log.debug('Option: %r type none', option)
 
     def write(self, file):
+        """Write config to file."""
         json.dump(self.__store, file, indent=1, cls=_configEncoder)
 
     def dumps(self):
+        """Dump config as JSON string."""
         return json.dumps(self.__store, indent=1, cls=_configEncoder)
 
     def dictcopy(self):
@@ -353,11 +366,11 @@ class config:
         """Merge values from otherconfig into self."""
         if not isinstance(otherconfig, config):
             raise TypeError('Merge expects jsonconfig object.')
-        if key is not None and section is not None:  # single value import
+        if key is not None and section is not None:
             if otherconfig.has_option(section, key):
                 self.set(section, key, otherconfig.get(section, key))
         elif section is not None:
-            self.add_section(section)  # force even if not already loaded
+            self.add_section(section)
             if otherconfig.has_section(section):
                 for opt in otherconfig.options(section):
                     self.set(section, opt, otherconfig.get(section, opt))
@@ -369,15 +382,15 @@ class config:
                         self.set(sec, opt, otherconfig.get(sec, opt))
 
     def reads(self, s):
-        """Read config from a JSON-encoded string"""
+        """Read config from a JSON-encoded string."""
         self.addconf(json.loads(s, object_hook=_config_object))
 
     def read(self, file):
-        """Read config from open file-like"""
+        """Read config from file."""
         self.addconf(json.load(file, object_hook=_config_object))
 
     def addconf(self, obj):
-        """Add all sections and values from obj to self"""
+        """Add all sections and values from obj to self."""
         if not isinstance(obj, dict):
             raise TypeError('Configuration file is not dict: ' +
                             obj.__class__.__name__)
@@ -391,7 +404,7 @@ class config:
                 self.set(sec, k, thesec[k])
 
     def load(self, filename):
-        """Load the configuration from filename, return True/False"""
+        """Load the configuration from filename, return True/False."""
         ret = True
         if os.path.exists(filename):
             try:
