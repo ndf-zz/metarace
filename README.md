@@ -20,18 +20,22 @@ the library, they are available separately:
 
 ## Work in Progress
 
+   - submit file archive service
+   - update text vertical layout from font metrics
    - overhaul report sections and event index for trackmeet
-   - overhaul PDF text rendering
    - re-write report library
    - remove html templates
+   - bootstrap update to new vers
+   - new result structure for analysis with links instead of direct content
    - add js utils for in-page reports
-   - include grapheme support in all strops
    - replace xls export with xlsx
    - module documentation
    - sample scripts
 
 
 ## Module Overview
+
+Use pydoc to read module-specific documentation.
 
 ### metarace: Base Library
 
@@ -134,7 +138,7 @@ Python packages:
    - python-dateutil: Generic date/time string parser
    - xlwt: XLS file writer
    - paho-mqtt: MQTT interface
-   - grapheme: Unicode grapheme support
+   - ugrapheme: Unicode grapheme support
 
 
 ## Installation
@@ -143,7 +147,7 @@ Check that your python version is at least 3.9 before installing.
 This library will not work with python versions less than 3.9.
 
 
-### Debian 11+
+### Debian 12
 
 Install system requirements with apt:
 
@@ -159,8 +163,7 @@ Create a virtualenv for metarace and associated packages:
 
 	$ python3 -m venv --system-site-packages venv
 
-Activate the virtualenv and install packages with pip:
+Install packages with pip:
 
-	$ source ./venv/bin/activate
-	(venv) $ pip3 install metarace
+	$ ./venv/bin/pip install metarace
 

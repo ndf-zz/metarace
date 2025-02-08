@@ -33,7 +33,7 @@ Supported arithmetic operations:
 import decimal
 import re
 import logging
-from datetime import datetime
+from datetime import datetime, time
 from dateutil.parser import isoparse, parse as dateparse
 from bisect import bisect_left as _bisect
 
@@ -101,6 +101,24 @@ def fromdate(timestr=''):
     except Exception as e:
         _log.debug('fromdate() %s: %s', e.__class__.__name__, e)
     return (rd, rt)
+
+
+def mergedate(ltime=None, date=None, micros=False):
+    """Merge localtime in ltime with date, return an aware datetime"""
+    if ltime is None:
+        ltime = now()
+    places = 0
+    if micros:
+        places = 6
+    lt = time.fromisoformat(
+        ltime.rawtime(places=places, hoursep=':', zeros=True))
+    if date is None:
+        date = datetime.now().astimezone()
+    ld = date.replace(hour=lt.hour,
+                      minute=lt.minute,
+                      second=lt.second,
+                      microsecond=lt.microsecond)
+    return ld
 
 
 def fromiso(timestr=''):
