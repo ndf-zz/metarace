@@ -52,10 +52,11 @@ import queue
 import logging
 import json
 import paho.mqtt.client as mqtt
+from paho.mqtt.enums import CallbackAPIVersion
 from uuid import uuid4
 import metarace
 
-QUEUE_TIMEOUT = 2
+_QUEUE_TIMEOUT = 2
 
 # module logger
 _log = logging.getLogger('telegraph')
@@ -216,6 +217,11 @@ class telegraph(threading.Thread):
         """Return true if connected."""
         return self.__connected
 
+    def unsent(self):
+        """Return number of queued messages remaining unsent."""
+        # _log.debug('Unsent messages: %r', self.__unsent)
+        return len(self.__unsent)
+
     def reconnect(self):
         """Request re-connection to broker."""
         self.__queue.put_nowait(('RECONNECT', True))
@@ -229,9 +235,26 @@ class telegraph(threading.Thread):
         """Suspend calling thread until command queue is processed."""
         self.__queue.join()
 
-    def publish(self, message=None, topic=None, qos=None, retain=False):
-        """Publish the provided message to topic."""
-        self.__queue.put_nowait(('PUBLISH', topic, message, qos, retain))
+    def publish(self,
+                message=None,
+                topic=None,
+                qos=None,
+                retain=False,
+                timeout=None):
+        """Queue provided message for publishing to nominated topic.
+
+        If timeout (float seconds > 0) is provided, telegraph
+        will wait up to timeout seconds after publishing for
+        completion before re-processing the command queue.
+
+        For QoS == 0, timeout applies to message delivery
+        For QoS == 1, timeout applies to PUBACK
+        For QoS == 2, timeout applies to PUBCOMP
+
+        This method returns immediately even if timeout set.
+        """
+        self.__queue.put_nowait(
+            ('PUBLISH', topic, message, qos, retain, timeout))
 
     def publish_json(self,
                      obj=None,
@@ -239,11 +262,12 @@ class telegraph(threading.Thread):
                      qos=None,
                      retain=False,
                      cls=None,
-                     indent=None):
+                     indent=None,
+                     timeout=None):
         """Pack the provided object into JSON and publish to topic."""
         try:
             self.publish(json.dumps(obj, cls=cls, indent=indent), topic, qos,
-                         retain)
+                         retain, timeout)
         except Exception as e:
             _log.error('Error publishing object %r: %s', obj, e)
 
@@ -258,6 +282,7 @@ class telegraph(threading.Thread):
         self.__cid = None
         self.__resub = True
         self.__doreconnect = False
+        self.__unsent = set()
 
         metarace.sysconf.add_section('telegraph', _CONFIG_SCHEMA)
         self.__host = metarace.sysconf.get_value('telegraph', 'host')
@@ -280,8 +305,10 @@ class telegraph(threading.Thread):
         _log.debug('Persistent connection: %r', self.__persist)
 
         # create mqtt client
-        self.__client = mqtt.Client(client_id=self.__cid,
-                                    clean_session=not self.__persist)
+        self.__client = mqtt.Client(
+            callback_api_version=CallbackAPIVersion.VERSION2,
+            client_id=self.__cid,
+            clean_session=not self.__persist)
 
         if metarace.sysconf.get_value('telegraph', 'debug'):
             _log.debug('Enabling mqtt/paho debug')
@@ -305,6 +332,7 @@ class telegraph(threading.Thread):
         self.__client.on_message = self.__on_message
         self.__client.on_connect = self.__on_connect
         self.__client.on_disconnect = self.__on_disconnect
+        self.__client.on_publish = self.__on_publish
         if self.__host:
             self.__doreconnect = True
         self.__running = False
@@ -321,10 +349,11 @@ class telegraph(threading.Thread):
                 self.__client.connect_async(self.__host, self.__port)
                 self.__client.loop_start()
 
-    # PAHO methods
-    def __on_connect(self, client, userdata, flags, rc):
-        if rc == 0:
-            _log.debug('Connect %r: %r/%r', client._client_id, flags, rc)
+    # PAHO methods - Callback API Version=2
+    def __on_connect(self, client, userdata, flags, reason_code, properties):
+        if reason_code == 0:
+            _log.debug('Connect %r: %r/%r', client._client_id, flags,
+                       reason_code)
             if not self.__resub and self.__persist and flags['session present']:
                 _log.debug('Resumed existing session for %r',
                            client._client_id)
@@ -342,19 +371,28 @@ class telegraph(threading.Thread):
                 self.__resub = False
             self.__connected = True
         else:
-            _log.info('Connect failed with error %r: %r', rc,
-                      mqtt.connack_string(rc))
+            _log.info('Connect failed with error %r: %r', reason_code,
+                      mqtt.connack_string(reason_code))
             self.__connected = False
         self.__connect_pending = False
 
-    def __on_disconnect(self, client, userdata, rc):
-        _log.debug('Disconnect %r: %r', client._client_id, rc)
+    def __on_disconnect(self, client, userdata, flags, reason_code,
+                        properties):
+        _log.debug('Disconnect %r: %r', client._client_id, reason_code)
         self.__connected = False
         # Note: PAHO lib will attempt re-connection automatically
 
     def __on_message(self, client, userdata, message):
-        #_log.debug(u'Message from %r: %r', client._client_id, message)
+        #_log.debug('Message from %r: %r', client._client_id, message)
         self.__cb(topic=message.topic, message=message.payload.decode('utf-8'))
+
+    def __on_publish(self, client, userdata, mid, reason_code, properties):
+        try:
+            #_log.debug('Message published mid: %d', mid)
+            self.__unsent.remove(mid)
+        except Exception as e:
+            _log.warning('%s removing MID=%d: %s', e.__class__.__name__, mid,
+                         e)
 
     def run(self):
         """Called via threading.Thread.start()."""
@@ -372,7 +410,7 @@ class telegraph(threading.Thread):
                         self.__reconnect()
                 # Process command queue
                 while self.__running:
-                    m = self.__queue.get(timeout=QUEUE_TIMEOUT)
+                    m = self.__queue.get(timeout=_QUEUE_TIMEOUT)
                     self.__queue.task_done()
                     if m[0] == 'PUBLISH':
                         ntopic = self.__deftopic
@@ -385,10 +423,21 @@ class telegraph(threading.Thread):
                             msg = None
                             if m[2] is not None:
                                 msg = m[2].encode('utf-8')
-                            self.__client.publish(ntopic, msg, nqos, m[4])
-                        else:
-                            #_log.debug(u'No topic, msg ignored: %r', m[1])
-                            pass
+                            mi = self.__client.publish(ntopic, msg, nqos, m[4])
+
+                            # QoS == 0 when not connected are discarded
+                            if nqos != 0 or mi.rc == 0:
+                                self.__unsent.add(mi.mid)
+
+                            # Wait for publish if timeout provided
+                            if m[5] is not None and m[5] > 0:
+                                if mi.rc == 0:
+                                    mi.wait_for_publish(m[5])
+                                else:
+                                    if nqos == 0:
+                                        _log.warning(
+                                            'Publish to %r dropped: %r,%r',
+                                            ntopic, mi.rc, mi.mid)
                     elif m[0] == 'SUBSCRIBE':
                         _log.debug('Subscribe topic: %r q=%r', m[1], m[2])
                         nqos = m[2]
