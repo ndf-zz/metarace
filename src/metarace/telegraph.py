@@ -173,6 +173,15 @@ class telegraph(threading.Thread):
             if self.__connected:
                 self.__queue.put_nowait(('UNSUBSCRIBE', topic))
 
+    def unsubscribe_all(self):
+        """Remove all topics from the set of subscriptions."""
+        topics = self.__subscriptions
+        self.__subscriptions = {}
+        for topic in topics:
+            if self.__connected:
+                self.__queue.put_nowait(('UNSUBSCRIBE', topic))
+        topics = None
+
     def setcb(self, func=None):
         """Set the message receive callback function."""
         if func is not None:
@@ -354,7 +363,7 @@ class telegraph(threading.Thread):
         if reason_code == 0:
             _log.debug('Connect %r: %r/%r', client._client_id, flags,
                        reason_code)
-            if not self.__resub and self.__persist and flags['session present']:
+            if not self.__resub and self.__persist and flags.session_present:
                 _log.debug('Resumed existing session for %r',
                            client._client_id)
             else:
