@@ -120,7 +120,7 @@ rsync TCP daemon or by running a local script.
 
 System requirements:
 
-   - Python >= 3.9
+   - Python >= 3.11
    - Cairo
    - Pango
    - Rsvg
@@ -143,8 +143,8 @@ Python packages:
 
 ## Installation
 
-Check that your python version is at least 3.9 before installing.
-This library will not work with python versions less than 3.9.
+Check that your python version is at least 3.11 before installing.
+This library will not work with python versions less than 3.11.
 
 
 ### Debian 12

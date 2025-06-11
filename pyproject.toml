@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "metarace"
-version = "2.1.7"
+version = "2.1.8"
 description = "Cyclesport results and timing toolkit"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 keywords = ["cyclesport", "results", "timing"]
 authors = [
