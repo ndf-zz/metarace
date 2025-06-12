@@ -32,12 +32,14 @@ _log.setLevel(logging.DEBUG)
 # JSON report API versioning
 APIVERSION = '1.2.2'
 
-XS_LEFT = None
-XS_RIGHT = None
-XS_TITLE = None
-XS_SUBTITLE = None
-XS_MONOSPACE = None
-
+# Spreadsheet style handles
+XLSX_STYLE = {
+    'left': None,
+    'right': None,
+    'title': None,
+    'subtitle': None,
+    'monospace': None,
+}
 
 # Meta cell icon classes
 ICONMAP = {
@@ -538,12 +540,12 @@ class dual_ittt_startlist:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
             worksheet.write(row, 2,
                             self.subheading.replace('\t', '  ').strip(),
-                            XS_SUBTITLE)
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1  # min one clear row between
@@ -576,17 +578,18 @@ class dual_ittt_startlist:
 
             for rw in rows:
                 l = vecmapstr(rw)
-                worksheet.write(row, 0, l[0], XS_LEFT)
-                worksheet.write(row, 1, l[1], XS_RIGHT)
-                worksheet.write(row, 2, l[2], XS_LEFT)
-                worksheet.write(row, 3, l[3], XS_LEFT)
-                worksheet.write(row, 4, l[4], XS_RIGHT)
-                worksheet.write(row, 5, l[5], XS_RIGHT)
-                worksheet.write(row, 6, l[6], XS_LEFT)
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                 row += 1
             row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -780,12 +783,12 @@ class signon_list:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
             worksheet.write(row, 2,
                             self.subheading.replace('\t', '  ').strip(),
-                            XS_SUBTITLE)
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1  # min one clear row between
@@ -798,17 +801,18 @@ class signon_list:
                     nv = [nv[0], None, nv[1]]
                 rows.append(vecmapstr(nv, 7))
             for l in rows:
-                worksheet.write(row, 0, l[0], XS_LEFT)
-                worksheet.write(row, 1, l[1], XS_RIGHT)
-                worksheet.write(row, 2, l[2], XS_LEFT)
-                worksheet.write(row, 3, l[3], XS_LEFT)
-                worksheet.write(row, 4, l[4], XS_RIGHT)
-                worksheet.write(row, 5, l[5], XS_RIGHT)
-                worksheet.write(row, 6, l[6], XS_LEFT)
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                 row += 1
             row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -992,12 +996,12 @@ class twocol_startlist:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
             worksheet.write(row, 2,
                             self.subheading.replace('\t', '  ').strip(),
-                            XS_SUBTITLE)
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1  # min one clear row between
@@ -1010,20 +1014,22 @@ class twocol_startlist:
                     nv = [nv[0], None, nv[1]]
                 rows.append(vecmapstr(nv, 7))
             for l in rows:
-                worksheet.write(row, 0, l[0], XS_LEFT)
-                worksheet.write(row, 1, l[1], XS_RIGHT)
-                worksheet.write(row, 2, l[2], XS_LEFT)
-                worksheet.write(row, 3, l[3], XS_LEFT)
-                worksheet.write(row, 4, l[4], XS_RIGHT)
-                worksheet.write(row, 5, l[5], XS_RIGHT)
-                worksheet.write(row, 6, l[6], XS_LEFT)
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                 row += 1
             row += 1
         if self.prizes:
-            worksheet.write(row, 2, self.prizes.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.prizes.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -1163,12 +1169,12 @@ class sprintround:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
             worksheet.write(row, 2,
                             self.subheading.replace('\t', '  ').strip(),
-                            XS_SUBTITLE)
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1  # min one clear row between
@@ -1194,17 +1200,18 @@ class sprintround:
                 rows.append(bv)
             for rw in rows:
                 l = vecmapstr(rw)
-                worksheet.write(row, 0, l[0], XS_LEFT)
-                worksheet.write(row, 1, l[1], XS_RIGHT)
-                worksheet.write(row, 2, l[2], XS_LEFT)
-                worksheet.write(row, 3, l[3], XS_LEFT)
-                worksheet.write(row, 4, l[4], XS_RIGHT)
-                worksheet.write(row, 5, l[5], XS_RIGHT)
-                worksheet.write(row, 6, l[6], XS_LEFT)
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                 row += 1
             row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -1400,12 +1407,12 @@ class sprintfinal:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
             worksheet.write(row, 2,
                             self.subheading.replace('\t', '  ').strip(),
-                            XS_SUBTITLE)
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1  # min one clear row between
@@ -1424,17 +1431,18 @@ class sprintfinal:
                 rows.append([])
             for rw in rows:
                 l = vecmapstr(rw)
-                worksheet.write(row, 0, l[0], XS_LEFT)  # contest
-                worksheet.write(row, 1, l[1], XS_RIGHT)  # no
-                worksheet.write(row, 2, l[2], XS_LEFT)  # name
-                worksheet.write(row, 3, l[3], XS_RIGHT)  # heat 1
-                worksheet.write(row, 4, l[4], XS_RIGHT)  # heat 2
-                worksheet.write(row, 5, l[5], XS_RIGHT)  # heat 3
-                #worksheet.write(row, 6, l[6], XS_LEFT)	# comment?
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])  # contest
+                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])  # no
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])  # name
+                worksheet.write(row, 3, l[3], XLSX_STYLE['right'])  # heat 1
+                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])  # heat 2
+                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])  # heat 3
+                #worksheet.write(row, 6, l[6], XLSX_STYLE['left'])	# comment?
                 row += 1
             row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -1608,10 +1616,11 @@ class rttstartlist:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1
@@ -1625,17 +1634,18 @@ class rttstartlist:
                     nv = [nv[0], None, nv[1]]
                 rows.append(vecmapstr(nv, 7))
             for l in rows:
-                worksheet.write(row, 0, l[0], XS_LEFT)
-                worksheet.write(row, 1, l[1], XS_RIGHT)
-                worksheet.write(row, 2, l[2], XS_LEFT)
-                worksheet.write(row, 3, l[3], XS_LEFT)
-                worksheet.write(row, 4, l[4], XS_RIGHT)
-                worksheet.write(row, 5, l[5], XS_RIGHT)
-                worksheet.write(row, 6, l[6], XS_LEFT)
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                 row += 1
             row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -1817,10 +1827,11 @@ class bullet_text:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1
@@ -1830,12 +1841,13 @@ class bullet_text:
                 bstr = self.bullet
                 if l[0]:
                     bstr = l[0]
-                worksheet.write(row, 1, bstr, XS_LEFT)  # always one bullet
+                worksheet.write(row, 1, bstr,
+                                XLSX_STYLE['left'])  # always one bullet
                 istr = ''
                 if l[1]:
                     istr = l[1]
                 for line in istr.split('\n'):
-                    worksheet.write(row + oft, 2, line, XS_LEFT)
+                    worksheet.write(row + oft, 2, line, XLSX_STYLE['left'])
                     oft += 1
                 row += max(oft, 1)
             row += 1
@@ -1994,19 +2006,21 @@ class preformat_text:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1
         if len(self.lines) > 0:
             if self.colheader:
-                worksheet.write(row, 2, self.colheader, XS_MONOSPACE)
+                worksheet.write(row, 2, self.colheader,
+                                XLSX_STYLE['monospace'])
                 row += 1
             for l in self.lines:
-                worksheet.write(row, 2, l.rstrip(), XS_MONOSPACE)
+                worksheet.write(row, 2, l.rstrip(), XLSX_STYLE['monospace'])
                 row += 1
             row += 1
         report.h = row
@@ -2165,10 +2179,11 @@ class event_index:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1
@@ -2187,13 +2202,13 @@ class event_index:
                 else:
                     rows[0][6] = self.units
             for l in rows:
-                worksheet.write(row, 0, l[0], XS_LEFT)
-                #worksheet.write(row, 1, l[1], XS_RIGHT)
-                worksheet.write(row, 2, l[2], XS_LEFT)
-                worksheet.write(row, 3, l[3], XS_LEFT)
-                #worksheet.write(row, 4, l[4], XS_RIGHT)
-                #worksheet.write(row, 5, l[5], XS_RIGHT)
-                #worksheet.write(row, 6, l[6], XS_LEFT)
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                #worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                #worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                #worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                #worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                 row += 1
             row += 1
         report.h = row
@@ -2398,10 +2413,11 @@ class judge24rep:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1
@@ -2423,24 +2439,25 @@ class judge24rep:
                 else:
                     rows[0][6] = self.units
             for l in rows:
-                worksheet.write(row, 0, l[0], XS_LEFT)
-                worksheet.write(row, 1, l[1], XS_RIGHT)
-                worksheet.write(row, 2, l[2], XS_LEFT)
-                worksheet.write(row, 3, l[3], XS_LEFT)
-                worksheet.write(row, 4, l[4], XS_RIGHT)
-                worksheet.write(row, 5, l[5], XS_RIGHT)
-                worksheet.write(row, 6, l[6], XS_LEFT)
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                 #of = 7
                 #if 7 in l:
                 #st = self.start
                 #for lt in l[7][1:]:
-                #worksheet.write(row, of, (lt-st).rawtime(1), XS_RIGHT)
+                #worksheet.write(row, of, (lt-st).rawtime(1), XLSX_STYLE['right'])
                 #of += 1
                 #st = lt
                 row += 1
             row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -2648,10 +2665,11 @@ class judgerep:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1
@@ -2675,13 +2693,13 @@ class judgerep:
                 st = tod.ZERO
                 if self.start is not None:
                     st = self.start
-                worksheet.write(row, 0, l[0], XS_LEFT)
-                worksheet.write(row, 1, l[1], XS_RIGHT)
-                worksheet.write(row, 2, l[2], XS_LEFT)
-                worksheet.write(row, 3, l[3], XS_LEFT)
-                worksheet.write(row, 4, l[4], XS_RIGHT)
-                worksheet.write(row, 5, l[5], XS_RIGHT)
-                #worksheet.write(row, 6, l[6], XS_LEFT)
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                #worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                 srow = row - revoft
                 if srow >= 0:
                     srcl = self.lines[srow]
@@ -2690,7 +2708,7 @@ class judgerep:
                         st += srcl[9]
                     if len(srcl) > 10 and srcl[10]:
                         # show cat label in units col
-                        worksheet.write(row, 6, srcl[10], XS_LEFT)
+                        worksheet.write(row, 6, srcl[10], XLSX_STYLE['left'])
                     if len(srcl) > 6 and srcl[6] is not None and len(
                             srcl[6]) > 0:
                         # append each lap time to row
@@ -2698,13 +2716,14 @@ class judgerep:
                         roft = 7
                         for k in srcl[6]:
                             worksheet.write(row, roft, (k - llt).rawtime(1),
-                                            XS_RIGHT)
+                                            XLSX_STYLE['right'])
                             llt = k
                             roft += 1
                 row += 1
             row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -2922,24 +2941,25 @@ class teampage:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1
         if len(self.lines) > 0:
             for t in self.lines:
-                worksheet.write(row, 1, t[1], XS_TITLE)
-                worksheet.write(row, 2, t[2], XS_TITLE)
-                worksheet.write(row, 3, t[3], XS_LEFT)
+                worksheet.write(row, 1, t[1], XLSX_STYLE['title'])
+                worksheet.write(row, 2, t[2], XLSX_STYLE['title'])
+                worksheet.write(row, 3, t[3], XLSX_STYLE['left'])
                 row += 1
                 if t[1] in self.teammap:
                     dat = self.teammap[t[1]]
                     if 'ds' in dat and dat['ds']:
-                        worksheet.write(row, 1, 'DS:', XS_RIGHT)
-                        worksheet.write(row, 2, dat['ds'], XS_LEFT)
+                        worksheet.write(row, 1, 'DS:', XLSX_STYLE['right'])
+                        worksheet.write(row, 2, dat['ds'], XLSX_STYLE['left'])
                         row += 1
                     rows = []
                     for r in dat['riders']:
@@ -2948,17 +2968,18 @@ class teampage:
                             nv = [nv[0], None, nv[1]]
                         rows.append(vecmapstr(nv, 7))
                     for l in rows:
-                        worksheet.write(row, 0, l[0], XS_LEFT)
-                        worksheet.write(row, 1, l[1], XS_RIGHT)
-                        worksheet.write(row, 2, l[2], XS_LEFT)
-                        worksheet.write(row, 3, l[3], XS_LEFT)
-                        worksheet.write(row, 4, l[4], XS_RIGHT)
-                        worksheet.write(row, 5, l[5], XS_RIGHT)
-                        worksheet.write(row, 6, l[6], XS_LEFT)
+                        worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                        worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                        worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                        worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                        worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                        worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                        worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                         row += 1
                 row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -3140,17 +3161,19 @@ class gamut:
         return None  # SKIP on xls
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1
         if len(self.lines) > 0:
             pass
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -3321,10 +3344,11 @@ class threecol_section:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1
@@ -3347,17 +3371,18 @@ class threecol_section:
                 else:
                     rows[0][6] = self.units
             for l in rows:
-                worksheet.write(row, 0, l[0], XS_LEFT)
-                worksheet.write(row, 1, l[1], XS_RIGHT)
-                worksheet.write(row, 2, l[2], XS_LEFT)
-                worksheet.write(row, 3, l[3], XS_LEFT)
-                worksheet.write(row, 4, l[4], XS_RIGHT)
-                worksheet.write(row, 5, l[5], XS_RIGHT)
-                worksheet.write(row, 6, l[6], XS_LEFT)
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                 row += 1
             row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -3572,10 +3597,11 @@ class section:
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XS_TITLE)
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
             row += 1
         if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         else:
             row += 1
@@ -3603,22 +3629,24 @@ class section:
                 else:
                     rows[0][6] = self.units
             for l in rows:
-                worksheet.write(row, 0, l[0], XS_LEFT)
-                worksheet.write(row, 1, l[1], XS_RIGHT)
-                worksheet.write(row, 2, l[2], XS_LEFT)
-                worksheet.write(row, 3, l[3], XS_LEFT)
-                worksheet.write(row, 4, l[4], XS_RIGHT)
-                worksheet.write(row, 5, l[5], XS_RIGHT)
-                worksheet.write(row, 6, l[6], XS_LEFT)
+                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
+                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
+                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
+                worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
                 for k in range(7, cols):
-                    worksheet.write(row, k, l[k], XS_RIGHT)
+                    worksheet.write(row, k, l[k], XLSX_STYLE['right'])
                 row += 1
             row += 1
         if self.prizes:
-            worksheet.write(row, 2, self.prizes.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.prizes.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 1
         if self.footer:
-            worksheet.write(row, 2, self.footer.strip(), XS_SUBTITLE)
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
             row += 2
         report.h = row
         return None
@@ -4433,41 +4461,42 @@ class report:
 
     def output_xlsx(self, file=None):
         """Output xlsx spreadsheet."""
-        wb = xlsxwriter.Workbook(file)  
-        
+        wb = xlsxwriter.Workbook(file, {'in_memory': True})
+
         sheetname = 'report'
-        
+
         # Docstring?
         ws = wb.add_worksheet(sheetname)
 
-        XS_LEFT = wb.add_format({'align': 'left'})
-        XS_RIGHT = wb.add_format({'align': 'right'})
-        XS_TITLE = wb.add_format({'bold': True})
-        XS_SUBTITLE = wb.add_format({'italic': True})
-        XS_MONOSPACE = wb.add_format({'font_name': 'Courier New'})
+        XLSX_STYLE['left'] = wb.add_format({'align': 'left'})
+        XLSX_STYLE['right'] = wb.add_format({'align': 'right'})
+        XLSX_STYLE['title'] = wb.add_format({'bold': True})
+        XLSX_STYLE['subtitle'] = wb.add_format({'italic': True})
+        XLSX_STYLE['monospace'] = wb.add_format({'font_name': 'Courier New'})
 
         # Set column widths using xlsxwriter format (width is in characters)
         ws.set_column(0, 0, 7)
         ws.set_column(1, 1, 5)
         ws.set_column(2, 2, 36)
-        ws.set_column(3, 3, 13)
-        ws.set_column(4, 4, 9)
-        ws.set_column(5, 5, 7)
-        ws.set_column(6, 6, 3)
+        ws.set_column(3, 3, 12)
+        ws.set_column(4, 4, 12)
+        ws.set_column(5, 5, 12)
+        ws.set_column(6, 6, 4)
 
         title = ''
         for s in ['title', 'subtitle']:
             if s in self.strings and self.strings[s]:
                 title += self.strings[s] + ' '
-        ws.write(0, 2, title.strip(), XS_TITLE)
+        ws.write(0, 2, title.strip(), XLSX_STYLE['title'])
         self.h = 2  # Start of 'document'
         for s in ['datestr', 'docstr', 'diststr', 'commstr', 'orgstr']:
             if s in self.strings and self.strings[s]:
-                ws.write(self.h, 2, self.strings[s].strip(), XS_LEFT)
+                ws.write(self.h, 2, self.strings[s].strip(),
+                         XLSX_STYLE['left'])
                 self.h += 1
         self.h += 1
         if self.provisional:
-            ws.write(self.h, 2, 'PROVISIONAL', XS_TITLE)
+            ws.write(self.h, 2, 'PROVISIONAL', XLSX_STYLE['title'])
             self.h += 2
 
         # output all the sections...
@@ -4475,7 +4504,6 @@ class report:
             if type(s) is not pagebreak:
                 s.draw_xlsx(self, ws)  # call into section to draw
 
-        #wb.save(file)
         wb.close()
 
     def macrowrite(self, file=None, text=''):
