@@ -16,7 +16,7 @@ from gi.repository import PangoCairo
 import cairo
 import datetime
 import math
-import xlwt
+import xlsxwriter
 import json
 import time
 import logging
@@ -32,12 +32,12 @@ _log.setLevel(logging.DEBUG)
 # JSON report API versioning
 APIVERSION = '1.2.2'
 
-# xls cell styles
-XS_LEFT = xlwt.easyxf()
-XS_RIGHT = xlwt.easyxf('align: horiz right')
-XS_TITLE = xlwt.easyxf('font: bold on')
-XS_SUBTITLE = xlwt.easyxf('font: italic on')
-XS_MONOSPACE = xlwt.easyxf('font: name Courier')
+XS_LEFT = None
+XS_RIGHT = None
+XS_TITLE = None
+XS_SUBTITLE = None
+XS_MONOSPACE = None
+
 
 # Meta cell icon classes
 ICONMAP = {
@@ -51,7 +51,7 @@ ICONMAP = {
 }
 
 # "download as" file types
-FILETYPES = {'pdf': 'PDF', 'xls': 'Spreadsheet', 'json': 'JSON'}
+FILETYPES = {'pdf': 'PDF', 'xlsx': 'Spreadsheet', 'json': 'JSON'}
 
 
 # conversions
@@ -534,7 +534,7 @@ class dual_ittt_startlist:
         report.h = hof
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -776,7 +776,7 @@ class signon_list:
                              report.fonts['subhead'])
             report.h += report.line_height
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -988,7 +988,7 @@ class twocol_startlist:
             report.h += report.line_height
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -1159,7 +1159,7 @@ class sprintround:
             report.h += report.line_height
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -1396,7 +1396,7 @@ class sprintfinal:
             report.h += report.line_height
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -1604,7 +1604,7 @@ class rttstartlist:
             report.h += report.line_height
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -1813,7 +1813,7 @@ class bullet_text:
             report.h += report.line_height
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -1990,7 +1990,7 @@ class preformat_text:
             report.h += h
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -2161,7 +2161,7 @@ class event_index:
             report.h += new_h
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -2394,7 +2394,7 @@ class judge24rep:
             report.h += report.line_height
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -2644,7 +2644,7 @@ class judgerep:
             report.h += report.line_height
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -2918,7 +2918,7 @@ class teampage:
             report.h += report.line_height
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -3135,7 +3135,7 @@ class gamut:
         # advance report.h to end of page
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         return None  # SKIP on xls
         row = report.h
@@ -3317,7 +3317,7 @@ class threecol_section:
             report.h += report.line_height
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -3568,7 +3568,7 @@ class section:
             report.h += report.line_height
         report.c.restore()
 
-    def draw_xls(self, report, worksheet):
+    def draw_xlsx(self, report, worksheet):
         """Output program element to excel worksheet."""
         row = report.h
         if self.heading:
@@ -4431,20 +4431,29 @@ class report:
             rep['sections'].append(secid)
         return ret
 
-    def output_xls(self, file=None):
-        """Output xls spreadsheet."""
-        wb = xlwt.Workbook()
+    def output_xlsx(self, file=None):
+        """Output xlsx spreadsheet."""
+        wb = xlsxwriter.Workbook(file)  
+        
         sheetname = 'report'
+        
         # Docstring?
-        ws = wb.add_sheet(sheetname)
-        # column widths
-        ws.col(0).width = int(7 * 256)
-        ws.col(1).width = int(5 * 256)
-        ws.col(2).width = int(36 * 256)
-        ws.col(3).width = int(13 * 256)
-        ws.col(4).width = int(9 * 256)
-        ws.col(5).width = int(7 * 256)
-        ws.col(6).width = int(3 * 256)
+        ws = wb.add_worksheet(sheetname)
+
+        XS_LEFT = wb.add_format({'align': 'left'})
+        XS_RIGHT = wb.add_format({'align': 'right'})
+        XS_TITLE = wb.add_format({'bold': True})
+        XS_SUBTITLE = wb.add_format({'italic': True})
+        XS_MONOSPACE = wb.add_format({'font_name': 'Courier New'})
+
+        # Set column widths using xlsxwriter format (width is in characters)
+        ws.set_column(0, 0, 7)
+        ws.set_column(1, 1, 5)
+        ws.set_column(2, 2, 36)
+        ws.set_column(3, 3, 13)
+        ws.set_column(4, 4, 9)
+        ws.set_column(5, 5, 7)
+        ws.set_column(6, 6, 3)
 
         title = ''
         for s in ['title', 'subtitle']:
@@ -4464,9 +4473,10 @@ class report:
         # output all the sections...
         for s in self.sections:
             if type(s) is not pagebreak:
-                s.draw_xls(self, ws)  # call into section to draw
+                s.draw_xlsx(self, ws)  # call into section to draw
 
-        wb.save(file)
+        #wb.save(file)
+        wb.close()
 
     def macrowrite(self, file=None, text=''):
         """Write text to file substituting macros in text."""
