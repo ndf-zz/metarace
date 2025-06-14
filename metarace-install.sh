@@ -141,6 +141,9 @@ if [ "$(id -u)" -eq 0 ]; then
   exit
 fi
 
+# ensure write access to wd
+cd /tmp
+
 # check operating system
 WSL=""
 if [ -n "$WSL_DISTRO_NAME" ] ; then
@@ -394,6 +397,8 @@ if [ -e "$DEFICON" ] ; then
   rm "$DEFICON"
 fi
 "$VPATH/bin/python3" -c 'import metarace
+import os
+os.chdir(metarace.DATA_PATH)
 metarace.init()'
 echo_continue "Updating defaults"
 
@@ -420,33 +425,25 @@ mkdir -p "$SPATH"
 TMPF=$(mktemp -p "$SPATH")
 tee "$TMPF" <<__EOF__ >/dev/null
 [Desktop Entry]
-Version=1.0
-Type=Application
-Exec=$VPATH/bin/roadmeet %f
-Icon=$DEFICON
-Terminal=false
-StartupNotify=true
-MimeType=inode/directory;
 Name=Roadmeet
 Comment=Timing and results for road cycling meets
-Categories=Utility;GTK;Sports;
-__EOF__
-mv "$TMPF" "$SPATH/roadmeet.desktop"
-echo_continue "Added roadmeet.desktop"
-
-# Roadmeet config
-TMPF=$(mktemp -p "$SPATH")
-tee "$TMPF" <<__EOF__ >/dev/null
-[Desktop Entry]
-Version=1.0
-Type=Application
-Exec=$VPATH/bin/roadmeet --edit-default
+Keywords=cycling;road cycling;results;timing;
+Exec=$VPATH/bin/roadmeet %U
 Icon=$DEFICON
 Terminal=false
 StartupNotify=true
-Name=Roadmeet Config
-Comment=Edit roadmeet default configuration
-Categories=Settings;
+Type=Application
+Categories=Utility;GTK;Sports;
+MimeType=inode/directory;
+Actions=create;edit-default;
+
+[Desktop Action create]
+Name=Create New
+Exec=$VPATH/bin/roadmeet --create
+
+[Desktop Action edit-default]
+Name=Edit Defaults
+Exec=$VPATH/bin/roadmeet --edit-default
 __EOF__
 mv "$TMPF" "$SPATH/roadmeet-config.desktop"
 echo_continue "Added roadmeet-config.desktop"
@@ -455,33 +452,25 @@ echo_continue "Added roadmeet-config.desktop"
 TMPF=$(mktemp -p "$SPATH")
 tee "$TMPF" <<__EOF__ >/dev/null
 [Desktop Entry]
-Version=1.0
-Type=Application
-Exec=$VPATH/bin/trackmeet %f
-Icon=$DEFICON
-Terminal=false
-StartupNotify=true
-MimeType=inode/directory;
 Name=Trackmeet
 Comment=Timing and results for track cycling meets
-Categories=Utility;GTK;Sports;
-__EOF__
-mv "$TMPF" "$SPATH/trackmeet.desktop"
-echo_continue "Added trackmeet.desktop"
-
-# Trackmeet config
-TMPF=$(mktemp -p "$SPATH")
-tee "$TMPF" <<__EOF__ >/dev/null
-[Desktop Entry]
-Version=1.0
-Type=Application
-Exec=$VPATH/bin/trackmeet --edit-default
+Keywords=cycling;track cycling;velodrome;results;timing;
+Exec=$VPATH/bin/trackmeet %U
 Icon=$DEFICON
 Terminal=false
 StartupNotify=true
-Name=Trackmeet Config
-Comment=Edit trackmeet default configuration
-Categories=Settings;
+Type=Application
+Categories=Utility;GTK;Sports;
+MimeType=inode/directory;
+Actions=create;edit-default;
+
+[Desktop Action create]
+Name=Create New
+Exec=$VPATH/bin/trackmeet --create
+
+[Desktop Action edit-default]
+Name=Edit Defaults
+Exec=$VPATH/bin/trackmeet --edit-default
 __EOF__
 mv "$TMPF" "$SPATH/trackmeet-config.desktop"
 echo_continue "Added trackmeet-config.desktop"
@@ -490,7 +479,6 @@ echo_continue "Added trackmeet-config.desktop"
 TMPF=$(mktemp -p "$SPATH")
 tee "$TMPF" <<__EOF__ >/dev/null
 [Desktop Entry]
-Version=1.0
 Type=Application
 Exec=$VPATH/bin/ttstart
 Icon=$DEFICON
@@ -507,7 +495,6 @@ echo_continue "Added ttstart.desktop"
 TMPF=$(mktemp -p "$SPATH")
 tee "$TMPF" <<__EOF__ >/dev/null
 [Desktop Entry]
-Version=1.0
 Type=Application
 Exec=$VPATH/bin/tagreg
 Icon=$DEFICON
