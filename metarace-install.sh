@@ -386,19 +386,31 @@ else
   exit
 fi
 
-# run a dummy metarace init to populate the data directories
+# run a dummy metarace init to populate data directories
 echo "Defaults folder:"
 DEFICON="$DPATH/default/metarace_icon.svg"
 if [ -e "$DEFICON" ] ; then
-  echo_continue "Present"
-else
-  "$VPATH/bin/python3" -c 'import metarace
-metarace.init()'
-  echo_continue "Created new defaults"
+  echo_continue "Replacing application icon"
+  rm "$DEFICON"
 fi
+"$VPATH/bin/python3" -c 'import metarace
+metarace.init()'
+echo_continue "Updating defaults"
 
 # add desktop entries
 echo "Desktop Shortcuts:"
+
+# copy icon to shared folder if WSL detected
+if [ -n "$WSL" ] ; then
+  SHAREICON="/usr/share/icons/hicolor/scalable/apps/metarace.svg"
+  sudo mkdir -p "/usr/share/icons/hicolor/scalable/apps"
+  if [ -e "$SHAREICON" ] ; then
+    sudo rm "$SHAREICON"
+  fi
+  sudo cp "$DEFICON" "$SHAREICON"
+  DEFICON="metarace"
+  echo_continue "Install shared icon"
+fi
 
 XDGPATH="$HOME/.local/share/applications"
 SPATH="$XDGPATH/metarace"
@@ -414,7 +426,7 @@ Exec=$VPATH/bin/roadmeet %f
 Icon=$DEFICON
 Terminal=false
 StartupNotify=true
-MimeType=inode/directory;application/json;
+MimeType=inode/directory;
 Name=Roadmeet
 Comment=Timing and results for road cycling meets
 Categories=Utility;GTK;Sports;
@@ -449,7 +461,7 @@ Exec=$VPATH/bin/trackmeet %f
 Icon=$DEFICON
 Terminal=false
 StartupNotify=true
-MimeType=inode/directory;application/json;
+MimeType=inode/directory;
 Name=Trackmeet
 Comment=Timing and results for track cycling meets
 Categories=Utility;GTK;Sports;
@@ -512,13 +524,11 @@ echo_continue "Added tagreg.desktop"
 if [ -n "$WSL" ] ; then
   sudo chown -R root:root "$SPATH"
   sudo chmod -R 0644 "$SPATH"
-  sudo chmod 0755 "$SPATH"
-  if [ -e "/usr/share/applications/metarace" ] ; then
-    echo_continue "removing previous installation"
-    sudo rm -r "/usr/share/applications/metarace"
-  fi
-  sudo mv "$SPATH" "/usr/share/applications"
+  for file in "$SPATH"/* ; do
+      sudo mv "$file" "/usr/share/applications"
+  done
   echo_continue "move desktop files to /usr/share/applications"
+  sudo rmdir "$SPATH"
   if check_command update-desktop-database ; then
     sudo update-desktop-database -q
     echo_continue "Updated MIME types cache"
