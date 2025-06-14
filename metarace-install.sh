@@ -445,8 +445,8 @@ Exec=$VPATH/bin/roadmeet --create
 Name=Edit Defaults
 Exec=$VPATH/bin/roadmeet --edit-default
 __EOF__
-mv "$TMPF" "$SPATH/roadmeet-config.desktop"
-echo_continue "Added roadmeet-config.desktop"
+mv "$TMPF" "$SPATH/roadmeet.desktop"
+echo_continue "Added roadmeet.desktop"
 
 # Trackmeet
 TMPF=$(mktemp -p "$SPATH")
@@ -472,8 +472,8 @@ Exec=$VPATH/bin/trackmeet --create
 Name=Edit Defaults
 Exec=$VPATH/bin/trackmeet --edit-default
 __EOF__
-mv "$TMPF" "$SPATH/trackmeet-config.desktop"
-echo_continue "Added trackmeet-config.desktop"
+mv "$TMPF" "$SPATH/trackmeet.desktop"
+echo_continue "Added trackmeet.desktop"
 
 # TT Start
 TMPF=$(mktemp -p "$SPATH")

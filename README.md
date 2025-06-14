@@ -13,29 +13,32 @@ the library, they are available separately:
    - [trackmeet](https://github.com/ndf-zz/metarace-trackmeet) : Timing
      and results for UCI Part 3 Track Races.
    - [tagreg](https://github.com/ndf-zz/metarace-tagreg) : Transponder
-     id management.
+     registration tool.
    - [ttstart](https://github.com/ndf-zz/metarace-ttstart) : Time
      Trial starter console.
 
+A shared install script may be used to install metarace
+applications on most POSIX systems:
 
-## Work in Progress
+	$ wget https://github.com/ndf-zz/metarace/raw/refs/heads/master/metarace-install.sh
+	$ sh metarace-install.sh
 
-   - submit file archive service
-   - update text vertical layout from font metrics
-   - overhaul report sections and event index for trackmeet
-   - re-write report library
-   - remove html templates
-   - bootstrap update to new vers
-   - new result structure for analysis with links instead of direct content
-   - add js utils for in-page reports
-   - replace xls export with xlsx
-   - module documentation
-   - sample scripts
+For installation on Windows systems, a powershell script is provided
+to install metarace applications under a WSL Debian container:
+
+	wget https://github.com/ndf-zz/metarace/raw/refs/heads/master/wsl-install.ps1
+
+
+## Support
+
+   - Signal Group: [metarace](https://signal.group/#CjQKII2j2E7Zxn7dHgsazfKlrIXfhjgZOUB3OUFhzKyb-p_bEhBehsI65MhGABZaJeJ-tMZl)
+   - Github Issues: [issues](https://github.com/ndf-zz/metarace-roadmeet/issues)
 
 
 ## Module Overview
 
 Use pydoc to read module-specific documentation.
+
 
 ### metarace: Base Library
 
@@ -116,6 +119,16 @@ Mirror export files to a remote host using rsync over ssh,
 rsync TCP daemon or by running a local script.
 
 
+## Work in Progress
+
+   - submit file archive service
+   - update text vertical layout from font metrics
+   - overhaul report sections and event index for trackmeet
+   - re-write report library
+   - module documentation
+   - sample scripts
+
+
 ## Requirements
 
 System requirements:
@@ -136,28 +149,16 @@ Python packages:
 
    - pyserial: Serial port interface
    - python-dateutil: Generic date/time string parser
-   - xlwt: XLS file writer
+   - xlsxwriter: XLSX file writer
    - paho-mqtt: MQTT interface
-   - ugrapheme: Unicode grapheme support
+   - graphemeu: Unicode grapheme support
 
 
-## Installation
-
-Check that your python version is at least 3.11 before installing.
-This library will not work with python versions less than 3.11.
-
-
-### Debian 12
+## Manual Installation
 
 Install system requirements with apt:
 
-	$ sudo apt install python3-venv python3-pip python3-cairo python3-gi python3-gi-cairo
-	$ sudo apt install gir1.2-rsvg-2.0 gir1.2-pango-1.0
-	$ sudo apt install python3-serial python3-paho-mqtt python3-dateutil python3-xlwt
-
-Optionally add fonts, PDF viewer and MQTT broker:
-
-	$ sudo apt install tex-gyre fonts-noto evince mosquitto
+	$ sudo apt install python3-venv python3-pip python3-cairo python3-gi python3-gi-cairo gir1.2-rsvg-2.0 gir1.2-pango-1.0
 
 Create a virtualenv for metarace and associated packages:
 
