@@ -2244,255 +2244,6 @@ class event_index:
         return None
 
 
-class judge24rep:
-
-    def __init__(self, secid=''):
-        self.sectionid = secid
-        self.heading = None
-        self.status = None
-        self.subheading = None
-        self.colheader = None
-        self.units = None
-        self.footer = None
-        self.lines = []
-        self.lcount = 0
-        self.h = None
-        self.start = None
-        self.finish = None
-        self.laptimes = None
-
-    def serialize(self, rep, sectionid=None):
-        """Return a serializable map for JSON export."""
-        ret = {}
-        ret['sectionid'] = sectionid
-        ret['type'] = 'section'
-        ret['heading'] = self.heading
-        ret['status'] = self.status
-        ret['subheading'] = self.subheading
-        ret['colheader'] = self.colheader
-        ret['footer'] = self.footer
-        ret['units'] = self.units
-        ret['lines'] = self.lines
-        ret['height'] = self.get_h(rep)
-        ret['count'] = self.lcount
-        return ret
-
-    def get_h(self, report):
-        """Return total height on page of section on report."""
-        if self.h is None or len(self.lines) != self.lcount:
-            self.lcount = len(self.lines)
-            self.h = report.line_height * self.lcount
-            if self.colheader:  # colheader is written out with body
-                self.h += report.line_height
-            if self.heading:
-                self.h += report.section_height
-            if self.subheading:
-                self.h += report.section_height
-            if self.footer:
-                self.h += report.line_height
-        return self.h
-
-    def truncate(self, remainder, report):
-        """Return a copy of the section up to page break."""
-
-        # Special case 1: Entire section will fit on page
-        if self.get_h(report) <= (remainder + report.page_overflow):
-            return (self, None)
-
-        # Special case 2: Not enough space for minimum content
-        chk = judge24rep()
-        chk.heading = self.heading
-        chk.subheading = self.subheading
-        chk.colheader = self.colheader
-        chk.footer = self.footer
-        chk.units = self.units
-        chk.start = self.start
-        chk.finish = self.finish
-        chk.laptimes = self.laptimes
-        if len(self.lines) <= 4:  # special case, keep four or less together
-            chk.lines = self.lines[0:]
-        else:  # BUT, don't break before third rider
-            chk.lines = self.lines[0:2]
-        if chk.get_h(report) > remainder:
-            # move entire section onto next page
-            return (pagebreak(), self)
-
-        # Standard case - section crosses page break, determines
-        # ret: content on current page
-        # rem: content on subsequent pages
-        ret = judge24rep()
-        rem = judge24rep()
-        ret.heading = self.heading
-        ret.subheading = self.subheading
-        ret.colheader = self.colheader
-        ret.footer = self.footer
-        ret.units = self.units
-        ret.start = self.start
-        ret.finish = self.finish
-        ret.laptimes = self.laptimes
-        rem.heading = self.heading
-        rem.subheading = self.subheading
-        rem.colheader = self.colheader
-        rem.footer = self.footer
-        rem.units = self.units
-        rem.start = self.start
-        rem.finish = self.finish
-        rem.laptimes = self.laptimes
-        if rem.heading is not None:
-            if rem.heading.rfind('(continued)') < 0:
-                rem.heading += ' (continued)'
-        seclines = len(self.lines)
-        count = 0
-        if seclines > 0:
-            while count < seclines and count < 3:  # don't break until 3rd
-                ret.lines.append(self.lines[count])
-                count += 1
-        while count < seclines:
-            if ret.get_h(report) > remainder:
-                # pop last line onto rem and break
-                rem.lines.append(ret.lines.pop(-1))
-                break
-            elif seclines - count <= 2:  # push min 2 names over to next page
-                break
-            ret.lines.append(self.lines[count])
-            count += 1
-        while count < seclines:
-            rem.lines.append(self.lines[count])
-            count += 1
-        return (ret, rem)
-
-    def draw_pdf(self, report):
-        """Output a single section to the page."""
-        report.c.save()
-        if self.heading:
-            report.text_cent(report.midpagew, report.h, self.heading,
-                             report.fonts['section'])
-            report.h += report.section_height
-        if self.subheading:
-            report.text_cent(report.midpagew, report.h, self.subheading,
-                             report.fonts['subhead'])
-            report.h += report.section_height
-        cnt = 0
-        if len(self.lines) > 0:
-            if self.colheader:
-                report.h += report.judges_row(report.h, self.colheader)
-            sh = report.h
-            if self.units:
-                report.text_left(report.col_oft_units, report.h, self.units,
-                                 report.fonts['body'])
-            stof = None
-            for r in self.lines:
-                if len(r) > 6 and r[6] is not None and len(
-                        r[6]
-                ) > 0 and self.start is not None and self.finish is not None:
-                    stof = self.start
-                    if len(r) > 9 and r[9] is not None:
-                        stof += r[9]
-                    report.laplines24(report.h, r[6], stof, self.finish)
-                report.h += report.judges_row(report.h, r, cnt % 2)
-                #report.h += report.standard_row(report.h, r, cnt%2)
-                cnt += 1
-            eh = report.h  # - for the column shade box
-            if stof is not None and self.laptimes is not None and len(
-                    self.laptimes) > 0:
-                report.laplines24(sh,
-                                  self.laptimes,
-                                  stof,
-                                  self.finish,
-                                  endh=eh,
-                                  reverse=True)
-            report.drawbox(report.col_oft_time - mm2pt(15.0), sh,
-                           report.col_oft_time + mm2pt(1.0), eh, 0.07)
-        if self.footer:
-            report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
-            report.h += report.line_height
-        report.c.restore()
-
-    def draw_xlsx(self, report, worksheet):
-        """Output program element to excel worksheet."""
-        row = report.h
-        if self.heading:
-            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
-            row += 1
-        if self.subheading:
-            worksheet.write(row, 2, self.subheading.strip(),
-                            XLSX_STYLE['subtitle'])
-            row += 2
-        else:
-            row += 1
-        if len(self.lines) > 0:
-            rows = []
-            if self.colheader:
-                rows.append(vecmapstr(self.colheader, 7))
-            for r in self.lines:
-                nv = r[0:6]
-                if len(nv) == 2:
-                    nv = [nv[0], None, nv[1]]
-                ol = vecmapstr(nv, 7)
-                #if len(r) > 6 and r[6]:
-                #ol[7] = r[6]
-                rows.append(ol)
-            if self.units:
-                if self.colheader:
-                    rows[1][6] = self.units
-                else:
-                    rows[0][6] = self.units
-            for l in rows:
-                worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
-                worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
-                worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
-                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
-                worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
-                worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
-                worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
-                #of = 7
-                #if 7 in l:
-                #st = self.start
-                #for lt in l[7][1:]:
-                #worksheet.write(row, of, (lt-st).rawtime(1), XLSX_STYLE['right'])
-                #of += 1
-                #st = lt
-                row += 1
-            row += 1
-        if self.footer:
-            worksheet.write(row, 2, self.footer.strip(),
-                            XLSX_STYLE['subtitle'])
-            row += 2
-        report.h = row
-        return None
-
-    def draw_text(self, report, f, xtn):
-        """Write out a section in html."""
-        if self.heading:
-            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
-        if self.subheading:
-            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
-
-        if len(self.lines) > 0:
-            hdr = ''
-            if self.colheader:
-                hdr = htlib.thead(vec2htmlhead(self.colheader[0:6]))
-            rows = []
-            for r in self.lines:
-                nv = r[0:6]
-                if len(nv) == 2:
-                    nv = [nv[0], None, nv[1]]
-                rows.append(nv)
-            if self.units:
-                rows[0].append(self.units)
-            trows = []
-            for l in rows:
-                trows.append(vec2htmlrow(l))
-            f.write(
-                htlib.table((hdr, htlib.tbody(trows)),
-                            {'class': report.tablestyle}))
-            f.write('\n')
-        if self.footer:
-            f.write(htlib.p(self.footer.strip()))
-        return None
-
-
 class judgerep:
 
     def __init__(self, secid=''):
@@ -2629,27 +2380,28 @@ class judgerep:
             if self.units:
                 report.text_left(report.col_oft_units, report.h, self.units,
                                  report.fonts['body'])
-            ft = self.finish
-            if ft is None and self.start is not None:
+            st = tod.mktod(self.start)
+            ft = tod.mktod(self.finish)
+            if ft is None and st is not None:
                 ft = tod.now()
             for r in self.lines:
-                lstart = self.start
+                lstart = st
                 if len(r) > 9 and r[9] is not None:
-                    lstart = r[9]
+                    lstart = tod.mktod(r[9])
                 lfinish = ft
                 if len(r) > 11 and r[11] is not None:
-                    lfinish = r[11]
+                    lfinish = tod.mktod(r[11])
                 if len(r) > 6 and r[6] is not None and len(
                         r[6]) > 0 and lstart is not None:
                     report.laplines(report.h, r[6], lstart, lfinish)
                 report.h += report.judges_row(report.h, r, cnt % 2)
                 cnt += 1
             eh = report.h  # - for the column shade box
-            if self.start is not None and self.laptimes is not None and len(
+            if st is not None and self.laptimes is not None and len(
                     self.laptimes) > 0:
                 report.laplines(sh,
                                 self.laptimes,
-                                self.start,
+                                st,
                                 ft,
                                 endh=eh,
                                 reverse=True)
@@ -2692,7 +2444,7 @@ class judgerep:
             for l in rows:
                 st = tod.ZERO
                 if self.start is not None:
-                    st = self.start
+                    st = tod.mktod(self.start)
                 worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
                 worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
                 worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
@@ -2704,8 +2456,10 @@ class judgerep:
                 if srow >= 0:
                     srcl = self.lines[srow]
                     if len(srcl) > 9 and srcl[9] is not None:
-                        # add a category start offset
-                        st += srcl[9]
+                        catStart = tod.mkdod(srcl[9])
+                        if catStart is not None:
+                            # add a category start offset
+                            st += catStart
                     if len(srcl) > 10 and srcl[10]:
                         # show cat label in units col
                         worksheet.write(row, 6, srcl[10], XLSX_STYLE['left'])
@@ -2715,10 +2469,13 @@ class judgerep:
                         llt = st
                         roft = 7
                         for k in srcl[6]:
-                            worksheet.write(row, roft, (k - llt).rawtime(1),
-                                            XLSX_STYLE['right'])
-                            llt = k
-                            roft += 1
+                            kt = tod.mktod(k)
+                            if kt is not None:
+                                worksheet.write(row, roft,
+                                                (kt - llt).rawtime(1),
+                                                XLSX_STYLE['right'])
+                                llt = kt
+                                roft += 1
                 row += 1
             row += 1
         if self.footer:
@@ -4987,45 +4744,6 @@ class report:
         """Return the baseline for a given height."""
         return h + 0.9 * self.line_height  # check baseline at other sz
 
-    def laplines24(self, h, laps, start, finish, endh=None, reverse=False):
-        self.c.save()
-        sp = self.col_oft_cat - mm2pt(20.0)
-        fac = mm2pt(40.0) / float(86450)
-        top = h + 0.15 * self.line_height
-        bot = h + 0.85 * self.line_height
-        if reverse:
-            self.c.set_source_rgba(0.5, 0.5, 0.5, 0.3)
-        if endh is not None:
-            bot = endh - 0.15 * self.line_height
-        lp = None
-        for l in laps:
-            lt = None
-            if lp is not None and not reverse:
-                lt = l - lp
-                if lt < tod.tod('2:30'):
-                    self.c.set_source_rgba(0.0, 0.0, 0.0, 1.0)
-                elif lt < tod.tod('3:00'):
-                    self.c.set_source_rgba(0.1, 0.1, 0.1, 1.0)
-                elif lt < tod.tod('3:30'):
-                    self.c.set_source_rgba(0.3, 0.3, 0.3, 1.0)
-                elif lt < tod.tod('4:00'):
-                    self.c.set_source_rgba(0.5, 0.5, 0.5, 1.0)
-                elif lt < tod.tod('4:30'):
-                    self.c.set_source_rgba(0.6, 0.6, 0.6, 1.0)
-                elif lt < tod.tod('5:00'):
-                    self.c.set_source_rgba(0.7, 0.7, 0.7, 1.0)
-                else:
-                    self.c.set_source_rgba(0.8, 0.8, 0.8, 1.0)
-            lp = l
-            el = l - start
-            if int(el.as_seconds()) <= 86450:
-                toft = sp + float(el.timeval) * fac
-                self.drawline(toft, top, toft, bot)
-        if reverse:
-            toft = sp + float(86400) * fac
-            self.drawline(toft, top, toft, bot)
-        self.c.restore()
-
     def laplines(self, h, laps, start, finish, endh=None, reverse=False):
         sp = self.col_oft_cat - mm2pt(20.0)
         fac = mm2pt(40.0) / float((finish - start).timeval)
@@ -5037,9 +4755,11 @@ class report:
         if endh is not None:
             bot = endh - 0.15 * self.line_height
         for l in laps:
-            if l > start and l < finish:
-                toft = sp + float((l - start).timeval) * fac
-                self.drawline(toft, top, toft, bot)
+            lt = tod.mktod(l)
+            if lt is not None:
+                if lt > start and (finish is None or lt < finish):
+                    toft = sp + float((lt - start).timeval) * fac
+                    self.drawline(toft, top, toft, bot)
         if reverse:
             self.c.restore()
 
