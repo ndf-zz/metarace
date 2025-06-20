@@ -484,6 +484,29 @@ class rider():
             ret = cv[0].upper()
         return ret
 
+    def set_primary_cat(self, cat):
+        """Set the rider's primary category"""
+        new_primary = cat.upper()
+        if new_primary:
+            cmap = {new_primary: True}
+            old_primary = None
+            member = False
+            for c in self['cat'].split():
+                rcat = c.upper()
+                if old_primary is None:
+                    old_primary = rcat
+                if c == new_primary:
+                    member = True
+                cmap[rcat] = True
+            if not member:
+                # replace old_primary, rider was not already a member
+                if old_primary is not None and old_primary in cmap:
+                    del cmap[old_primary]
+            self['cat'] = ' '.join(cmap)
+        else:
+            _log.warning('Cleared rider %r category', self.get_id())
+            self['cat'] = ''
+
     def in_cat(self, cat):
         """Return True if rider is in the nominated category"""
         return cat.upper() in self['cat'].upper().split()
@@ -493,18 +516,22 @@ class rider():
         return (c.upper() for c in self['cat'].split())
 
     def add_cat(self, cat):
-        """Add cat to rider"""
-        cset = set((c.upper() for c in self['cat'].split()))
-        cset.add(cat.upper())
-        self['cat'] = ' '.join(cset)
+        """Append cat to rider"""
+        cmap = {}
+        for c in self['cat'].split():
+            cmap[c.upper()] = True
+        cmap[cat.upper()] = True
+        self['cat'] = ' '.join((c for c in cmap))
 
     def del_cat(self, cat):
         """Remove cat from rider"""
-        cset = set((c.upper() for c in self['cat'].split()))
+        cmap = {}
+        for c in self['cat'].split():
+            cmap[c.upper()] = True
         rem = cat.upper()
-        if rem in cset:
-            cset.remove(rem)
-            self['cat'] = ' '.join(cset)
+        if rem in cmap:
+            del cmap[rem]
+            self['cat'] = ' '.join(cmap)
 
     def get_row(self, coldump=_DEFAULT_COLUMN_ORDER):
         """Return a row ready to export."""
