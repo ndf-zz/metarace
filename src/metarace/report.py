@@ -2456,7 +2456,7 @@ class judgerep:
                 if srow >= 0:
                     srcl = self.lines[srow]
                     if len(srcl) > 9 and srcl[9] is not None:
-                        catStart = tod.mkdod(srcl[9])
+                        catStart = tod.mktod(srcl[9])
                         if catStart is not None:
                             # add a category start offset
                             st += catStart
@@ -3987,7 +3987,7 @@ class report:
             if htfile:
                 self.html_template = self.load_htmlfile(htfile)
                 if '__REPORT_CONTENT__' not in self.html_template:
-                    _log.warning('Invalid report HTML template ignored')
+                    _log.debug('Invalid report HTML template ignored')
                     self.html_template = htlib.emptypage()
             else:
                 self.html_template = htlib.emptypage()
@@ -4012,7 +4012,8 @@ class report:
                 _log.warning('%s reading HTML template %r: %s',
                              e.__class__.__name__, fname, e)
         else:
-            _log.warning('HTML template %r not found', fname)
+            _log.debug('HTML template %r not found', fname)
+            ret = htlib.emptypage()
         return ret
 
     def set_font(self, key=None, val=None):
