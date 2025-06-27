@@ -1,12 +1,6 @@
 # SPDX-License-Identifier: MIT
 """String filtering, truncation and padding."""
 
-# Note: These functions consider unicode string length and
-#       displayed string length to be equal, so any string with zero
-#	length characters (eg combining) will be incorrectly
-#	truncated and/or padded. Output to fixed-width displays
-#	like DHI and track announce will be incorrect.
-
 import re
 from random import randint
 import grapheme
@@ -119,7 +113,7 @@ def dnfcode_key(code):
 
 def bibstr_key(bibstr=''):
     """Return a comparison key for sorting rider bib.ser strings."""
-    (bib, ser) = bibstr2bibser(bibstr)
+    bib, ser = bibstr2bibser(bibstr)
     bval = 0
     if bib.isdigit():
         bval = int(bib)
@@ -128,8 +122,8 @@ def bibstr_key(bibstr=''):
         if sbib and sbib.isdigit():
             bval = int(sbib)
         else:
-            if bib.upper()[0:3] in RUNNER_NOS:
-                bval = RUNNER_NOS[bib.upper()[0:3]]
+            if bib[0:3] in RUNNER_NOS:
+                bval = RUNNER_NOS[bib[0:3]]
             else:
                 bval = id(bib)
     sval = 0
@@ -361,7 +355,7 @@ def reformat_bibserplacelist(placestr):
     """Filter and return a canonically formatted bib.ser place list."""
     if '-' not in placestr:  # This is the 'normal' case!
         return reformat_bibserlist(placestr)
-    # otherwise, do the hard substitutions...
+    # otherwise, filter dead heats
     placestr = placestr.translate(PLACESERLIST_UTRANS).strip()
     placestr = re.sub(r'\s*\-\s*', r'-', placestr)  # remove surrounds
     placestr = re.sub(r'\-+', r'-', placestr)  # combine dupes
@@ -430,6 +424,7 @@ def riderlist_split(riderstr, rdb=None, series=''):
     ret = []
     rset = set()
     for r in dstlist:
+        r = r.upper()
         if r not in rset:
             ret.append(r)
             rset.add(r)
@@ -621,6 +616,11 @@ def confopt_list(confstr, list=[], default=None):
     return ret
 
 
+def bibstr(bib=''):
+    """Reformat and return competitor id"""
+    return bibser2bibstr(*bibstr2bibser(bib))
+
+
 def bibstr2bibser(bibstr=''):
     """Split a bib.series string and return bib and series."""
     a = bibstr.strip().split('.')
@@ -633,21 +633,22 @@ def bibstr2bibser(bibstr=''):
     return (ret_bib, ret_ser)
 
 
-def lapstring(lapcount=None):
-    lapstr = ''
-    if lapcount:
-        lapstr = str(lapcount) + ' Lap'
-        if lapcount > 1:
-            lapstr += 's'
-    return lapstr
-
-
 def bibser2bibstr(bib='', ser=''):
-    """Return a valid bib.series string."""
+    """Return a competitor bib.series string."""
     ret = bib.upper()
     if ser != '':
         ret += '.' + ser.lower()
     return ret
+
+
+def lapstring(lapcount=None):
+    lapstr = ''
+    if lapcount:
+        lapstr = '%d Lap%s' % (
+            lapcount,
+            plural(lapcount),
+        )
+    return lapstr
 
 
 def titlesplit(src='', linelen=24):

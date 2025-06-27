@@ -71,6 +71,7 @@ _ALT_COLUMNS = {
     'nati': 'nat',
     'note': 'note',
     'foot': 'note',
+    'memb': 'note',
     'rank': 'seed',
     'data': 'data',
     'date': 'dob',
@@ -90,6 +91,23 @@ _CATEGORY_COLUMNS = {
     'nat': 'Nationality',
     'dob': 'DoB',
     'sex': 'Sex',
+    'seed': 'Seeding',
+    'data': 'Data Reference',
+}
+
+_TEAM_COLUMNS = {
+    'no': 'Code',
+    'series': 'Series',
+    'first': 'Name',
+    'last': 'Short Name',
+    'org': 'Organisation',
+    'cat': 'Categories',
+    'nat': 'Nationality',
+    'ref': 'Start Time',
+    'uci': 'UCI ID',
+    'dob': 'DoB',
+    'sex': 'Division',
+    'note': 'Members',
     'seed': 'Seeding',
     'data': 'Data Reference',
 }
@@ -329,6 +347,51 @@ _CATEGORY_SCHEMA = {
     },
 }
 
+# Config schema for a series
+_CATEGORY_SERIES = {
+    'rtype': {
+        'prompt': 'Series',
+        'control': 'section',
+    },
+    'no': {
+        'prompt': 'ID:',
+        'control': 'short',
+        'attr': 'no',
+        'hint': 'Series ID',
+        'defer': True,
+        'default': '',
+    },
+    'series': {
+        'prompt': 'Series:',
+        'control': 'short',
+        'readonly': True,
+        'attr': 'series',
+        'defer': True,
+        'default': '',
+    },
+    'first': {
+        'prompt': 'Title:',
+        'attr': 'first',
+        'hint': 'Series title',
+        'defer': True,
+        'default': '',
+    },
+    'last': {
+        'prompt': 'Subtitle:',
+        'attr': 'last',
+        'hint': 'Series subtitle',
+        'defer': True,
+        'default': '',
+    },
+    'note': {
+        'prompt': 'Footer:',
+        'attr': 'note',
+        'defer': True,
+        'hint': 'Supplementary footer text for reports',
+        'default': '',
+    },
+}
+
 # Config schema for a team
 _TEAM_SCHEMA = {
     'rtype': {
@@ -401,10 +464,10 @@ _TEAM_SCHEMA = {
         'default': '',
     },
     'note': {
-        'prompt': 'Notes:',
+        'prompt': 'Members:',
         'attr': 'note',
         'defer': True,
-        'hint': 'Supplementary team notes',
+        'hint': 'List of member riders in BIB.series format',
         'default': '',
     },
 }
@@ -456,8 +519,26 @@ class rider():
         ret = _RIDER_SCHEMA
         if self.__store['series'] == 'cat':
             ret = _CATEGORY_SCHEMA
-        elif self.__store['series'] == 'team':
+        elif self.__store['series'].startswith('t'):
             ret = _TEAM_SCHEMA
+        elif self.__store['series'] == 'series':
+            ret = _SERIES_SCHEMA
+        return ret
+
+    def get_label(self):
+        """Return a type label for this object"""
+        ret = 'Rider'
+        series = self.__store['series'].lower()
+        if series == 'cat':
+            ret = 'Category'
+        elif series.startswith('t'):
+            ret = 'Team'
+        elif series == 'series':
+            ret = 'Number Series'
+        elif series == 'ds':
+            ret = 'DS'
+        elif series == 'spare':
+            ret = 'Spare Bike'
         return ret
 
     def get_bibstr(self):
@@ -504,8 +585,21 @@ class rider():
                     del cmap[old_primary]
             self['cat'] = ' '.join(cmap)
         else:
-            _log.warning('Cleared rider %r category', self.get_id())
+            _log.warning('Cleared %s %s categories', self.get_label(),
+                         self.get_bibstr())
             self['cat'] = ''
+
+    def in_series(self, series=None):
+        """Return True if rider is in the nominated number series
+
+        If series is None, return True if the rider entry is in a
+        non-reserved series
+        """
+        if series is None and self['series'] not in _RESERVED_SERIES:
+            return True
+        elif self['series'] == series:
+            return True
+        return False
 
     def in_cat(self, cat):
         """Return True if rider is in the nominated category"""
@@ -573,16 +667,27 @@ class rider():
     def summary(self):
         """Return a summary string for the rider."""
         ret = None
-        iv = []
+        iv = [
+            ' '.join((
+                self.get_label(),
+                repr(self.get_bibstr()),
+                self.listname(16),
+            ))
+        ]
+
         colset = _RIDER_COLUMNS
-        if self.__store['series'] == 'cat':
+        series = self.__store['series']
+        if series in ('cat', 'series'):
             colset = _CATEGORY_COLUMNS
+        elif series.startswith('t'):
+            colset = _TEAM_COLUMNS
 
         for k in colset:
-            if self[k]:
-                iv.append('%s: %s' % (colset[k], self[k]))
-            ret = ', '.join(iv)
+            if k not in ('no', 'series', 'first', 'last', 'org'):
+                if self[k]:
+                    iv.append('%s: %s' % (colset[k], self[k]))
 
+        ret = ', '.join(iv)
         return ret
 
     def name_bib(self):
@@ -590,7 +695,7 @@ class rider():
         ret = None
         nkey = 'nb'
         if nkey not in self.__strcache:
-            ret = self.get_bibstr() + ' ' + self.fitname(48)
+            ret = self.__store['no'] + ' ' + self.fitname(48)
             self.__strcache[nkey] = ret
         else:
             ret = self.__strcache[nkey]
@@ -601,7 +706,7 @@ class rider():
         ret = None
         nkey = 'rnb'
         if nkey not in self.__strcache:
-            ret = self.get_bibstr() + ' ' + self.listname(48)
+            ret = self.__store['no'] + ' ' + self.listname(48)
             self.__strcache[nkey] = ret
         else:
             ret = self.__strcache[nkey]
@@ -632,7 +737,7 @@ class rider():
         ret = None
         nkey = ('fn', width, trunc)
         if nkey not in self.__strcache:
-            if self['series'] == 'team':
+            if self['series'].startswith('t'):
                 ret = self['first']
                 if trunc and grapheme.length(ret) > width:
                     if width > 4:
@@ -746,15 +851,25 @@ class riderdb():
         if notify:
             self.__notify(None)
 
+    def del_rider(self, key, notify=True):
+        """Remove rider entry from model with optional notify."""
+        del (self.__store[key])
+        if notify:
+            self.__notify(None)
+
     def add_rider(self, newrider, notify=True, overwrite=False):
-        """Append newrider to model."""
+        """Append newrider to model with optional notify."""
         rid = newrider.get_id()
         if rid in self.__store:
             if overwrite:
-                _log.info('Overwriting existing rider: %r', rid)
+                olr = self.__store[rid]
+                _log.info('Overwriting %s %s', olr.get_label(),
+                          olr.resname_bib())
             else:
-                _log.warning('Duplicate rider entry: %r', rid)
-                rid = (newrider['no'], '-'.join(('dupe', strops.randstr())))
+                _log.info('Duplicate %s %s', newrider.get_label(),
+                          newrider.resname_bib())
+                rid = (newrider['no'].upper(), '-'.join(
+                    ('dupe', strops.randstr())))
         newrider.set_notify(self.__notify)
         self.__store[rid] = newrider
         if notify:
@@ -772,19 +887,20 @@ class riderdb():
                 nr[key] = val
         if nr['no']:
             if colkey(nr['no']) in _RIDER_COLUMNS:
-                _log.debug('Ignore column header: %r', r)
+                _log.debug('Column header: %r', r)
                 return None
         else:
             if nr['series'] != 'series':
-                _log.warning('Rider without number: %r', nr)
+                _log.warning('%s without number: %s %s', nr.get_label(),
+                             nr.get_bibstr(), nr.resname())
         return nr
 
     def load(self, csvfile=None, overwrite=False):
         """Load riders from supplied CSV file."""
         if not os.path.isfile(csvfile):
-            _log.debug('Riders file %r not found', csvfile)
+            _log.debug('Riderdb file %r not found', csvfile)
             return 0
-        _log.debug('Loading riders from %r', csvfile)
+        _log.debug('Loading from %r', csvfile)
         count = 0
         with open(csvfile, 'r', encoding='utf-8', errors='replace') as f:
             cr = csv.reader(f)
@@ -816,9 +932,7 @@ class riderdb():
             series = series.lower()
         cats = set()
         for r in self.__store.values():
-            if (series is not None
-                    and r['series'] == series) or (r['series']
-                                                   not in _RESERVED_SERIES):
+            if r.in_series(series):
                 cats.update(r.get_cats())
         return cats
 
@@ -852,13 +966,16 @@ class riderdb():
         if series is not None:
             series = series.lower()
         ret = set()
+        label = ''
         for r in self.__store.values():
             if (series is not None
                     and r['series'] == series) or (r['series']
                                                    not in _RESERVED_SERIES):
                 if r.in_cat(cat):
+                    if not label:
+                        label = r.get_label()
                     ret.add(r.get_bibstr())
-        _log.debug('Found %d riders in cat %r, series %r', len(ret), cat,
+        _log.debug('Found %d %s in cat %r, series %r', len(ret), label, cat,
                    series)
         return ret
 
@@ -867,15 +984,18 @@ class riderdb():
         if series is not None:
             series = series.lower()
         ret = set()
+        label = ''
         for r in self.__store.values():
             if r['series'] == series:
+                if not label:
+                    label = r.get_label()
                 ret.add(r.get_bibstr())
-        _log.debug('Found %d riders in series %r', len(ret), series)
+        _log.debug('Found %d %s in series %r', len(ret), label, series)
         return ret
 
     def save(self, csvfile=None, columns=None):
         """Save current model content to CSV file."""
-        _log.debug('Saving riders to %r', csvfile)
+        _log.debug('Saving to %r', csvfile)
         cats = []
         if columns is None:
             columns = self.include_cols
@@ -957,6 +1077,9 @@ class riderdb():
                     r.set_value('cat', ' '.join(rcv))
                     if notify:
                         r.notify()
+
+    def items(self):
+        return self.__store.items()
 
     def __len__(self):
         return len(self.__store)
