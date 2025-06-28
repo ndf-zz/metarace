@@ -292,6 +292,7 @@ class telegraph(threading.Thread):
         self.__resub = True
         self.__doreconnect = False
         self.__unsent = set()
+        self.__publishLock = threading.Lock()
 
         metarace.sysconf.add_section('telegraph', _CONFIG_SCHEMA)
         self.__host = metarace.sysconf.get_value('telegraph', 'host')
@@ -396,12 +397,12 @@ class telegraph(threading.Thread):
         self.__cb(topic=message.topic, message=message.payload.decode('utf-8'))
 
     def __on_publish(self, client, userdata, mid, reason_code, properties):
-        try:
-            #_log.debug('Message published mid: %d', mid)
-            self.__unsent.remove(mid)
-        except Exception as e:
-            _log.warning('%s removing MID=%d: %s', e.__class__.__name__, mid,
-                         e)
+        with self.__publishLock:
+            try:
+                self.__unsent.remove(mid)
+            except Exception as e:
+                _log.warning('%s removing published MID=%d: %s',
+                             e.__class__.__name__, mid, e)
 
     def run(self):
         """Called via threading.Thread.start()."""
@@ -432,11 +433,14 @@ class telegraph(threading.Thread):
                             msg = None
                             if m[2] is not None:
                                 msg = m[2].encode('utf-8')
-                            mi = self.__client.publish(ntopic, msg, nqos, m[4])
 
-                            # QoS == 0 when not connected are discarded
-                            if nqos != 0 or mi.rc == 0:
-                                self.__unsent.add(mi.mid)
+                            with self.__publishLock:
+                                mi = self.__client.publish(
+                                    ntopic, msg, nqos, m[4])
+
+                                # QoS == 0 when not connected are discarded
+                                if nqos != 0 or mi.rc == 0:
+                                    self.__unsent.add(mi.mid)
 
                             # Wait for publish if timeout provided
                             if m[5] is not None and m[5] > 0:
