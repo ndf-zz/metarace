@@ -510,6 +510,14 @@ def cellnorm(unistr):
 class rider():
     """Rider handle."""
 
+    def copy(self):
+        """Return copy of this rider"""
+        nr = rider()
+        for k, v in self.__store.items():
+            nr.__store[k] = v
+        nr.__notify = self.__notify
+        return nr
+
     def get_id(self):
         """Return this rider's unique id"""
         return (self.__store['no'].upper(), self.__store['series'].lower())
