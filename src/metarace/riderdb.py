@@ -533,6 +533,48 @@ class rider():
             ret = _SERIES_SCHEMA
         return ret
 
+    def rename(self, listname, notify=True):
+        """Replace first, last and organisation from provided listname
+
+        Rider: 			Firstname LAST NAME (Organisation)
+        Team/Cat/Series:	First Name (Organisation)
+
+        """
+        first = []
+        last = []
+        org = []
+        inorg = False
+        label = self.get_label()
+        dolast = not (self.__store['series'].startswith('t')
+                      or self.__store['series'] in ('series', 'cat'))
+        for namebit in listname.split():
+            if namebit.startswith('('):
+                inorg = True
+            if inorg:
+                org.append(namebit.replace('(', '').replace(')', ''))
+                if namebit.endswith(')'):
+                    inorg = False
+            elif first and dolast:
+                last.append(namebit)
+            else:
+                first.append(namebit)
+        donotify = False
+        newfirst = ' '.join(first)
+        if newfirst != self.get_value('firsname'):
+            self.set_value('firsname', newfirst)
+            donotify = True
+        neworg = ' '.join(org)
+        if neworg != self.get_value('organisation'):
+            self.set_value('organisation', neworg)
+            donotify = True
+        if dolast:
+            newlast = ' '.join(last)
+            if newlast != self.get_value('lastname'):
+                self.set_value('lastname', newlast)
+                donotify = True
+        if notify and donotify:
+            self.__notify(self.get_id())
+
     def get_label(self):
         """Return a type label for this object"""
         ret = 'Rider'
@@ -774,14 +816,6 @@ class rider():
                             flen = fsl + ll
                             if fsl and ll:
                                 flen += 1
-                            if flen > width:
-                                ln = lshrt
-                                flen = fsl + lsl
-                                if fsl and lsl:
-                                    flen += 1
-                                if flen > width:
-                                    if lsl <= width:
-                                        fn = ''
                     else:
                         ln = lshrt
                 if fn and ln:

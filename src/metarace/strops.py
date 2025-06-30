@@ -199,16 +199,6 @@ def fitname(first, last, width, trunc=False):
                 flen = fsl + ll
                 if fsl and ll:
                     flen += 1
-                if flen > width:
-                    # Retry without hyphenated lastname: 'F. LASTNAME'
-                    ln = lshrt
-                    flen = fsl + lsl
-                    if fsl and lsl:
-                        flen += 1
-                    if flen > width:
-                        # Retry with only lastname: 'LASTNAME'
-                        if lsl <= width:
-                            fn = ''
         else:
             ln = lshrt
     if fn and ln:
