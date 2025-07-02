@@ -408,7 +408,6 @@ _TEAM_SCHEMA = {
     'series': {
         'prompt': 'Series:',
         'control': 'short',
-        'readonly': True,
         'attr': 'series',
         'defer': True,
         'default': '',
@@ -427,6 +426,13 @@ _TEAM_SCHEMA = {
         'subtext': '(~12 characters)',
         'hint': 'Abbreviated team name for reports',
         'defer': True,
+        'default': '',
+    },
+    'org': {
+        'prompt': 'Organisation:',
+        'attr': 'org',
+        'defer': True,
+        'hint': 'Club or team affiliation',
         'default': '',
     },
     'nat': {
