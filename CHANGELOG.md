@@ -12,6 +12,20 @@
 
 ### Security
 
+## [2.1.11] - 2025-07-04
+
+### Added
+
+   - Add method to change rider no in tod list
+
+### Fixed
+
+   - Correct handling of byes in sprint round/final startlists
+
+### Security
+
+   - Remove development venv from built package
+
 ## [2.1.10] - 2025-07-02
 
 ### Added
