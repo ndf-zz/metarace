@@ -1358,7 +1358,7 @@ class sprintfinal:
                 bl = report.get_baseline(hof)
                 hb = report.get_baseline(hof + report.line_height)
                 # draw heat lines
-                if not heat.startswith('bye'):
+                if 'bye' not in heat:
                     report.drawline(hl, bl, hr, bl)
                     report.drawline(h12, ht + 0.1 * report.line_height, h12,
                                     hb - 0.1 * report.line_height)
@@ -5064,7 +5064,11 @@ class report:
             self.text_right(w + mm2pt(5.0), h, rvec[1], self.fonts['body'])
             doline = False
         if rvec[2]:  # rider name
-            self.text_left(w + mm2pt(6.0), h, rvec[2], self.fonts['body'])
+            self.fit_text(w=w + mm2pt(6.0),
+                          h=h,
+                          msg=rvec[2],
+                          font=self.fonts['body'],
+                          maxwidth=mm2pt(39.0))
             doline = False
         if rvec[3]:  # qualifying time
             self.text_left(w + mm2pt(45.0), h, 'Q: ' + rvec[3],
