@@ -592,6 +592,13 @@ class todlist:
     def __getitem__(self, key):
         return self.__store[key]
 
+    def changeno(self, oldno, newno, oldseries='', newseries=''):
+        """Update NO.series in result if it exists."""
+        for lt in self.__store:
+            if lt[0].refid == oldno and lt[0].index == oldseries:
+                lt[0].refid = newno
+                lt[0].index = newseries
+
     def rank(self, bib, series=''):
         """Return current 0-based rank for given bib."""
         ret = None
