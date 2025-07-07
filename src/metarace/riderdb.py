@@ -611,8 +611,18 @@ class rider():
         return ret
 
     def get_key(self):
-        """Return a sorting key for this rider number"""
-        return strops.bibstr_key(self.__store['no'])
+        """Return sorting key 'ssssss:nnnn' for this rider"""
+        ret = None
+        nkey = 'sk'
+        if nkey not in self.__strcache:
+            ret = '% 6s:% 4s' % (
+                self.__store['series'].lower(),
+                self.__store['no'].upper(),
+            )
+            self.__strcache[nkey] = ret
+        else:
+            ret = self.__strcache[nkey]
+        return ret
 
     def primary_cat(self):
         """Return rider's primary category"""
@@ -1196,6 +1206,17 @@ class riderdb():
         if rkey in self.__store:
             ret = self.__store[rkey]
         return ret
+
+    def sort(self, notify=True):
+        """Re-order by (series, no), preserving order of duplicate entries"""
+        aux = [(r[1].get_key(), i, r[0], r[1])
+               for i, r in enumerate(self.__store.items())]
+        aux.sort()
+        self.__store.clear()
+        for r in aux:
+            self.__store[r[2]] = r[3]
+        if notify:
+            self.__notify(None)
 
     def get_id(self, riderno, series=None):
         """If rider exists, return id else return None"""
