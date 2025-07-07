@@ -66,6 +66,7 @@ _ALT_COLUMNS = {
     'refi': 'ref',
     'rfid': 'ref',
     'tran': 'ref',
+    'dist': 'ref',
     'disp': 'ref',
     'gend': 'sex',
     'nati': 'nat',
