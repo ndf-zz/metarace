@@ -768,12 +768,15 @@ class rider():
             ret = self.__strcache[nkey]
         return ret
 
-    def resname_bib(self):
+    def resname_bib(self, series=False):
         """Return rider name formatted for results with bib."""
         ret = None
-        nkey = 'rnb'
+        nkey = ('rnb', series)
         if nkey not in self.__strcache:
-            ret = self.__store['no'] + ' ' + self.listname(48)
+            if series:
+                ret = self.get_bibstr() + ' ' + self.listname(48)
+            else:
+                ret = self.__store['no'] + ' ' + self.listname(48)
             self.__strcache[nkey] = ret
         else:
             ret = self.__strcache[nkey]
@@ -852,9 +855,7 @@ class rider():
         return ret
 
     def __str__(self):
-        return '{} {} {} ({})'.format(
-            strops.bibser2bibstr(self.__store['no'], self.__store['series']),
-            self['first'].title(), self['last'].upper(), self['org'].upper())
+        return self.resname_bib(series=True)
 
     def __repr__(self):
         return 'rider({})'.format(self.__store)
