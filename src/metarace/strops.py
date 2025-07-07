@@ -4,6 +4,7 @@
 import re
 from random import randint
 import grapheme
+from contextlib import suppress
 
 # replace codepoints 0->255 with space unless overridden
 # "protective" against unencoded ascii strings and control chars
@@ -75,7 +76,8 @@ RUNNER_NOS = {
     'GRW': 13
 }
 
-DNFCODEMAP = {'otl': 0, 'dsq': 1, 'dnf': 3, 'dns': 4, '': 2}
+DNFCODEMAP = {'otl': -1, 'abd': 1, 'dsq': 2, 'dnf': 3, 'dns': 4, '': 0}
+_UNPLACEDRANK = 100000  # Arbitrarily large ranking for unplaced
 
 
 def rand_key(data=None):
@@ -90,23 +92,14 @@ def riderno_key(bib):
 
 def dnfcode_key(code):
     """Return a rank/dnf code sorting key."""
-    # rank [rel] '' dsq hd|otl dnf dns
-    dnfordmap = {
-        'rel': 8000,
-        '': 8500,
-        'otl': 8800,
-        'dnf': 9000,
-        'dns': 9500,
-        'dsq': 10000,
-    }
-    ret = 0
+    ret = _UNPLACEDRANK
     if code is not None:
         code = code.lower()
-        if code in dnfordmap:
-            ret = dnfordmap[code]
+        if code in DNFCODEMAP:
+            ret += DNFCODEMAP[code]
         else:
-            code = code.strip('.')
-            if code.isdigit():
+            code = code.rstrip('.')
+            with suppress(ValueError, TypeError):
                 ret = int(code)
     return ret
 
@@ -114,22 +107,7 @@ def dnfcode_key(code):
 def bibstr_key(bibstr=''):
     """Return a comparison key for sorting rider bib.ser strings."""
     bib, ser = bibstr2bibser(bibstr)
-    bval = 0
-    if bib.isdigit():
-        bval = int(bib)
-    else:
-        sbib = bib.translate(INTEGER_UTRANS).strip()
-        if sbib and sbib.isdigit():
-            bval = int(sbib)
-        else:
-            if bib[0:3] in RUNNER_NOS:
-                bval = RUNNER_NOS[bib[0:3]]
-            else:
-                bval = id(bib)
-    sval = 0
-    if ser != '':
-        sval = ord(ser[0]) << 12
-    return sval | (bval & 0xfff)
+    return '% 6s:% 4s' % (ser, bib)
 
 
 def randstr(data=None):
@@ -142,14 +120,6 @@ def promptstr(prompt='', value=''):
     ret = ''
     if value:
         ret = prompt + ' ' + value
-    return ret
-
-
-def listsplit(liststr=''):
-    """Return a split and stripped list."""
-    ret = []
-    for e in liststr.split(','):
-        ret.append(e.strip())
     return ret
 
 
@@ -217,16 +187,13 @@ def fitname(first, last, width, trunc=False):
 
 def drawno_encirc(drawstr=''):
     ret = ''
-    try:
-        if drawstr.isdigit():
-            ret = drawstr
-            ival = int(drawstr)
-            if ival > 0 and ival <= 10:
-                ret = (
-                    '\u00a0' +  # nbsp to get full line height
-                    chr(0x245f + ival))  # CP U+2460 "Circled digit"
-    except Exception:
-        pass
+    with suppress(ValueError, TypeError):
+        ival = int(drawstr)
+        ret = drawstr
+        if ival > 0 and ival <= 10:
+            ret = (
+                '\u00a0' +  # Hack: nbsp to get full line height
+                chr(0x245f + ival))  # CP U+2460 "Circled digit"
     return ret
 
 
@@ -257,10 +224,8 @@ def rank2ord(place):
 def rank2int(rank):
     """Convert a rank/placing string into an integer."""
     ret = None
-    try:
+    with suppress(ValueError, TypeError):
         ret = int(rank.replace('.', ''))
-    except Exception:
-        pass
     return ret
 
 
@@ -272,11 +237,9 @@ def mark2int(handicap):
         if handicap[0:3] == 'scr':  # 'scr{atch}'
             ret = 0
         else:  # try [number]m form
-            handicap = handicap.translate(INTEGER_UTRANS).strip()
-            try:
+            with suppress(ValueError, TypeError):
+                handicap = handicap.translate(INTEGER_UTRANS).strip()
                 ret = int(handicap)
-            except Exception:
-                pass
     return ret
 
 
@@ -308,7 +271,7 @@ def truncpad(srcline, width, align='l', ellipsis=True):
 def resname_bib(bib, first, last, club, series=''):
     """Return rider name formatted for results with bib."""
     bibstr = bibser2bibstr(bib, series)
-    ret = [bibstr, ' ', fitname(first, last, 64)]
+    ret = [bibstr, ' ', fitname(first, last, 48)]
     if club is not None and club != '':
         if len(club) < 4:
             club = club.upper()
@@ -318,7 +281,7 @@ def resname_bib(bib, first, last, club, series=''):
 
 def resname(first, last=None, club=None):
     """Return rider name formatted for results."""
-    ret = fitname(first, last, 64)
+    ret = fitname(first, last, 48)
     if club is not None and club != '':
         if len(club) < 4:
             club = club.upper()
@@ -482,7 +445,11 @@ def reformat_placelist(placestr):
 def confopt_bool(confstr):
     """Check and return a boolean option from config."""
     if isinstance(confstr, str):
-        if confstr.lower() in ['yes', 'true', '1']:
+        if confstr.lower() in (
+                'yes',
+                'true',
+                '1',
+        ):
             return True
         else:
             return False
@@ -514,10 +481,8 @@ def confopt_riderno(confstr, default=''):
 def confopt_float(confstr, default=None):
     """Check and return a floating point number."""
     ret = default
-    try:
+    with suppress(ValueError, TypeError):
         ret = float(confstr)
-    except Exception:
-        pass
     return ret
 
 
@@ -532,22 +497,18 @@ def confopt_distunits(confstr):
 def confopt_int(confstr, default=None):
     """Check and return a valid integer."""
     ret = default
-    try:
+    with suppress(ValueError, TypeError):
         ret = int(confstr)
-    except Exception:
-        pass
     return ret
 
 
 def confopt_posint(confstr, default=None):
     """Check and return a valid positive integer."""
     ret = default
-    try:
+    with suppress(ValueError, TypeError):
         ret = int(confstr)
         if ret < 0:
             ret = default
-    except Exception:
-        pass
     return ret
 
 
@@ -559,15 +520,13 @@ def confopt_dist(confstr, default=None):
 def chan2id(chanstr='0'):
     """Return a channel ID for the provided string, without fail."""
     ret = CHAN_UNKNOWN
-    try:
+    with suppress(ValueError, TypeError):
         if isinstance(chanstr, str):
             chanstr = chanstr.upper().rstrip('M').lstrip('C')
             if chanstr.isdigit():
                 ret = int(chanstr)
         else:
             ret = int(chanstr)
-    except Exception as e:
-        pass
     if ret < CHAN_UNKNOWN or ret > CHAN_INT:
         ret = CHAN_UNKNOWN
     return ret
@@ -634,7 +593,7 @@ def bibser2bibstr(bib='', ser=''):
 def lapstring(lapcount=None):
     lapstr = ''
     if lapcount:
-        lapstr = '%d Lap%s' % (
+        lapstr = '%d\u2006Lap%s' % (
             lapcount,
             plural(lapcount),
         )
