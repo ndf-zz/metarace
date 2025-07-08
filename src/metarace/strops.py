@@ -124,11 +124,11 @@ def promptstr(prompt='', value=''):
 
 
 def heatsplit(heatstr):
-    """Return a failsafe heat/lane pair for the supplied heat string."""
+    """Return a sortable heat/lane pair for the supplied heat string."""
     hv = heatstr.split('.')
     while len(hv) < 2:
         hv.append('0')
-    return (riderno_key(hv[0]), riderno_key(hv[1]))
+    return (int(hv[0]), int(hv[1]))
 
 
 def fitname(first, last, width, trunc=False):
