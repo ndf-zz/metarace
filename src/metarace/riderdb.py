@@ -1208,6 +1208,18 @@ class riderdb():
             ret = self.__store[rkey]
         return ret
 
+    def fetch_bibstr(self, bibstr, create=True):
+        """Return a rider handle for the bibstr, adding empty as required"""
+        ret = None
+        rId = strops.bibstr2bibser(bibstr)
+        if rId in self.__store:
+            return self.__store[rId]
+        else:
+            if create:
+                nr = self.add_empty(rId[0], rId[1])
+                ret = self.__store[nr]
+        return ret
+
     def sort(self, notify=True):
         """Re-order by (series, no), preserving order of duplicate entries"""
         aux = [(r[1].get_key(), i, r[0], r[1])
@@ -1222,11 +1234,11 @@ class riderdb():
     def get_id(self, riderno, series=None):
         """If rider exists, return id else return None"""
         ret = None
-        if series is None:
-            riderno, series = strops.bibstr2bibser(riderno)
         if series is not None:
             series = series.lower()
-        rkey = (riderno.upper(), series.lower())
+        else:
+            riderno, series = strops.bibstr2bibser(riderno)
+        rkey = (riderno, series)
         if rkey in self.__store:
             ret = rkey
         return ret
