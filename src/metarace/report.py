@@ -316,29 +316,27 @@ def vec2htmllinkrow(vec=[], xtn='', rep=None):
     return htlib.tr(cols)
 
 
-def vec2htmlrow(vec=[]):
-    rowmap = vecmapstr(vec, 7)
+def vec2htmlrow(vec=[], maxcol=7):
+    rowmap = vecmapstr(vec, maxcol)
     cols = []
     cols.append(htlib.td(rowmap[0]))  # Rank (left)
     cols.append(htlib.td(rowmap[1], {'class': 'text-end'}))  # No (right)
     cols.append(htlib.td(rowmap[2]))  # Name (left)
     cols.append(htlib.td(rowmap[3]))  # Cat/Code (left)
-    cols.append(htlib.td(rowmap[4], {'class': 'text-end'}))  # time/gap (right)
-    cols.append(htlib.td(rowmap[5], {'class': 'text-end'}))  # time/gap (right)
-    cols.append(htlib.td(rowmap[6]))  # Units (left)
+    for c in range(4, maxcol):
+        cols.append(htlib.td(rowmap[c], {'class': 'text-end'}))  # right
     return htlib.tr(cols)
 
 
-def vec2htmlhead(vec=[]):
-    rowmap = vecmapstr(vec, 7)
+def vec2htmlhead(vec=[], maxcol=7):
+    rowmap = vecmapstr(vec, maxcol)
     cols = []
     cols.append(htlib.th(rowmap[0]))  # Rank (left)
     cols.append(htlib.th(rowmap[1], {'class': 'text-end'}))  # No (right)
     cols.append(htlib.th(rowmap[2]))  # Name (left)
     cols.append(htlib.th(rowmap[3]))  # Cat/Code (left)
-    cols.append(htlib.th(rowmap[4], {'class': 'text-end'}))  # time/gap (right)
-    cols.append(htlib.th(rowmap[5], {'class': 'text-end'}))  # time/gap (right)
-    cols.append(htlib.th(rowmap[6]))  # Units (left)
+    for c in range(4, maxcol):
+        cols.append(htlib.th(rowmap[c], {'class': 'text-end'}))  # right
     return htlib.tr(cols)
 
 
@@ -2375,7 +2373,10 @@ class judgerep:
         cnt = 0
         if len(self.lines) > 0:
             if self.colheader:
-                report.h += report.judges_row(report.h, self.colheader)
+                #report.h += report.judges_row(report.h, self.colheader)
+                report.h += report.judges_row(
+                    report.h, (self.colheader[0], self.colheader[1],
+                               self.colheader[2], 'lap', '', 'avg'))
             sh = report.h
             if self.units:
                 report.text_left(report.col_oft_units, report.h, self.units,
@@ -2386,8 +2387,9 @@ class judgerep:
                 ft = tod.now()
             for r in self.lines:
                 lstart = st
-                if len(r) > 9 and r[9] is not None:
-                    lstart = tod.mktod(r[9])
+                # TEMP: until laplines fixed in cross/rms/circuit
+                #if len(r) > 9 and r[9] is not None:
+                #lstart = tod.mktod(r[9])
                 lfinish = ft
                 if len(r) > 11 and r[11] is not None:
                     lfinish = tod.mktod(r[11])
@@ -2426,11 +2428,20 @@ class judgerep:
         else:
             row += 1
         if len(self.lines) > 0:
+            if self.colheader:
+                headlen = max(7, len(self.colheader))
+
+                headrow = vecmapstr(self.colheader, maxkey=headlen)
+                worksheet.write(row, 0, headrow[0], XLSX_STYLE['left'])
+                worksheet.write(row, 1, headrow[1], XLSX_STYLE['right'])
+                worksheet.write(row, 2, headrow[2], XLSX_STYLE['left'])
+                worksheet.write(row, 3, headrow[3], XLSX_STYLE['left'])
+                for col in range(4, headlen):
+                    worksheet.write(row, col, headrow[col],
+                                    XLSX_STYLE['right'])
+                row += 1
             revoft = row
             rows = []
-            if self.colheader:
-                revoft += 1
-                rows.append(vecmapstr(self.colheader, 7))
             for r in self.lines:
                 nv = r[0:7]
                 if len(nv) == 2:
@@ -2495,21 +2506,57 @@ class judgerep:
         if len(self.lines) > 0:
             hdr = ''
             if self.colheader:
-                hdr = htlib.thead(vec2htmlhead(self.colheader[0:6]))
+                hdr = htlib.thead(
+                    vec2htmlhead(self.colheader,
+                                 maxcol=max(7, len(self.colheader))))
             rows = []
             for r in self.lines:
+                rcat = ''
+                lcnt = ''
+                lts = []
+                st = tod.ZERO
+                if self.start is not None:
+                    st = tod.mktod(self.start)
+                if len(r) > 9 and r[9] is not None:
+                    catStart = tod.mktod(r[9])
+                    if catStart is not None:
+                        # add a category start offset
+                        st += catStart
+                if len(r) > 10 and r[10]:
+                    rcat = r[10]
+                if len(r) > 3 and r[3]:
+                    lcnt = r[3]
+                if len(r) > 6 and r[6] is not None and len(r[6]) > 0:
+                    # append each lap time to row
+                    llt = st
+                    for k in r[6]:
+                        kt = tod.mktod(k)
+                        if kt is not None:
+                            lts.append((kt - llt).rawtime(1))
+                            llt = kt
                 nv = r[0:6]
                 if len(nv) == 2:
                     nv = [nv[0], None, nv[1]]
+                else:
+                    if len(nv) > 3:
+                        nv[3] = rcat
+                    if len(nv) > 4:
+                        nv[4] = lcnt
+                    if len(nv) == 6:
+                        if lts:
+                            nv.extend(lts)
+                _log.debug('nv: %r', nv)
                 rows.append(nv)
-            if self.units:
-                rows[0].append(self.units)
+            #if self.units:
+            #rows[0].append(self.units)
             trows = []
             for l in rows:
-                trows.append(vec2htmlrow(l))
+                trows.append(vec2htmlrow(l, maxcol=max(7, len(l))))
             f.write(
-                htlib.table((hdr, htlib.tbody(trows)),
-                            {'class': report.tablestyle}))
+                htlib.div(
+                    htlib.table((hdr, htlib.tbody(trows)),
+                                {'class': report.tablestyle}),
+                    {'class': 'table-responsive'}))
             f.write('\n')
         if self.footer:
             f.write(htlib.p(self.footer.strip()))
@@ -4179,7 +4226,11 @@ class report:
         """Output the JSON version."""
         ret = self.serialise()
         # serialise to the provided file handle
-        json.dump(ret, file, indent=1, sort_keys=True)
+        json.dump(ret,
+                  file,
+                  indent=1,
+                  sort_keys=True,
+                  cls=jsonconfig._configEncoder)
 
     def serialise(self):
         """Return a serialisable report object"""
@@ -5000,7 +5051,7 @@ class report:
                           h + (0.5 * self.line_height))
         return self.line_height
 
-    def ittt_lane(self, rvec, w, h, drawline=True):
+    def ittt_lane(self, rvec, w, h, drawline=True, truncate=False):
         """Draw a single lane."""
         baseline = self.get_baseline(h)
         if rvec[0] is None:  # rider no None implies no rider
@@ -5008,7 +5059,15 @@ class report:
         else:
             if rvec[0]:  # non-empty rider no implies full info
                 self.text_right(w + mm2pt(7), h, rvec[0], self.fonts['body'])
-                self.text_left(w + mm2pt(8), h, rvec[1], self.fonts['body'])
+                if truncate:
+                    self.fit_text(w=w + mm2pt(8.0),
+                                  h=h,
+                                  msg=rvec[1],
+                                  font=self.fonts['body'],
+                                  maxwidth=mm2pt(50.0))
+                else:
+                    self.text_left(w + mm2pt(8), h, rvec[1],
+                                   self.fonts['body'])
             else:  # otherwise draw placeholder lines
                 self.drawline(w, baseline, w + mm2pt(7), baseline)
                 self.drawline(w + mm2pt(8), baseline, w + mm2pt(58), baseline)
@@ -5026,7 +5085,10 @@ class report:
         rcnt = 1  # assume one row unless team members
         tcnt = 0
         if len(hvec) > 3:  # got a front straight
-            self.ittt_lane([hvec[1], hvec[2]], self.body_left, h)
+            self.ittt_lane([hvec[1], hvec[2]],
+                           self.body_left,
+                           h,
+                           truncate=True)
             if isinstance(hvec[3], (tuple, list)):  # additional 'team' rows
                 tcnt = len(hvec[3])
                 tof = h + self.line_height
@@ -5039,7 +5101,10 @@ class report:
         if len(hvec) > 7:  # got a back straight
             if hvec[5] is not None:
                 self.text_cent(self.midpagew, h, 'v', self.fonts['subhead'])
-            self.ittt_lane([hvec[5], hvec[6]], self.midpagew + mm2pt(5), h)
+            self.ittt_lane([hvec[5], hvec[6]],
+                           self.midpagew + mm2pt(5),
+                           h,
+                           truncate=True)
             if isinstance(hvec[7], (tuple, list)):  # additional 'team' rows
                 tcnt = max(tcnt, len(hvec[7]))
                 tof = h + self.line_height
