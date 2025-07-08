@@ -555,24 +555,20 @@ FAKETIMES = {
     'catch': tod(ZERO, chan='catch'),
     'win': tod(ZERO, chan='catch'),
     'w/o': tod(ZERO, chan='w/o'),
-    'ntr': tod(ZERO, chan='ntr'),
     'max': tod(MAX, chan='max'),
     'caught': tod(MAX, chan='caught'),
     'lose': tod(MAX, chan='caught'),
     'rel': tod(MAX, chan='rel'),
-    'abort': tod(MAX, chan='abort'),
     'otl': tod(MAX, chan='otl'),
+    'abd': tod(MAX, chan='abd'),
+    'dsq': tod(MAX, chan='dsq'),
     'dnf': tod(MAX, chan='dnf'),
     'dns': tod(MAX, chan='dns'),
-    'dsq': tod(MAX, chan='dsq'),
 }
 extra = decimal.Decimal('0.000001')
 cof = decimal.Decimal('0.000001')
-for c in [
-        'catch', 'win', 'w/o', 'ntr', 'caught', 'lose', 'rel', 'abort', 'otl',
-        'dnf', 'dns', 'dsq'
-]:
-    FAKETIMES[c].timeval += cof
+for t in FAKETIMES.values():
+    t.timeval += cof
     cof += extra
 
 
