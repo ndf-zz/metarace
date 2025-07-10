@@ -22,7 +22,7 @@ if flockstyle is None:
     import msvcrt
     flockstyle = 'deviant'
 
-VERSION = '2.1.11'
+VERSION = '2.1.12'
 DATA_PATH = os.path.realpath(
     os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
