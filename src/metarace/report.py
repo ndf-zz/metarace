@@ -2544,10 +2544,10 @@ class laptimes:
 
         if len(self.lines) > 0:
             hdr = ''
+            hlen = 7  # ensure at least this many columns in table
             if self.colheader:
-                hdr = htlib.thead(
-                    vec2htmlhead(self.colheader,
-                                 maxcol=max(7, len(self.colheader))))
+                hlen = max(7, len(self.colheader))
+                hdr = htlib.thead(vec2htmlhead(self.colheader, maxcol=hlen))
             trows = []
             for r in self.lines:
                 nr = [
@@ -2564,7 +2564,7 @@ class laptimes:
                     nr.append(l.rawtime(self.precision))
                 if r['place'] and not r['place'].isdigit():
                     nr.append(r['place'])
-                trows.append(vec2htmlrow(nr, maxcol=max(7, len(nr))))
+                trows.append(vec2htmlrow(nr, maxcol=hlen))
             f.write(
                 htlib.div(
                     htlib.table((hdr, htlib.tbody(trows)),
