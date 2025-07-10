@@ -1,7 +1,7 @@
 {
  "description": {
-  "text": "Generic Mid-Title A4 Paged",
-  "version": "20250107",
+  "text": "Generic Mid-Title A4 Paper",
+  "version": "20250710",
   "extra": "SPDX-License-Identifier: MIT"
  },
  "fonts": {
@@ -28,23 +28,23 @@
  },
  "elements": {
   "mainlogo": "image, 15.5, 8.2, 55.5, 25.2, 0.0, 0.5, mainlogo",
-  "sublogo": "image, -55.5, 8.2, -15.5, 25.2, 1.0, 0.5, sublogo",
-  "footlogo": "image, 15.5, -25.2, -15.5, -5.2, 0.5, 0.5, footlogo",
   "title": "text, mid, 11.0, 0.5, title, dark, title",
   "subtitle": "text, mid, 16.0, 0.5, subtitle, dark, subtitle",
   "host": "text, mid, 21.5, 0.5, host, dark, host",
+  "sublogo": "image, -55.5, 8.2, -15.5, 25.2, 1.0, 0.5, sublogo",
   "datestr": "text, 17.2, 26.8, 0.0, headline, white, datestr",
-  "commstr": "text, mid, -31.8, 0.5, footline, dark, commstr",
-  "hbotline": "line, 15.5, -32.2, -15.5, -32.2, 0.5pt, dark,",
-  "htopbox": "box, 15.5, 26.2, -15.5, 32.2, topbar,,,,",
+  "docstr": "text, mid, 26.8, 0.5, headline, white, docstr",
   "diststr": "text, -17.2, 26.8, 1.0, headline, white,diststr",
+  "htopbox": "box, 15.5, 26.2, -15.5, 32.2, topbar,,,,",
+  "hbotline": "line, 15.5, -32.2, -15.5, -32.2, 0.5pt, dark,",
+  "pagestr": "text, 17.2, -31.8, 0.0, footline, dark, pagestr",
+  "commstr": "text, mid, -31.8, 0.5, footline, dark, commstr",
   "orgstr": "text, -17.2, -31.8, 1.0, footline, dark, orgstr",
   "timestamp": "text, mid, -27.5, 0.5, timestamp, topbar, timestamp",
+  "footlogo": "image, 15.5, -25.2, -15.5, -5.2, 0.5, 0.5, footlogo",
+  "watermark": "text, mid, -18.0, 0.5, headline, white, watermark",
   "header": "group, htopbox, mainlogo, sublogo, title, subtitle, host, datestr, docstr, diststr",
-  "footer": "group, hbotline, footlogo, commstr, orgstr, timestamp",
-  "docstr": "text, mid, 26.8, 0.5, headline, white, docstr",
-  "pagestr": "text, 17.2, -31.8, 0.0, footline, dark, pagestr",
-  "watermark": "text, mid, -18.0, 0.5, section, white, watermark"
+  "footer": "group, hbotline, footlogo, commstr, orgstr, timestamp"
  },
  "page": {
   "elements": "watermark header footer",

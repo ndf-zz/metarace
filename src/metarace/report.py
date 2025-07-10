@@ -14,7 +14,6 @@ gi.require_version('PangoCairo', '1.0')
 from gi.repository import PangoCairo
 
 import cairo
-import datetime
 import math
 import xlsxwriter
 import json
@@ -25,12 +24,13 @@ from metarace import tod
 from metarace import strops
 from metarace import htlib
 from metarace import jsonconfig
+from datetime import date, datetime, timezone
 
 _log = logging.getLogger('report')
 _log.setLevel(logging.DEBUG)
 
 # JSON report API versioning
-APIVERSION = '1.2.2'
+APIVERSION = '1.3.0'
 
 # Spreadsheet style handles
 XLSX_STYLE = {
@@ -338,6 +338,24 @@ def vec2htmlhead(vec=[], maxcol=7):
     for c in range(4, maxcol):
         cols.append(htlib.th(rowmap[c], {'class': 'text-end'}))  # right
     return htlib.tr(cols)
+
+
+class _publicEncoder(json.JSONEncoder):
+    """Encode tod, agg, datetime and dates"""
+
+    def default(self, obj):
+        if isinstance(obj, tod.tod):
+            b = (obj.timeval * 0).as_tuple()
+            places = min(-(b.exponent), 5)
+            return obj.isostr(places)  # retain truncation of original value
+        elif type(obj) is datetime:
+            ts = 'seconds'
+            if obj.microsecond:
+                ts = 'milliseconds'
+            return obj.isoformat(timespec=ts)
+        elif isinstance(obj, date):
+            return obj.isoformat()
+        return json.JSONEncoder.default(self, obj)
 
 
 # Section Types
@@ -2242,6 +2260,322 @@ class event_index:
         return None
 
 
+class laptimes:
+    """Section for display of lap times/splits"""
+
+    def __init__(self, secid='laptimes'):
+        self.sectionid = secid
+        self.heading = None
+        self.status = None
+        self.subheading = None
+        self.colheader = None
+        self.units = None
+        self.footer = None
+        self.lines = []
+        self.lcount = 0
+        self.h = None
+        self.nobreak = False
+        self.start = None
+        self.finish = None
+        self.laptimes = None
+        self.precision = 0
+
+    def serialize(self, rep, sectionid=None):
+        """Return a serializable map for JSON export."""
+        ret = {}
+        ret['sectionid'] = sectionid
+        ret['type'] = 'laptimes'
+        ret['heading'] = self.heading
+        ret['status'] = self.status
+        ret['subheading'] = self.subheading
+        ret['colheader'] = self.colheader
+        ret['footer'] = self.footer
+        ret['units'] = self.units
+        ret['lines'] = self.lines
+        ret['height'] = self.get_h(rep)
+        ret['count'] = self.lcount
+        ret['precision'] = self.precision
+        ret['start'] = self.start
+        ret['finish'] = self.finish
+        return ret
+
+    def get_h(self, report):
+        """Return total height on page of section on report."""
+        if self.h is None or len(self.lines) != self.lcount:
+            self.lcount = len(self.lines)
+            self.h = report.line_height * self.lcount
+            if self.colheader:  # colheader is written out with body
+                self.h += report.line_height
+            if self.heading:
+                self.h += report.section_height
+            if self.subheading:
+                self.h += report.section_height
+            if self.footer:
+                self.h += report.line_height
+        return self.h
+
+    def truncate(self, remainder, report):
+        """Return a copy of the section up to page break."""
+
+        # Special case: Entire section will fit on page
+        if self.get_h(report) <= (remainder + report.page_overflow):
+            return (self, None)
+
+        # Special case: Don't break if possible
+        if self.nobreak and report.pagefrac() > FEPSILON:
+            # move entire section onto next page
+            return (pagebreak(0.01), self)
+
+        # Special case: Not enough space for minimum content
+        chk = laptimes()
+        chk.heading = self.heading
+        chk.subheading = self.subheading
+        chk.colheader = self.colheader
+        chk.footer = self.footer
+        chk.units = self.units
+        chk.start = self.start
+        chk.finish = self.finish
+        chk.precision = self.precision
+        chk.laptimes = self.laptimes
+        if len(self.lines) <= 4:  # special case, keep four or less together
+            chk.lines = self.lines[0:]
+        else:  # BUT, don't break before third rider
+            chk.lines = self.lines[0:2]
+        if chk.get_h(report) > remainder:
+            # move entire section onto next page
+            return (pagebreak(), self)
+
+        # Standard case - section crosses page break, determines
+        # ret: content on current page
+        # rem: content on subsequent pages
+        ret = laptimes()
+        rem = laptimes()
+        ret.heading = self.heading
+        ret.subheading = self.subheading
+        ret.colheader = self.colheader
+        ret.footer = self.footer
+        ret.units = self.units
+        ret.start = self.start
+        ret.finish = self.finish
+        ret.precision = self.precision
+        ret.laptimes = self.laptimes
+        rem.heading = self.heading
+        rem.subheading = self.subheading
+        rem.colheader = self.colheader
+        rem.footer = self.footer
+        rem.units = self.units
+        rem.start = self.start
+        rem.finish = self.finish
+        rem.precision = self.precision
+        rem.laptimes = self.laptimes
+        if rem.heading is not None:
+            if rem.heading.rfind('(continued)') < 0:
+                rem.heading += ' (continued)'
+        seclines = len(self.lines)
+        count = 0
+        if seclines > 0:
+            while count < seclines and count < 3:  # don't break until 3rd
+                ret.lines.append(self.lines[count])
+                count += 1
+        while count < seclines:
+            if ret.get_h(report) > remainder:
+                # pop last line onto rem and break
+                rem.lines.append(ret.lines.pop(-1))
+                break
+            elif seclines - count <= 2:  # push min 2 names over to next page
+                break
+            ret.lines.append(self.lines[count])
+            count += 1
+        while count < seclines:
+            rem.lines.append(self.lines[count])
+            count += 1
+        return (ret, rem)
+
+    def draw_pdf(self, report):
+        """Output a single section to the page."""
+        report.c.save()
+        if self.heading:
+            report.text_cent(report.midpagew, report.h, self.heading,
+                             report.fonts['section'])
+            report.h += report.section_height
+        if self.subheading:
+            report.text_cent(report.midpagew, report.h, self.subheading,
+                             report.fonts['subhead'])
+            report.h += report.section_height
+        cnt = 0
+
+        if len(self.lines) > 0:
+            report.h += report.judges_row(
+                report.h, (self.colheader[0], self.colheader[1],
+                           self.colheader[2], 'lap', 'avg', 'best', 'cat'))
+            starth = report.h
+            cnt = 0
+            for r in self.lines:
+                # TEMP: unwrap lap times into absolute for display
+                bestt = tod.MAX
+                if r['laps'] and self.start is not None:
+                    ftoft = None
+                    stoft = tod.ZERO
+                    curlap = stoft
+                    if r['start'] is not None:
+                        ftoft = self.finish - self.start
+                        curlap += r['start'] - self.start
+                    rlaps = []
+                    for l in r['laps']:
+                        if l < bestt:
+                            bestt = l
+                        curlap = curlap + l
+                        rlaps.append(curlap)
+                    report.laplines(report.h, rlaps, stoft, ftoft)
+                plstr = r['place']
+                placed = False
+                if plstr:
+                    placed = True
+                    if plstr.isdigit():
+                        plstr += '.'
+
+                ravg = ''
+                if r['average'] is not None:
+                    ravg = r['average'].rawtime(self.precision)
+
+                beststr = ''
+                if bestt < tod.MAX:  # one time at least was found
+                    beststr = bestt.rawtime(self.precision)
+                lr = (
+                    plstr,  # 0 rank/place
+                    r['no'],  # 1 rider no
+                    r['name'],  # 2  name
+                    str(r['count']),  # 3 lap count
+                    ravg,  # 4 time
+                    beststr,  # 5 xtra
+                    None,  # 6 n/a
+                    placed,  # 7 placed?
+                    False,  # 8 photofinish?
+                    None,  # 9 n/a
+                    r['cat'],  # 10 cat
+                    None,  # 11 n/a
+                )
+                report.h += report.judges_row(report.h, lr, cnt % 2)
+                cnt += 1
+            # do laplines like on judgerep
+            endh = report.h  # - for the column shade box
+            if self.start is not None and self.laptimes is not None and len(
+                    self.laptimes) > 0:
+                report.laplines(starth,
+                                self.laptimes,
+                                self.start,
+                                self.finish,
+                                endh=endh,
+                                reverse=True)
+            report.drawbox(report.col_oft_time - mm2pt(15.0), starth,
+                           report.col_oft_time + mm2pt(1.0), endh, 0.07)
+        if self.footer:
+            report.text_cent(report.midpagew, report.h, self.footer,
+                             report.fonts['subhead'])
+            report.h += report.line_height
+        report.c.restore()
+
+    def draw_xlsx(self, report, worksheet):
+        """Output program element to excel worksheet."""
+        # Note: Excel time format is in units of one day, this
+        #       export sends the truncated timeval divided by
+        #       86400, with a time format to match the desired tod
+        #       precision, eg: [m]:ss.00 for precision 2
+        row = report.h
+        if self.heading:
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
+            row += 1
+        if self.subheading:
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
+            row += 2
+        else:
+            row += 1
+        if len(self.lines) > 0:
+            wsstyle = XLSX_STYLE['laptime0']
+            if self.precision == 3:
+                wsstyle = XLSX_STYLE['laptime3']
+            if self.precision == 2:
+                wsstyle = XLSX_STYLE['laptime2']
+            elif self.precision == 1:
+                wsstyle = XLSX_STYLE['laptime1']
+
+            if self.colheader:
+                # rank col is skipped for laptime report
+                headlen = len(self.colheader)
+                headrow = vecmapstr(self.colheader, maxkey=headlen)
+                worksheet.write(row, 1, headrow[0], XLSX_STYLE['right'])
+                worksheet.write(row, 2, headrow[1], XLSX_STYLE['left'])
+                worksheet.write(row, 3, headrow[2], XLSX_STYLE['left'])
+                worksheet.write(row, 4, headrow[3], XLSX_STYLE['right'])
+                for col in range(4, headlen):
+                    worksheet.write(row, col + 1, headrow[col],
+                                    XLSX_STYLE['right'])
+                row += 1
+            for r in self.lines:
+                worksheet.write(row, 1, r['no'], XLSX_STYLE['right'])
+                worksheet.write(row, 2, r['name'], XLSX_STYLE['left'])
+                worksheet.write(row, 3, r['cat'], XLSX_STYLE['left'])
+                worksheet.write(row, 4, r['count'], XLSX_STYLE['right'])
+                if r['average'] is not None:
+                    worksheet.write(row, 5, r['average'].timeval / 86400,
+                                    wsstyle)
+                col = 6
+                for lap in r['laps']:
+                    worksheet.write(row, col, lap.timeval / 86400, wsstyle)
+                    col += 1
+                if r['place'] and not r['place'].isdigit():
+                    worksheet.write(row, col, r['place'], XLSX_STYLE['right'])
+                row += 1
+            row += 1
+        if self.footer:
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
+            row += 2
+        report.h = row
+        return None
+
+    def draw_text(self, report, f, xtn):
+        """Write out a section in html."""
+        if self.heading:
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
+        if self.subheading:
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
+
+        if len(self.lines) > 0:
+            hdr = ''
+            if self.colheader:
+                hdr = htlib.thead(
+                    vec2htmlhead(self.colheader,
+                                 maxcol=max(7, len(self.colheader))))
+            trows = []
+            for r in self.lines:
+                nr = [
+                    r['no'],
+                    r['name'],
+                    r['cat'],
+                    str(r['count']),
+                ]
+                if r['average'] is not None:
+                    nr.append(r['average'].rawtime(self.precision))
+                else:
+                    nr.append(None)
+                for l in r['laps']:
+                    nr.append(l.rawtime(self.precision))
+                if r['place'] and not r['place'].isdigit():
+                    nr.append(r['place'])
+                trows.append(vec2htmlrow(nr, maxcol=max(7, len(nr))))
+            f.write(
+                htlib.div(
+                    htlib.table((hdr, htlib.tbody(trows)),
+                                {'class': report.tablestyle}),
+                    {'class': 'table-responsive'}))
+            f.write('\n')
+        if self.footer:
+            f.write(htlib.p(self.footer.strip()))
+        return None
+
+
 class judgerep:
 
     def __init__(self, secid=''):
@@ -2263,7 +2597,7 @@ class judgerep:
         """Return a serializable map for JSON export."""
         ret = {}
         ret['sectionid'] = sectionid
-        ret['type'] = 'section'
+        ret['type'] = 'judgerep'
         ret['heading'] = self.heading
         ret['status'] = self.status
         ret['subheading'] = self.subheading
@@ -2545,7 +2879,6 @@ class judgerep:
                     if len(nv) == 6:
                         if lts:
                             nv.extend(lts)
-                _log.debug('nv: %r', nv)
                 rows.append(nv)
             #if self.units:
             #rows[0].append(self.units)
@@ -3785,8 +4118,7 @@ class report:
 
         # override timestamp
         self.strings['timestamp'] = (
-            str(datetime.date.today().strftime('%A, %B %d %Y ')) +
-            tod.now().meridiem())
+            str(date.today().strftime('%A, %B %d %Y ')) + tod.now().meridiem())
         self.strings[
             'watermark'] = 'Report: %s; Library: %s; Template: %s %r ' % (
                 APIVERSION, metarace.VERSION, self.template_version,
@@ -4226,11 +4558,7 @@ class report:
         """Output the JSON version."""
         ret = self.serialise()
         # serialise to the provided file handle
-        json.dump(ret,
-                  file,
-                  indent=1,
-                  sort_keys=True,
-                  cls=jsonconfig._configEncoder)
+        json.dump(ret, file, indent=1, sort_keys=True, cls=_publicEncoder)
 
     def serialise(self):
         """Return a serialisable report object"""
@@ -4282,6 +4610,22 @@ class report:
         XLSX_STYLE['title'] = wb.add_format({'bold': True})
         XLSX_STYLE['subtitle'] = wb.add_format({'italic': True})
         XLSX_STYLE['monospace'] = wb.add_format({'font_name': 'Courier New'})
+        XLSX_STYLE['laptime0'] = wb.add_format({
+            'align': 'right',
+            'num_format': '[m]:ss'
+        })
+        XLSX_STYLE['laptime1'] = wb.add_format({
+            'align': 'right',
+            'num_format': '[m]:ss.0'
+        })
+        XLSX_STYLE['laptime2'] = wb.add_format({
+            'align': 'right',
+            'num_format': '[m]:ss.00'
+        })
+        XLSX_STYLE['laptime3'] = wb.add_format({
+            'align': 'right',
+            'num_format': '[m]:ss.000'
+        })
 
         # Set column widths using xlsxwriter format (width is in characters)
         ws.set_column(0, 0, 7)
@@ -4290,7 +4634,6 @@ class report:
         ws.set_column(3, 3, 12)
         ws.set_column(4, 4, 12)
         ws.set_column(5, 5, 12)
-        ws.set_column(6, 6, 4)
 
         title = ''
         for s in ['title', 'subtitle']:
