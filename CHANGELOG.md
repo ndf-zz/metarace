@@ -12,6 +12,12 @@
 
 ### Security
 
+## [2.1.13] - 2025-07-12
+
+### Fixed
+
+   - added missing confopt_posfloat method
+
 ## [2.1.12] - 2025-07-10
 
 ### Added
