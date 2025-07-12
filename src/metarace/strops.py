@@ -486,6 +486,16 @@ def confopt_float(confstr, default=None):
     return ret
 
 
+def confopt_posfloat(confstr, default=None):
+    """Check and return a positive floating point number."""
+    ret = default
+    with suppress(ValueError, TypeError):
+        nv = float(confstr)
+        if nv > 0:
+            ret = nv
+    return ret
+
+
 def confopt_distunits(confstr):
     """Check and return a valid unit from metres or laps."""
     if 'lap' in confstr.lower():
