@@ -279,10 +279,30 @@ def vec2htmllinkrow(vec=[], xtn='', rep=None):
     # link
     # text
     # link
-    rowmap = vecmapstr(vec, 7)
+    rowmap = vecmapstr(vec, 8)
     cols = []
     cols.append(htlib.td(rowmap[0]))
-    if rowmap[6]:  # Startlist/Result links
+    if rowmap[7]:  # workaround
+        cols.append(htlib.td(rowmap[2]))  # DESCR
+        bstyle = rep.buttonstyle
+        stxt = ''
+        if rowmap[4]:  # 'startlist' is present
+            ltxt = 'Startlist'
+            flnk = rowmap[4] + xtn
+            if rowmap[3]:
+                ltxt = rowmap[3]
+                flnk = rowmap[4]
+            stxt = htlib.a(ltxt, {'href': flnk, 'class': bstyle})
+        #rtxt = ''
+        #if rowmap[6]:  # result is present
+        #ltxt = 'Result'
+        #flnk = rowmap[6] + xtn
+        #if rowmap[5]:
+        #ltxt = rowmap[5]
+        #flnk = rowmap[6]
+        #rtxt = htlib.a(ltxt, {'href': flnk, 'class': bstyle})
+        cols.append(htlib.td(stxt, {'colspan': '2'}))
+    elif rowmap[6]:  # Startlist/Result links
         cols.append(htlib.td(rowmap[2]))  # DESCR
         bstyle = rep.buttonstyle
         stxt = ''
@@ -316,27 +336,37 @@ def vec2htmllinkrow(vec=[], xtn='', rep=None):
     return htlib.tr(cols)
 
 
-def vec2htmlrow(vec=[], maxcol=7):
+def vec2htmlrow(vec=[], maxcol=7, colspec=('l', 'r', 'l', 'l', 'r')):
     rowmap = vecmapstr(vec, maxcol)
+    defspec = colspec[-1]
+    lc = {}
+    rc = {'class': 'text-end'}
     cols = []
-    cols.append(htlib.td(rowmap[0]))  # Rank (left)
-    cols.append(htlib.td(rowmap[1], {'class': 'text-end'}))  # No (right)
-    cols.append(htlib.td(rowmap[2]))  # Name (left)
-    cols.append(htlib.td(rowmap[3]))  # Cat/Code (left)
-    for c in range(4, maxcol):
-        cols.append(htlib.td(rowmap[c], {'class': 'text-end'}))  # right
+    for c in range(0, maxcol):
+        clx = lc
+        slx = defspec
+        if c < len(colspec):
+            slx = colspec[c]
+        if slx == 'r':
+            clx = rc
+        cols.append(htlib.td(rowmap[c], clx))
     return htlib.tr(cols)
 
 
-def vec2htmlhead(vec=[], maxcol=7):
+def vec2htmlhead(vec=[], maxcol=7, colspec=('l', 'r', 'l', 'l', 'r')):
     rowmap = vecmapstr(vec, maxcol)
+    defspec = colspec[-1]
+    lc = {}
+    rc = {'class': 'text-end'}
     cols = []
-    cols.append(htlib.th(rowmap[0]))  # Rank (left)
-    cols.append(htlib.th(rowmap[1], {'class': 'text-end'}))  # No (right)
-    cols.append(htlib.th(rowmap[2]))  # Name (left)
-    cols.append(htlib.th(rowmap[3]))  # Cat/Code (left)
-    for c in range(4, maxcol):
-        cols.append(htlib.th(rowmap[c], {'class': 'text-end'}))  # right
+    for c in range(0, maxcol):
+        clx = lc
+        slx = defspec
+        if c < len(colspec):
+            slx = colspec[c]
+        if slx == 'r':
+            clx = rc
+        cols.append(htlib.th(rowmap[c], clx))
     return htlib.tr(cols)
 
 
@@ -2547,7 +2577,10 @@ class laptimes:
             hlen = 7  # ensure at least this many columns in table
             if self.colheader:
                 hlen = max(7, len(self.colheader))
-                hdr = htlib.thead(vec2htmlhead(self.colheader, maxcol=hlen))
+                hdr = htlib.thead(
+                    vec2htmlhead(self.colheader,
+                                 maxcol=hlen,
+                                 colspec=('r', 'l', 'l', 'r')))
             trows = []
             for r in self.lines:
                 nr = [
@@ -2564,7 +2597,8 @@ class laptimes:
                     nr.append(l.rawtime(self.precision))
                 if r['place'] and not r['place'].isdigit():
                     nr.append(r['place'])
-                trows.append(vec2htmlrow(nr, maxcol=hlen))
+                trows.append(
+                    vec2htmlrow(nr, maxcol=hlen, colspec=('r', 'l', 'l', 'r')))
             f.write(
                 htlib.div(
                     htlib.table((hdr, htlib.tbody(trows)),
