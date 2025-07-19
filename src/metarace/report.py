@@ -28,6 +28,8 @@ from datetime import date, datetime, timezone
 
 _log = logging.getLogger('report')
 _log.setLevel(logging.DEBUG)
+_LOGLEVEL_TEMP = 16  # ephemeral status line logs
+logging.addLevelName(_LOGLEVEL_TEMP, 'INFO')
 
 # JSON report API versioning
 APIVERSION = '1.3.0'
@@ -4146,6 +4148,7 @@ class report:
     def __init__(self, template=None):
 
         # load template	-> also declares page geometry variables
+        _log.debug('Load report, template=%r', template)
         self.html_template = ''
         self.coverpage = None
         self.loadconfig(template)
@@ -4155,7 +4158,7 @@ class report:
             str(date.today().strftime('%A, %B %d %Y ')) + tod.now().meridiem())
         self.strings[
             'watermark'] = 'Report: %s; Library: %s; Template: %s %r ' % (
-                APIVERSION, metarace.VERSION, self.template_version,
+                APIVERSION, metarace.__version__, self.template_version,
                 self.template_descr)
         if metarace.sysconf.has_value('report', 'watermark'):
             self.strings['watermark'] += metarace.sysconf.get(
@@ -4163,6 +4166,7 @@ class report:
 
         # Status and context values
         self.provisional = False
+        self.id = 'Report'
         self.reportstatus = None  # optional flag for virtual etc
         self.serialno = str(int(time.time()))  # may be overidden
         self.eventid = None  # stage no or other identifier
@@ -4253,6 +4257,7 @@ class report:
         """Initialise the report template."""
 
         # Default page geometry
+        _log.debug('Loading report configuration')
         self.pagew = 595.0
         self.pageh = 842.0
         self.sidemargin = mm2pt(25.5)
@@ -4363,6 +4368,7 @@ class report:
         self.twocol_width = TWOCOL_WIDTH
         if cr.has_option('page', 'twocolwidth'):
             self.twocol_width = str2len(cr.get('page', 'twocolwidth'))
+        _log.debug('Reset page geometry')
         self.reset_geometry()
         if cr.has_option('page', 'elements'):
             self.header = cr.get('page', 'elements').split()
@@ -4376,6 +4382,7 @@ class report:
                 _log.info('Coverpage file not found - skipped')
 
         # read in font declarations
+        _log.debug('Loading fonts from template')
         for s in cr.options('fonts'):
             if s == 'gamutstdfont':
                 self.gamutstdfont = cr.get('fonts', s)
@@ -4384,6 +4391,7 @@ class report:
             else:
                 self.fonts[s] = Pango.FontDescription(cr.get('fonts', s))
         # read in string declarations
+        _log.debug('Reading strings from template')
         for s in cr.options('strings'):
             self.strings[s] = cr.get('strings', s)
         # read in colours
@@ -4590,9 +4598,11 @@ class report:
 
     def output_json(self, file=None):
         """Output the JSON version."""
+        _log.debug('JSON output: Start')
         ret = self.serialise()
         # serialise to the provided file handle
         json.dump(ret, file, indent=1, sort_keys=True, cls=_publicEncoder)
+        _log.debug('JSON output: End')
 
     def serialise(self):
         """Return a serialisable report object"""
@@ -4603,7 +4613,7 @@ class report:
             'sections': {},
             'api': 'metarace.report',
             'apiversion': APIVERSION,
-            'libversion': metarace.VERSION
+            'libversion': metarace.__version__
         }
         rep = ret['report']
         rep['provisional'] = self.provisional
@@ -4625,6 +4635,7 @@ class report:
         rep['sections'] = []
         secmap = ret['sections']
         for s in self.sections:
+            _log.debug('Serialise section: %s', s.sectionid)
             secid = mksectionid(secmap, s.sectionid)
             secmap[secid] = s.serialize(self, secid)
             rep['sections'].append(secid)
@@ -4632,6 +4643,7 @@ class report:
 
     def output_xlsx(self, file=None):
         """Output xlsx spreadsheet."""
+        _log.debug('XLSX output: Start')
         wb = xlsxwriter.Workbook(file, {'in_memory': True})
 
         sheetname = 'report'
@@ -4688,9 +4700,11 @@ class report:
         # output all the sections...
         for s in self.sections:
             if type(s) is not pagebreak:
+                _log.debug('Draw xlsx section %s', s.sectionid)
                 s.draw_xlsx(self, ws)  # call into section to draw
 
         wb.close()
+        _log.debug('XLSX output: End')
 
     def macrowrite(self, file=None, text=''):
         """Write text to file substituting macros in text."""
@@ -4718,6 +4732,7 @@ class report:
 
     def output_html(self, file=None, linkbase='', linktypes=[]):
         """Output a html version of the report."""
+        _log.debug('HTML output: Start')
         cw = file
         navbar = []
         #for link in self.customlinks:  # to build custom toolbars
@@ -4809,6 +4824,7 @@ class report:
 
         # macro output the footer of the template
         self.macrowrite(cw, bot)
+        _log.debug('HTML output: End')
 
     def output_htmlintext(self,
                           file=None,
@@ -4879,8 +4895,8 @@ class report:
             s.sectionid = secid
         for s in self.sections:
             if type(s) is not pagebreak:
+                _log.debug('Output HTML section %s', s.sectionid)
                 s.draw_text(self, cw, htmlxtn)  # call into section
-
         cw.write('\n')
 
     def set_context(self, context):
@@ -4903,6 +4919,7 @@ class report:
 
     def output_pdf(self, file=None, docover=False):
         """Prepare document and then output to a PDF surface."""
+        _log.debug('PDF output: Start')
 
         # create output cairo surface and save contexts
         self.s = cairo.PDFSurface(file, self.pagew, self.pageh)
@@ -4911,6 +4928,7 @@ class report:
 
         # break report into pages as required
         self.paginate()
+        _log.debug('Report len: %d pages', len(self.pages))
 
         # Special case: remove an empty final page
         if len(self.pages) > 0 and len(self.pages[-1]) == 0:
@@ -4921,26 +4939,33 @@ class report:
         if docover and self.coverpage is not None:
             self.draw_cover()
             self.c.show_page()  # start a new blank page
+            _log.debug('Added coverpage')
 
         # output each page
         for i in range(0, npages):
+            _log.debug(' - %s draw page: Start', self.id)
             self.draw_page(i)
             if i < npages - 1:
+                _log.debug(' - %s draw page: %d/%d', self.id, i + 1, npages)
                 self.c.show_page()  # start a new blank page
+            _log.debug(' - %s draw page: End', self.id)
 
         # finalise surface - may be a blank pdf if no content
         self.s.flush()
         self.s.finish()
+        _log.debug('PDF output: End')
 
     def draw_element(self, elem):
         """Draw the named element if it is defined."""
         if elem in self.elements:
             self.elements[elem].draw(self.c, self.p)
+            _log.debug('Draw pdf template element %r', elem)
         else:
             pass
 
     def draw_template(self):
         """Draw page layout."""
+        _log.debug('Draw pdf template')
         for e in self.header:
             self.draw_element(e)
         self.draw_element('pagestr')
@@ -4971,6 +4996,8 @@ class report:
 
         # clip page print extents
         self.c.save()
+        _log.debug('draw page: savecontext')
+
         self.c.rectangle(self.printmargin, self.printmargin, self.printw,
                          self.printh)
         self.c.clip()
@@ -4992,12 +5019,14 @@ class report:
             for s in self.pages[page_nr]:
                 s.draw_pdf(self)  # call into section to draw
                 self.h += self.line_height  # inter-section gap
+                _log.debug('Add PDF section %s', s.sectionid)
 
         # if requested, overlay page marks
         if self.pagemarks:
             self.draw_pagemarks()
 
         # restore context
+        _log.debug('draw page: restore context')
         self.c.restore()
 
     def teamname_height(self, text, width=None):
@@ -5171,6 +5200,7 @@ class report:
 
     def get_baseline(self, h):
         """Return the baseline for a given height."""
+        # TODO: Replace/remove
         return h + 0.9 * self.line_height  # check baseline at other sz
 
     def laplines(self, h, laps, start, finish, endh=None, reverse=False):
