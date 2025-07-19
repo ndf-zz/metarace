@@ -20,13 +20,13 @@ the library, they are available separately:
 A shared install script may be used to install metarace
 applications on most POSIX systems:
 
-	$ wget https://github.com/ndf-zz/metarace/raw/refs/heads/master/metarace-install.sh
+	$ wget https://github.com/ndf-zz/metarace/raw/refs/heads/main/metarace-install.sh
 	$ sh metarace-install.sh
 
 For installation on Windows systems, a powershell script is provided
 to install metarace applications under a WSL Debian container:
 
-	wget https://github.com/ndf-zz/metarace/raw/refs/heads/master/wsl-install.ps1
+	wget https://github.com/ndf-zz/metarace/raw/refs/heads/main/wsl-install.ps1
 
 
 ## Support

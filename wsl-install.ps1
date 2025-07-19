@@ -23,9 +23,9 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 
 # Define the path to your provisioning script
 $MetaraceScript = "metarace-install.sh"
-$MetaraceUrl = "https://github.com/ndf-zz/metarace/raw/refs/heads/master/metarace-install.sh"
+$MetaraceUrl = "https://github.com/ndf-zz/metarace/raw/refs/heads/main/metarace-install.sh"
 $ProvisionScript = "wsl-provision.sh"
-$ProvisionUrl = "https://github.com/ndf-zz/metarace/raw/refs/heads/master/wsl-provision.sh"
+$ProvisionUrl = "https://github.com/ndf-zz/metarace/raw/refs/heads/main/wsl-provision.sh"
 $ProvisionBasePathWin = "C:\temp\"
 $ProvisionBasePathWSL = "/mnt/c/temp/"
 $MetaracePathWin = $ProvisionBasePathWin + $MetaraceScript
