@@ -4,6 +4,14 @@
 #
 set -e
 
+# XDG names
+XDG_APP_BASE="org.6_v"
+XDG_APP_METARACE="${XDG_APP_BASE}.metarace"
+XDG_APP_TRACKMEET="${XDG_APP_BASE}.trackmeet"
+XDG_APP_ROADMEET="${XDG_APP_BASE}.roadmeet"
+XDG_APP_TAGREG="${XDG_APP_BASE}.tagreg"
+XDG_APP_TTSTART="${XDG_APP_BASE}.ttstart"
+
 check_command() {
   command -v "$1" >/dev/null 2>&1
 }
@@ -63,7 +71,7 @@ sysup_apt() {
   echo_continue "Done"
 
   echo "Install Required Packages:"
-  sudo apt-get install -y python3-venv python3-pip python3-cairo python3-gi python3-gi-cairo python3-serial python3-paho-mqtt python3-dateutil python3-xlwt gir1.2-gtk-3.0 gir1.2-rsvg-2.0 gir1.2-pango-1.0
+  sudo apt-get install -y python3-venv python3-pip python3-cairo python3-gi python3-gi-cairo python3-serial python3-paho-mqtt python3-dateutil python3-xlwt gir1.2-gtk-3.0 gir1.2-rsvg-2.0 gir1.2-pango-1.0 gir1.2-gstreamer-1.0 gstreamer1.0-alsa
   echo_continue "Done"
 
   if check_yesno "Install optional fonts, evince, rsync and MQTT broker?" ; then
@@ -163,6 +171,7 @@ fi
 
 # check distribution via os-release if available
 PYTHON=python3
+lpgroup="unknown"
 ttygroup="unknown"
 pkgstyle="unknown"
 getfonts="no"
@@ -175,6 +184,7 @@ if [ -e /etc/os-release ] ; then
     "debian")
       pkgstyle="apt"
       ttygroup="dialout"
+      lpgroup="lpadmin"
       if [ "$dv" -gt 10 ] ; then
         echo_continue "$NAME $VERSION"
       else
@@ -184,11 +194,13 @@ if [ -e /etc/os-release ] ; then
     "ubuntu")
       pkgstyle="apt"
       ttygroup="dialout"
+      lpgroup="lpadmin"
       echo_continue "$NAME $VERSION"
     ;;
     "linuxmint")
       pkgstyle="apt"
       ttygroup="dialout"
+      lpgroup="lpadmin"
       echo_continue "$NAME $VERSION"
     ;;
     "arch")
@@ -331,6 +343,30 @@ else
   fi
 fi
 
+# check printer access (debian)
+if [ "$lpgroup" = "unknown" ] ; then
+  true
+else
+  if groups | grep -F "$lpgroup" >/dev/null 2>&1 ; then
+    echo "Printer Admin Access:"
+    echo_continue "OK ($lpgroup)"
+  else
+    if check_command sudo ; then
+      if check_yesno "Add $USER to group $lpgroup for serial port access?" ; then
+        if [ "$pkgstyle" = "pkg" ] ; then
+          sudo pw group mod -n "$lpgroup" -m "$USER"
+        else
+          sudo gpasswd -a "$USER" "$lpgroup"
+        fi
+        echo_continue "Done"
+      else
+        echo_continue "Skipped"
+      fi
+    else
+      check_continue "Add user to group $lpgroup to access printers."
+    fi
+  fi
+fi
 # if tex gyre not packaged, fetch with wget
 if [ "$getfonts" = "yes" ] ; then
   get_fonts
@@ -404,32 +440,64 @@ echo_continue "Updating defaults"
 
 # add desktop entries
 echo "Desktop Shortcuts:"
+XDGPATH="${HOME}/.local/share"
+ICONPATH="icons/hicolor/scalable/apps"
+ICONNAME="${XDG_APP_METARACE}"
+TEMPPATH="${XDGPATH}/applications"
 
-# copy icon to shared folder if WSL detected
+# Prepare XDG destinations for .desktop files
 if [ -n "$WSL" ] ; then
-  SHAREICON="/usr/share/icons/hicolor/scalable/apps/metarace.svg"
-  sudo mkdir -p "/usr/share/icons/hicolor/scalable/apps"
+  echo_continue "Installing icons and shortcuts to shared folder"
+  XDGPATH="/usr/share"
+  SHAREICON="${XDGPATH}/${ICONPATH}/${ICONNAME}.svg"
+  OLDICON="${XDGPATH}/${ICONPATH}/metarace.svg"
+  # remove old name icon if it exists
+  if [ -e "$OLDICON" ] ; then
+    sudo rm "$OLDICON"
+  fi
+  # replace new name icon
+  sudo mkdir -p "${XDGPATH}/${ICONPATH}"
   if [ -e "$SHAREICON" ] ; then
     sudo rm "$SHAREICON"
   fi
   sudo cp "$DEFICON" "$SHAREICON"
-  DEFICON="metarace"
-  echo_continue "Install shared icon"
+  # remove previous desktop files with old names
+  for oldname in roadmeet trackmeet tagreg ttstart ; do
+    if [ -e "${XDGPATH}/applications/${oldname}.desktop" ] ; then
+      sudo rm "${XDGPATH}/applications/${oldname}.desktop"
+    fi
+  done
+else
+  echo_continue "Installing icons and shortcuts to home folder"
+  SHAREICON="${XDGPATH}/${ICONPATH}/${ICONNAME}.svg"
+  if [ -e "$SHAREICON" ] ; then
+    rm "$SHAREICON"
+  fi
+  mkdir -p "${XDGPATH}/${ICONPATH}"
+  cp "$DEFICON" "$SHAREICON"
+  # Remove previous installation with old names
+  if [ -e "${XDGPATH}/applications/metarace" ] ; then
+    rm -r "${XDGPATH}/applications/metarace"
+  fi
 fi
 
-XDGPATH="$HOME/.local/share/applications"
-SPATH="$XDGPATH/metarace"
-mkdir -p "$SPATH"
+# Ensure a temporary location exists to write new files
+if [ -e "${TEMPPATH}" ] ; then
+  echo_continue "XDG path exists"
+else
+  echo_continue "Creating XDG path in home dir"
+  mkdir -p "${TEMPPATH}"
+fi
 
 # Roadmeet
-TMPF=$(mktemp -p "$SPATH")
+TMPF=$(mktemp -p "${TEMPPATH}")
 tee "$TMPF" <<__EOF__ >/dev/null
 [Desktop Entry]
 Name=Roadmeet
 Comment=Timing and results for road cycling meets
 Keywords=cycling;road cycling;results;timing;
 Exec=$VPATH/bin/roadmeet %U
-Icon=$DEFICON
+Icon=$ICONNAME
 Terminal=false
 StartupNotify=true
 Type=Application
@@ -445,18 +513,18 @@ Exec=$VPATH/bin/roadmeet --create
 Name=Edit Defaults
 Exec=$VPATH/bin/roadmeet --edit-default
 __EOF__
-mv "$TMPF" "$SPATH/roadmeet.desktop"
-echo_continue "Added roadmeet.desktop"
+mv "$TMPF" "${TEMPPATH}/${XDG_APP_ROADMEET}.desktop"
+echo_continue "Added ${XDG_APP_ROADMEET}"
 
 # Trackmeet
-TMPF=$(mktemp -p "$SPATH")
+TMPF=$(mktemp -p "${TEMPPATH}")
 tee "$TMPF" <<__EOF__ >/dev/null
 [Desktop Entry]
 Name=Trackmeet
 Comment=Timing and results for track cycling meets
 Keywords=cycling;track cycling;velodrome;results;timing;
 Exec=$VPATH/bin/trackmeet %U
-Icon=$DEFICON
+Icon=$ICONNAME
 Terminal=false
 StartupNotify=true
 Type=Application
@@ -472,50 +540,50 @@ Exec=$VPATH/bin/trackmeet --create
 Name=Edit Defaults
 Exec=$VPATH/bin/trackmeet --edit-default
 __EOF__
-mv "$TMPF" "$SPATH/trackmeet.desktop"
-echo_continue "Added trackmeet.desktop"
+mv "$TMPF" "${TEMPPATH}/${XDG_APP_TRACKMEET}.desktop"
+echo_continue "Added ${XDG_APP_TRACKMEET}"
 
 # TT Start
-TMPF=$(mktemp -p "$SPATH")
+TMPF=$(mktemp -p "${TEMPPATH}")
 tee "$TMPF" <<__EOF__ >/dev/null
 [Desktop Entry]
 Type=Application
 Exec=$VPATH/bin/ttstart
-Icon=$DEFICON
+Icon=$ICONNAME
 Terminal=false
 StartupNotify=true
 Name=TT Start
 Comment=Time trial start console
 Categories=Utility;GTK;Sports;
 __EOF__
-mv "$TMPF" "$SPATH/ttstart.desktop"
-echo_continue "Added ttstart.desktop"
+mv "$TMPF" "${TEMPPATH}/${XDG_APP_TTSTART}.desktop"
+echo_continue "Added ${XDG_APP_TTSTART}"
 
 # Tagreg
-TMPF=$(mktemp -p "$SPATH")
+TMPF=$(mktemp -p "${TEMPPATH}")
 tee "$TMPF" <<__EOF__ >/dev/null
 [Desktop Entry]
 Type=Application
 Exec=$VPATH/bin/tagreg
-Icon=$DEFICON
+Icon=$ICONNAME
 Terminal=false
 StartupNotify=true
 Name=Transponder Registration
 Comment=Transponder registration tool
 Categories=Utility;GTK;Sports;
 __EOF__
-mv "$TMPF" "$SPATH/tagreg.desktop"
-echo_continue "Added tagreg.desktop"
+mv "$TMPF" "${TEMPPATH}/${XDG_APP_TAGREG}.desktop"
+echo_continue "Added ${XDG_APP_TAGREG}"
 
 # WSL wants: /usr/share/applications
 if [ -n "$WSL" ] ; then
-  sudo chown -R root:root "$SPATH"
-  sudo chmod -R 0644 "$SPATH"
-  for file in "$SPATH"/* ; do
-      sudo mv "$file" "/usr/share/applications"
+  sudo chown -R root:root "${TEMPPATH}"
+  sudo chmod -R 0644 "${TEMPPATH}"
+  for file in "${TEMPPATH}"/* ; do
+      sudo mv "$file" "${XDGPATH}/applications"
   done
-  echo_continue "move desktop files to /usr/share/applications"
-  sudo rmdir "$SPATH"
+  echo_continue "move desktop files to ${XDGPATH}"
+  sudo rmdir "${TEMPPATH}"
   if check_command update-desktop-database ; then
     sudo update-desktop-database -q
     echo_continue "Updated MIME types cache"
@@ -524,7 +592,7 @@ if [ -n "$WSL" ] ; then
   fi
 else
   if check_command update-desktop-database ; then
-    update-desktop-database -q "$XDGPATH"
+    update-desktop-database -q "${XDGPATH}/applications"
     echo_continue "Updated MIME types cache"
   else
     echo_continue "MIME types cache not updated"
