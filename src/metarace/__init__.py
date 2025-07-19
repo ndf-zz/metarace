@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """A collection of tools for preparing cycle race results."""
+__version__ = '2.1.14a2'
 
 import os
 import logging
@@ -22,12 +23,13 @@ if flockstyle is None:
     import msvcrt
     flockstyle = 'deviant'
 
-VERSION = '2.1.14'
+VERSION = __version__
 DATA_PATH = os.path.realpath(
     os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
 RESOURCE_PKG = 'metarace.data'
 LOGO = 'metarace_icon.svg'
+ICON = 'org.6_v.metarace'
 SYSCONF = 'metarace.json'
 PDF_TEMPLATE = 'pdf_template.json'
 PROGRAM_TEMPLATE = 'program_template.json'
