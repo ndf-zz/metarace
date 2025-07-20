@@ -71,7 +71,7 @@ sysup_apt() {
   echo_continue "Done"
 
   echo "Install Required Packages:"
-  sudo apt-get install -y python3-venv python3-pip python3-cairo python3-gi python3-gi-cairo python3-serial python3-paho-mqtt python3-dateutil python3-xlwt gir1.2-gtk-3.0 gir1.2-rsvg-2.0 gir1.2-pango-1.0 gir1.2-gstreamer-1.0 gstreamer1.0-alsa
+  sudo apt-get install -y python3-venv python3-pip python3-cairo python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-rsvg-2.0 gir1.2-pango-1.0 gir1.2-gstreamer-1.0 gstreamer1.0-alsa desktop-file-utils
   echo_continue "Done"
 
   if check_yesno "Install optional fonts, evince, rsync and MQTT broker?" ; then
@@ -89,7 +89,7 @@ sysup_apt() {
 
 sysup_dnf() {
   echo "Install Required Packages:"
-  sudo dnf -q -y install gtk3 gobject-introspection cairo-gobject python3-pip python3-cairo python3-pyserial python3-paho-mqtt python3-dateutil python3-xlwt
+  sudo dnf -q -y install gtk3 gobject-introspection cairo-gobject python3-pip python3-cairo
   echo_continue "Done"
 
   if check_yesno "Install optional fonts, evince, rsync and MQTT broker?" ; then
@@ -117,7 +117,7 @@ sysup_pacman() {
 
 sysup_apk() {
   echo "Install Required Packages:"
-  sudo apk add py3-pip py3-pyserial py3-dateutil py3-paho-mqtt py3-gobject3 py3-cairo 
+  sudo apk add py3-pip py3-gobject3 py3-cairo
   echo_continue "Done"
 
   if check_yesno "Install optional fonts, evince, rsync and MQTT broker?" ; then
@@ -133,7 +133,7 @@ sysup_apk() {
 
 sysup_emerge() {
   echo "Install Packages:"
-  sudo emerge --ask -n dev-libs/gobject-introspection dev-python/pygobject dev-python/python-dateutil dev-python/xlwt dev-python/pyserial dev-python/paho-mqtt media-fonts/tex-gyre media-fonts/noto app-text/evince app-misc/mosquitto net-misc/rsync
+  sudo emerge --ask -n dev-libs/gobject-introspection dev-python/pygobject media-fonts/tex-gyre media-fonts/noto app-text/evince app-misc/mosquitto net-misc/rsync
   echo_continue "Done"
 }
 
