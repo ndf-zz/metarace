@@ -12,6 +12,29 @@
 
 ### Security
 
+## [2.1.14] - 2025-07-20
+
+### Added
+
+   - override column alignment option on html table export
+   - comet weather station value reader
+   - include debug in report ouput
+
+### Changed
+
+   - add gstreamer-1 to installed debian packaged for ttstart
+   - add user to lpadmin group for debian-like installs
+   - use org.6_v.APP style application names for desktop files
+   - adjust debian system packages installed with shell script
+
+### Deprecated
+
+   - use __version__ in place of VERSION
+
+### Fixed
+
+   - update links to install scripts for default branch main
+
 ## [2.1.13] - 2025-07-12
 
 ### Fixed
