@@ -2,25 +2,35 @@
 """Telegraph
 
  Telegraph is a thin wrapper over paho.mqtt.client, which provides
- a MQTT pub/sub interface, altered for use with metarace applications.
+ a MQTT pub/sub interface altered for use with metarace applications.
 
  Example:
 
 	import metarace
-	from metarace import telegraph
-	metarace.init()
+	from metarace.telegraph import telegraph, from_json
+	from time import sleep, time
+	
+	metarace.init()  # load shared configuration
 	
 	def messagecb(topic, message):
-	    obj = telegraph.from_json(message)
-	    ...
+	    obj = from_json(message)
+	    print(repr(obj))
 	
-	t = telegraph.telegraph()
-	t.set_will_json({'example':[]}, 'thetopic')
+	t = telegraph()
+	t.set_will_json(obj={'example':[time(), None, None]},
+	                topic='topic', qos=2, retain=True)
 	t.subscribe('thetopic')
 	t.setcb(messagecb)
 	t.start()
-	...
-	t.publish_json({'example':[1,2,3]}, 'thetopic')
+	while not t.connected():  # wait for connection to broker
+	    sleep(0)
+	# ...
+	t.publish_json(obj={'example':[time(),2,3]},
+	               topic='topic', qos=2, retain=True)
+	# ...
+	t.flush()  # wait for any queued messages to be sent
+	t.exit()  # request shutdown
+	t.join()  # wait for clean shutdown
 
  Message callback functions receive two named parameters 'topic' and
  'message' which are both unicode strings. The message callback is run in
@@ -57,6 +67,7 @@ from uuid import uuid4
 import metarace
 
 _QUEUE_TIMEOUT = 2
+_FLUSH_TIMEOUT = 30  # Maximum time to wait for unsent messages
 
 # module logger
 _log = logging.getLogger('telegraph')
@@ -177,10 +188,9 @@ class telegraph(threading.Thread):
         """Remove all topics from the set of subscriptions."""
         topics = self.__subscriptions
         self.__subscriptions = {}
-        for topic in topics:
-            if self.__connected:
+        if self.__connected:
+            for topic in topics:
                 self.__queue.put_nowait(('UNSUBSCRIBE', topic))
-        topics = None
 
     def setcb(self, func=None):
         """Set the message receive callback function."""
@@ -197,10 +207,17 @@ class telegraph(threading.Thread):
             self.__deftopic = None
         _log.debug('Default publish topic set to: %r', self.__deftopic)
 
-    def set_will_json(self, obj=None, topic=None, qos=None, retain=False):
+    def set_will_json(self,
+                      obj=None,
+                      topic=None,
+                      qos=None,
+                      retain=False,
+                      cls=None,
+                      indent=None):
         """Pack the provided object into JSON and set as will."""
         try:
-            self.set_will(json.dumps(obj), topic, qos, retain)
+            self.set_will(json.dumps(obj, cls=cls, indent=indent), topic, qos,
+                          retain)
         except Exception as e:
             _log.error('Error setting will object %r: %s', obj, e)
 
@@ -226,10 +243,11 @@ class telegraph(threading.Thread):
         """Return true if connected."""
         return self.__connected
 
-    def unsent(self):
-        """Return number of queued messages remaining unsent."""
-        # _log.debug('Unsent messages: %r', self.__unsent)
-        return len(self.__unsent)
+    def flush(self):
+        """Convenience function for clearing unsent messages"""
+        self.__queue.put(('PUBLISH', ' ', '', 2, False, _FLUSH_TIMEOUT))
+        self.__queue.put(('FLUSH', None))
+        self.wait()
 
     def reconnect(self):
         """Request re-connection to broker."""
@@ -291,8 +309,6 @@ class telegraph(threading.Thread):
         self.__cid = None
         self.__resub = True
         self.__doreconnect = False
-        self.__unsent = set()
-        self.__publishLock = threading.Lock()
 
         metarace.sysconf.add_section('telegraph', _CONFIG_SCHEMA)
         self.__host = metarace.sysconf.get_value('telegraph', 'host')
@@ -342,7 +358,6 @@ class telegraph(threading.Thread):
         self.__client.on_message = self.__on_message
         self.__client.on_connect = self.__on_connect
         self.__client.on_disconnect = self.__on_disconnect
-        self.__client.on_publish = self.__on_publish
         if self.__host:
             self.__doreconnect = True
         self.__running = False
@@ -396,14 +411,6 @@ class telegraph(threading.Thread):
         #_log.debug('Message from %r: %r', client._client_id, message)
         self.__cb(topic=message.topic, message=message.payload.decode('utf-8'))
 
-    def __on_publish(self, client, userdata, mid, reason_code, properties):
-        with self.__publishLock:
-            try:
-                self.__unsent.remove(mid)
-            except Exception as e:
-                _log.warning('%s removing published MID=%d: %s',
-                             e.__class__.__name__, mid, e)
-
     def run(self):
         """Called via threading.Thread.start()."""
         self.__running = True
@@ -434,13 +441,7 @@ class telegraph(threading.Thread):
                             if m[2] is not None:
                                 msg = m[2].encode('utf-8')
 
-                            with self.__publishLock:
-                                mi = self.__client.publish(
-                                    ntopic, msg, nqos, m[4])
-
-                                # QoS == 0 when not connected are discarded
-                                if nqos != 0 or mi.rc == 0:
-                                    self.__unsent.add(mi.mid)
+                            mi = self.__client.publish(ntopic, msg, nqos, m[4])
 
                             # Wait for publish if timeout provided
                             if m[5] is not None and m[5] > 0:
