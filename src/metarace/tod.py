@@ -426,18 +426,32 @@ class tod:
         """Return time string of tod as string, without padding."""
         return _dec2str(self.timeval, places, zeros, hoursep, minsep)
 
+    def speed(self, dist=200, minspeed=20.0, maxspeed=85.0):
+        """Return average speed estimate as float for provided distance."""
+        ret = None
+        try:
+            avg = 3.6 * float(dist) / float(self.timeval)
+            if avg > minspeed and avg < maxspeed:
+                ret = avg
+        except Exception:
+            pass
+        return ret
+
     def speedstr(self, dist=200):
         """Return average speed estimate string for the provided distance."""
-        if self.timeval == 0:
-            return '---.-\u2006km/h'
-        return '{0:5.1f}\u2006km/h'.format(3.6 * float(dist) /
-                                           float(self.timeval))
+        avg = self.speed(dist)
+        if avg is not None:
+            return '{0:4.1f}\u2006km/h'.format(avg)
+        else:
+            return '--.-\u2006km/h'
 
     def rawspeed(self, dist=200):
         """Return an average speed estimate string without unit."""
-        if self.timeval == 0:
+        avg = self.speed(dist)
+        if avg is not None:
+            return '{0:0.1f}'.format(avg)
+        else:
             return '-.-'
-        return '{0:0.1f}'.format(3.6 * float(dist) / float(self.timeval))
 
     def __lt__(self, other):
         if isinstance(other, tod):
