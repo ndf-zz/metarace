@@ -2277,7 +2277,7 @@ class event_index:
                 #hdr = htlib.thead(vec2htmllinkhead(self.colheader))
             rows = []
             for r in self.lines:
-                nv = r[0:7]
+                nv = r[0:8]
                 if len(nv) == 2:
                     nv = [nv[0], None, nv[1]]
                 rows.append(nv)
