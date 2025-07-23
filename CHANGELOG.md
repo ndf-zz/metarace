@@ -12,6 +12,27 @@
 
 ### Security
 
+## [2.1.15]
+
+### Added
+
+   - add flush method to replace unsent function in telegraph
+   - add speed method to tod with min and maxspeed guards
+
+### Changed
+
+   - limit rawspeed and speedstr values between 20 and 80 km/h
+   - map STA trigger on RC decoder to C0, BOX to C1
+
+### Removed
+
+   - remove problematic unsent and on_publish methods from telegraph
+
+### Fixed
+
+   - include cls and indent options in set_will_json to match publish_json
+   - restore event index workaround for single 'startlist' button
+
 ## [2.1.14] - 2025-07-20
 
 ### Added
