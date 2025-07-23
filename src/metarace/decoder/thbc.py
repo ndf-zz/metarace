@@ -648,11 +648,11 @@ class thbc(decoder):
                         pvec = data.decode(THBC_ENCODING).split()
                         istr = pvec[3] + ':' + pvec[5]
                         rstr = pvec[1].lstrip('0')
-                        cstr = 'C1'
+                        cstr = 'C0'
                         if pvec[0] == 'BOX':
-                            cstr = 'C2'
+                            cstr = 'C1'
                         elif pvec[0] == 'MAN':
-                            cstr = 'C0'
+                            cstr = 'C2'
                         if pvec[5] == '2':  # LOW BATTERY ALERT
                             _log.warning('Low battery on %r', rstr)
                         elif pvec[5] == '3':  # BATTERY FAILURE ALERT
