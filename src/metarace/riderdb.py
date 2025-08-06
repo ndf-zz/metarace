@@ -802,6 +802,21 @@ class rider():
             ret = self.__strcache[nkey]
         return ret
 
+    def regname(self):
+        """Return a LAST, First style name"""
+        ret = None
+        nkey = ('rn', )
+        if nkey not in self.__strcache:
+            if self['series'].startswith('t'):
+                ret = self['first']
+            else:
+                ret = ', '.join((self['last'].strip().upper(),
+                                 self['first'].strip().title()))
+            self.__strcache[nkey] = ret
+        else:
+            ret = self.__strcache[nkey]
+        return ret
+
     def fitname(self, width, trunc=False):
         """Return a truncated name string of width or less graphemes"""
         ret = None
