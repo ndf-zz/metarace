@@ -32,7 +32,7 @@ _LOGLEVEL_TEMP = 16  # ephemeral status line logs
 logging.addLevelName(_LOGLEVEL_TEMP, 'INFO')
 
 # JSON report API versioning
-APIVERSION = '1.3.0'
+APIVERSION = '1.3.1'
 
 # Spreadsheet style handles
 XLSX_STYLE = {
@@ -338,11 +338,12 @@ def vec2htmllinkrow(vec=[], xtn='', rep=None):
     return htlib.tr(cols)
 
 
-def vec2htmlrow(vec=[], maxcol=7, colspec=('l', 'r', 'l', 'l', 'r')):
+def vec2htmlrow(vec=[], maxcol=7, colspec=('l', 'r', 'l', 'i', 'r')):
     rowmap = vecmapstr(vec, maxcol)
     defspec = colspec[-1]
     lc = {}
     rc = {'class': 'text-end'}
+    ic = {'class': 'fst-italic'}
     cols = []
     for c in range(0, maxcol):
         clx = lc
@@ -351,6 +352,8 @@ def vec2htmlrow(vec=[], maxcol=7, colspec=('l', 'r', 'l', 'l', 'r')):
             slx = colspec[c]
         if slx == 'r':
             clx = rc
+        elif slx == 'i':
+            clx = ic
         cols.append(htlib.td(rowmap[c], clx))
     return htlib.tr(cols)
 
@@ -360,6 +363,7 @@ def vec2htmlhead(vec=[], maxcol=7, colspec=('l', 'r', 'l', 'l', 'r')):
     defspec = colspec[-1]
     lc = {}
     rc = {'class': 'text-end'}
+    ic = {'class': 'fst-italic'}
     cols = []
     for c in range(0, maxcol):
         clx = lc
@@ -368,6 +372,8 @@ def vec2htmlhead(vec=[], maxcol=7, colspec=('l', 'r', 'l', 'l', 'r')):
             slx = colspec[c]
         if slx == 'r':
             clx = rc
+        elif slx == 'i':
+            clx = ic
         cols.append(htlib.th(rowmap[c], clx))
     return htlib.tr(cols)
 
@@ -1065,7 +1071,7 @@ class twocol_startlist:
                 worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
                 worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
                 worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
-                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['subtitle'])
                 worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
                 worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
                 worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
@@ -1421,8 +1427,6 @@ class sprintfinal:
                     report.text_cent(h2t, hof, i[1][5], report.fonts['body'])
                 if i[1][6]:
                     report.text_cent(h3t, hof, i[1][6], report.fonts['body'])
-                #if len(i[2]) > 7 and i[1][7]:
-                #report.text_left(hl, hof, i[1][7], report.fonts[u'body'])
                 hof += report.line_height
 
                 # draw all the "b" rider info
@@ -1433,8 +1437,6 @@ class sprintfinal:
                     report.text_cent(h2t, hof, i[2][5], report.fonts['body'])
                 if i[2][6]:
                     report.text_cent(h3t, hof, i[2][6], report.fonts['body'])
-                #if len(i[2]) > 7 and i[2][7]:
-                #report.text_left(hl, hof, i[2][7], report.fonts[u'body'])
                 hof += report.line_height
 
                 # cross-out heat three if not required
@@ -1506,7 +1508,7 @@ class sprintfinal:
             rows.append([None, None, None, 'Heat 1', 'Heat 2', 'Heat 3'])
             for c in self.lines:  # each row is a pair/contest
                 # 'a' rider
-                #rows.append([None,None,u'Heat 1',u'Heat 2',u'Heat 3'])
+                #rows.append([None,None,'Heat 1','Heat 2','Heat 3'])
                 av = [c[1][j] for j in [0, 1, 2, 4, 5, 6]]  # skip info col
                 av[0] = c[0]
                 rows.append(av)
@@ -2215,11 +2217,8 @@ class event_index:
                 report.text_left(report.col_oft_units, report.h, ust,
                                  report.fonts['body'])
             report.output_column(rows, 0, 'l', report.col_oft_rank)
-            #report.output_column(rows, 1, u'r', report.col_oft_no)
             new_h = report.output_column(rows, 2, 'l', report.col_oft_name)
             report.output_column(rows, 3, 'l', report.col_oft_cat)
-            #report.output_column(rows, 4, u'r', report.col_oft_time)
-            #report.output_column(rows, 5, u'r', report.col_oft_xtra)
             report.h += new_h
         report.c.restore()
 
@@ -2311,6 +2310,7 @@ class laptimes:
         self.finish = None
         self.laptimes = None
         self.precision = 0
+        self.showelapsed = False
 
     def serialize(self, rep, sectionid=None):
         """Return a serializable map for JSON export."""
@@ -2327,6 +2327,7 @@ class laptimes:
         ret['height'] = self.get_h(rep)
         ret['count'] = self.lcount
         ret['precision'] = self.precision
+        ret['showelapsed'] = self.showelapsed
         ret['start'] = self.start
         ret['finish'] = self.finish
         return ret
@@ -2368,6 +2369,7 @@ class laptimes:
         chk.start = self.start
         chk.finish = self.finish
         chk.precision = self.precision
+        chk.showelapsed = self.showelapsed
         chk.laptimes = self.laptimes
         if len(self.lines) <= 4:  # special case, keep four or less together
             chk.lines = self.lines[0:]
@@ -2390,6 +2392,7 @@ class laptimes:
         ret.start = self.start
         ret.finish = self.finish
         ret.precision = self.precision
+        ret.showelapsed = self.showelapsed
         ret.laptimes = self.laptimes
         rem.heading = self.heading
         rem.subheading = self.subheading
@@ -2399,6 +2402,7 @@ class laptimes:
         rem.start = self.start
         rem.finish = self.finish
         rem.precision = self.precision
+        rem.showelapsed = self.showelapsed
         rem.laptimes = self.laptimes
         if rem.heading is not None:
             if rem.heading.rfind('(continued)') < 0:
@@ -2437,6 +2441,11 @@ class laptimes:
         cnt = 0
 
         if len(self.lines) > 0:
+            #if self.showelapsed
+            #report.h += report.judges_row(
+            #report.h, (self.colheader[0], self.colheader[1],
+            #self.colheader[2], 'elapsed', 'lap', 'avg', 'best', 'cat'))
+            #else:
             report.h += report.judges_row(
                 report.h, (self.colheader[0], self.colheader[1],
                            self.colheader[2], 'lap', 'avg', 'best', 'cat'))
@@ -2547,7 +2556,7 @@ class laptimes:
             for r in self.lines:
                 worksheet.write(row, 1, r['no'], XLSX_STYLE['right'])
                 worksheet.write(row, 2, r['name'], XLSX_STYLE['left'])
-                worksheet.write(row, 3, r['cat'], XLSX_STYLE['left'])
+                worksheet.write(row, 3, r['cat'], XLSX_STYLE['subtitle'])
                 worksheet.write(row, 4, r['count'], XLSX_STYLE['right'])
                 if r['average'] is not None:
                     worksheet.write(row, 5, r['average'].timeval / 86400,
@@ -2600,7 +2609,7 @@ class laptimes:
                 if r['place'] and not r['place'].isdigit():
                     nr.append(r['place'])
                 trows.append(
-                    vec2htmlrow(nr, maxcol=hlen, colspec=('r', 'l', 'l', 'r')))
+                    vec2htmlrow(nr, maxcol=hlen, colspec=('r', 'l', 'i', 'r')))
             f.write(
                 htlib.div(
                     htlib.table((hdr, htlib.tbody(trows)),
@@ -3060,13 +3069,7 @@ class teampage:
                     report.text_para(left + tnoft, pageoft, tname,
                                      report.fonts['section'], tnwidth,
                                      Pango.Alignment.CENTER)
-                #if tcode:
-                #tco = pageoft
-                #if tnh > localline:
-                #tco += 0.5 * (tnh - localline)
-                #report.text_right(left + tcw - mm2pt(1.0), tco, tcode, report.fonts[u'section'])
                 pageoft += self.scale * tnh
-                #pageoft += 0.9 * tnh
 
                 # optionally draw ds
                 if ds is not None:
@@ -3489,11 +3492,6 @@ class threecol_section:
                 report.h += report.standard_3row(report.h, self.colheader,
                                                  self.colheader,
                                                  self.colheader)
-            #sh = report.h
-            #if self.units:	# NO UNITS?
-            #report.text_left(report.col_oft_units, report.h, self.units,
-            #report.fonts[u'body'])
-        #    lcount
             lcount = int(math.ceil(self.lcount / 3.0))
             for l in range(0, lcount):
                 r1 = self.lines[l]
@@ -3740,7 +3738,7 @@ class section:
             for r in self.lines:
                 if len(r) > 5:
                     if r[1] is not None and r[1].lower() == 'pilot':
-                        pass  #r[1] = u''
+                        pass
                     elif not (r[0] or r[1] or r[2] or r[3]):
                         cnt = 1  # empty row?
                     else:
@@ -3805,7 +3803,7 @@ class section:
                 worksheet.write(row, 0, l[0], XLSX_STYLE['left'])
                 worksheet.write(row, 1, l[1], XLSX_STYLE['right'])
                 worksheet.write(row, 2, l[2], XLSX_STYLE['left'])
-                worksheet.write(row, 3, l[3], XLSX_STYLE['left'])
+                worksheet.write(row, 3, l[3], XLSX_STYLE['subtitle'])
                 worksheet.write(row, 4, l[4], XLSX_STYLE['right'])
                 worksheet.write(row, 5, l[5], XLSX_STYLE['right'])
                 worksheet.write(row, 6, l[6], XLSX_STYLE['left'])
@@ -4276,7 +4274,7 @@ class report:
         self.fonts = {}
         self.fonts['body'] = Pango.FontDescription(BODYFONT)
         self.fonts['bodysmall'] = Pango.FontDescription(BODYSMALL)
-        self.fonts['bodyoblique'] = Pango.FontDescription(BODYFONT)
+        self.fonts['bodyoblique'] = Pango.FontDescription(BODYOBLIQUE)
         self.fonts['bodybold'] = Pango.FontDescription(BODYBOLDFONT)
         self.fonts['section'] = Pango.FontDescription(SECTIONFONT)
         self.fonts['subhead'] = Pango.FontDescription(SUBHEADFONT)
@@ -4816,7 +4814,7 @@ class report:
                 brand = htlib.a('', {'href': '#', 'class': 'navbar-brand'})
             self.navbar = htlib.header(
                 htlib.nav((brand, htlib.p(navbar, {'class': 'nav-item mb-0'})),
-                          {'class': u'container'}),
+                          {'class': 'container'}),
                 {
                     'class':
                     'navbar sticky-top navbar-expand-sm navbar-dark bg-dark mb-4'
@@ -5256,7 +5254,7 @@ class report:
             self.text_right(self.col_oft_no, h, omap[1], self.fonts['body'])
             strikeright = self.col_oft_rank
         if omap[2]:
-            maxnamew = (self.col_oft_cat - mm2pt(35.0)) - self.col_oft_name
+            maxnamew = (self.col_oft_cat - mm2pt(37.0)) - self.col_oft_name
             (tw, th) = self.fit_text(self.col_oft_name,
                                      h,
                                      omap[2],
@@ -5264,12 +5262,12 @@ class report:
                                      font=self.fonts['body'])
             strikeright = self.col_oft_name + tw
         if len(rvec) > 10 and rvec[10]:
-            catw = mm2pt(8.0)
-            (tw, th) = self.fit_text(self.col_oft_cat - mm2pt(34.0),
+            catw = mm2pt(10.0)
+            (tw, th) = self.fit_text(self.col_oft_cat - mm2pt(36.0),
                                      h,
                                      rvec[10],
                                      catw,
-                                     font=self.fonts['body'])
+                                     font=self.fonts['bodyoblique'])
             strikeright = self.col_oft_cat
         if omap[3]:
             (tw, th) = self.text_left(self.col_oft_cat - mm2pt(25.0), h,
@@ -5408,7 +5406,7 @@ class report:
             strikeright = self.col_oft_name + tw
         if omap[3]:
             (tw, th) = self.text_left(self.col_oft_cat, h, omap[3],
-                                      self.fonts['body'])
+                                      self.fonts['bodyoblique'])
             strikeright = self.col_oft_cat + tw
         if omap[4]:
             self.text_right(self.col_oft_time, h, omap[4], self.fonts['body'])
@@ -5448,12 +5446,10 @@ class report:
                                      omap[2],
                                      maxnamew,
                                      font=self.fonts['body'])
-            #(tw,th) = self.text_left(self.col_oft_name+mm2pt(20), h,
-            #omap[2], self.fonts[u'body'])
             strikeright = self.col_oft_name + mm2pt(20) + tw
         if omap[3]:
             (tw, th) = self.text_left(self.col_oft_cat + mm2pt(20), h, omap[3],
-                                      self.fonts['body'])
+                                      self.fonts['bodyoblique'])
             strikeright = self.col_oft_cat + mm2pt(20) + tw
         if omap[5]:
             self.text_right(self.col_oft_xtra, h, omap[5], self.fonts['body'])
@@ -5584,7 +5580,6 @@ class report:
             self.text_right(w + mm2pt(8.0), h, rvec[1], self.fonts['body'])
             doline = False
         if len(rvec) > 2 and rvec[2]:  # rider name
-            #self.text_left(w+mm2pt(11.0), h, rvec[2], self.fonts[u'body'])
             self.fit_text(w + mm2pt(9.0),
                           h,
                           rvec[2],
