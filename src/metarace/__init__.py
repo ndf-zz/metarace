@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 """A collection of tools for preparing cycle race results."""
-__version__ = '2.1.16a1'
+__version__ = '2.1.16'
 
 import os
 import logging
@@ -146,7 +146,7 @@ def default_file(filename=''):
 
     """
     basefile = os.path.basename(filename)
-    if basefile in ['..', '.', '', None]:
+    if basefile in ('..', '.', '', None):
         _log.debug('Invalid filename %r ignored', filename)
         return None
     ret = basefile
@@ -178,7 +178,7 @@ def resource_text(name='', encoding='utf-8'):
 
     """
     basefile = os.path.basename(name)
-    if basefile in ['..', '.', '', None]:
+    if basefile in ('..', '.', '', None):
         raise FileNotFoundError('Invalid resource name: ' + repr(name))
     t = files(RESOURCE_PKG).joinpath(basefile)
     if t is not None and t.is_file():
@@ -204,7 +204,7 @@ def resource_file(name=''):
 
     """
     basefile = os.path.basename(name)
-    if basefile in ['..', '.', '', None]:
+    if basefile in ('..', '.', '', None):
         raise FileNotFoundError('Invalid resource name: ' + repr(name))
     t = files(RESOURCE_PKG).joinpath(basefile)
     if t is not None and t.is_file():

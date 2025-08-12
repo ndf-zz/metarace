@@ -12,7 +12,27 @@
 
 ### Security
 
-## [2.1.15]
+## [2.1.16] - 2025-08-12
+
+### Added
+
+   - include link to JSON report source in report body element
+
+### Changed
+
+   - initialise reload icon with ellipsis
+   - increase width of cat column on judge section rows
+
+### Removed
+
+   - remove trace debug lines from report
+
+### Fixed
+
+   - use correct italic style class for report section prize line
+   - use consistent italic style on all report section "info" columns
+
+## [2.1.15] - 2025-07-23
 
 ### Added
 
