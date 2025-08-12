@@ -441,7 +441,8 @@ echo_continue "Updating defaults"
 # add desktop entries
 echo "Desktop Shortcuts:"
 XDGPATH="${HOME}/.local/share"
-ICONPATH="icons/hicolor/scalable/apps"
+ICONBASE="icons/hicolor"
+ICONPATH="${ICONBASE}/scalable/apps"
 ICONNAME="${XDG_APP_METARACE}"
 TEMPPATH="${XDGPATH}/applications"
 
@@ -461,6 +462,20 @@ if [ -n "$WSL" ] ; then
     sudo rm "$SHAREICON"
   fi
   sudo cp "$DEFICON" "$SHAREICON"
+  # WSL also likes PNG icons
+  if check_command convert ; then
+    for sz in 8 16 22 24 32 36 42 48 64 72 96 128 192 256 ; do
+      dstpath="${XDGPATH}/${ICONBASE}/${sz}x${sz}/apps"
+      sudo mkdir -p "$dstpath"
+      dstfile="${dstpath}/${ICONNAME}.png"
+      if [ -e "${dstfile}" ] ; then
+        sudo rm "${dstfile}"
+      fi
+      echo_continue "Writing ${sz}x${sz} PNG to ${XDGPATH}/${ICONBASE}"
+      sudo convert -density 512 -background none "$DEFICON" -resize "${sz}x${sz}" "${dstfile}"
+    done
+  fi
+
   # remove previous desktop files with old names
   for oldname in roadmeet trackmeet tagreg ttstart ; do
     if [ -e "${XDGPATH}/applications/${oldname}.desktop" ] ; then
