@@ -347,26 +347,32 @@ fi
 if [ "$lpgroup" = "unknown" ] ; then
   true
 else
-  if groups | grep -F "$lpgroup" >/dev/null 2>&1 ; then
-    echo "Printer Admin Access:"
-    echo_continue "OK ($lpgroup)"
-  else
-    if check_command sudo ; then
-      if check_yesno "Add $USER to group $lpgroup for serial port access?" ; then
-        if [ "$pkgstyle" = "pkg" ] ; then
-          sudo pw group mod -n "$lpgroup" -m "$USER"
-        else
-          sudo gpasswd -a "$USER" "$lpgroup"
-        fi
-        echo_continue "Done"
-      else
-        echo_continue "Skipped"
-      fi
+  if grep -F "$lpgroup" /etc/group > /dev/null 2>&1 ; then
+    if groups | grep -F "$lpgroup" >/dev/null 2>&1 ; then
+      echo "Printer Admin Access:"
+      echo_continue "OK ($lpgroup)"
     else
-      check_continue "Add user to group $lpgroup to access printers."
+      if check_command sudo ; then
+        if check_yesno "Add $USER to group $lpgroup for printer access?" ; then
+          if [ "$pkgstyle" = "pkg" ] ; then
+            sudo pw group mod -n "$lpgroup" -m "$USER"
+          else
+            sudo gpasswd -a "$USER" "$lpgroup"
+          fi
+          echo_continue "Done"
+        else
+          echo_continue "Skipped"
+        fi
+      else
+        check_continue "Add user to group $lpgroup to access printers."
+      fi
     fi
+  else
+    echo "Printer Admin Access:"
+    echo_continue "Print system not installed"
   fi
 fi
+
 # if tex gyre not packaged, fetch with wget
 if [ "$getfonts" = "yes" ] ; then
   get_fonts
