@@ -14,6 +14,8 @@ DLE = b'\x10'
 DC2 = b'\x12'
 DC3 = b'\x13'
 DC4 = b'\x14'
+SYN = b'\x16'  # DAK only
+ETB = b'\x17'  # DAK only
 US = b'\x1f'
 
 ENCMAP = {
