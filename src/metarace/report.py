@@ -910,6 +910,7 @@ class twocol_startlist:
         self.nobreak = False
         self.even = False
         self.preh = None
+        self.grey = False
         self.h = None
 
     def serialize(self, rep, sectionid=None):
@@ -982,12 +983,14 @@ class twocol_startlist:
                 if ret.footer:
                     ret.footer += ' Continued over\u2026'
                 ret.timestr = self.timestr
+                ret.grey = self.grey
                 ret.lines = self.lines[0:maxlines]
                 rem.heading = self.heading
                 rem.subheading = self.subheading
                 rem.footer = self.footer
                 rem.prizes = self.prizes
                 rem.timestr = self.timestr
+                rem.grey = self.grey
                 if rem.heading:
                     if rem.heading.rfind('(continued)') < 0:
                         rem.heading += ' (continued)'
@@ -1015,17 +1018,26 @@ class twocol_startlist:
         collen = int(math.ceil(0.5 * len(self.lines)))
         if self.even and collen % 2:
             collen += 1  # force an even number of rows in first column.
+        grey = 0
         if len(self.lines) > 0:
+            cnt = 0
             for i in self.lines[0:collen]:
+                if self.grey:
+                    grey = (cnt) % 2
+                    cnt += 1
                 if len(i) > 2:
-                    report.rms_rider(i, colof, hof)
+                    report.rms_rider(i, colof, hof, grey)
                 hof += report.line_height
             hof = report.h
             #colof = report.midpagew-mm2pt(5.0)
             colof = report.midpagew + mm2pt(2.0)
+            cnt = 1
             for i in self.lines[collen:]:
+                if self.grey:
+                    grey = (cnt) % 2
+                    cnt += 1
                 if len(i) > 2:
-                    report.rms_rider(i, colof, hof)
+                    report.rms_rider(i, colof, hof, grey)
                 hof += report.line_height
         report.h += collen * report.line_height
 
@@ -5569,8 +5581,13 @@ class report:
                 self.drawline(w + mgn, h + mgn, w + self.twocol_width - mgn,
                               baseline - mgn)
 
-    def rms_rider(self, rvec, w, h):
+    def rms_rider(self, rvec, w, h, zebra=None, strikethrough=False):
         baseline = self.get_baseline(h)
+        colw = self.midpagew - self.body_left - mm2pt(2.0)
+        if zebra:
+            self.drawbox(w - mm2pt(1), h, w + colw, h + self.line_height, 0.07)
+        if len(rvec) > 6 and rvec[6]:
+            strikethrough = True
         if len(rvec) > 0 and rvec[0] is not None:
             self.text_left(w, h, rvec[0], self.fonts['body'])
         else:
@@ -5584,13 +5601,19 @@ class report:
                           h,
                           rvec[2],
                           mm2pt(50),
-                          font=self.fonts['body'])
+                          font=self.fonts['body'],
+                          strikethrough=strikethrough)
             doline = False
         if doline:
             self.drawline(w + mm2pt(8.0), baseline, w + mm2pt(60), baseline)
         if len(rvec) > 3 and rvec[3]:  # cat/hcap/draw/etc
-            self.text_left(w + mm2pt(59.0), h, rvec[3],
-                           self.fonts['bodyoblique'])
+            infooft = w + mm2pt(59.0)
+            self.fit_text(infooft,
+                          h,
+                          rvec[3],
+                          colw - infooft,
+                          font=self.fonts['bodyoblique'],
+                          strikethrough=strikethrough)
 
     def drawbox(self, x1, y1, x2, y2, alpha=0.1):
         self.c.save()
