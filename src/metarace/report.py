@@ -5611,7 +5611,7 @@ class report:
             self.fit_text(infooft,
                           h,
                           rvec[3],
-                          colw - infooft,
+                          max(colw - infooft, mm2pt(5.0)),
                           font=self.fonts['bodyoblique'],
                           strikethrough=strikethrough)
 
