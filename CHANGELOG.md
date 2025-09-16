@@ -12,6 +12,19 @@
 
 ### Security
 
+## [2.1.17] - 2025-09-16
+
+### Added
+
+   - add zebra lines to rmsrider report section
+   - add Daktronic/Venus symbols to unt4 for track sender
+
+### Changed
+
+   - allow extra space for info col on a5 program reports
+   - update installer to skip adding print admin group when not present
+     on system
+
 ## [2.1.16] - 2025-08-12
 
 ### Added
