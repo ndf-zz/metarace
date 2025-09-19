@@ -24,6 +24,7 @@ _RIDER_COLUMNS = {
     'last': 'Last Name',
     'org': 'Organisation',
     'cat': 'Categories',
+    'class': 'Class Label',
     'nat': 'Nationality',
     'ref': 'Transponder',
     'uci': 'UCI ID',
@@ -60,6 +61,9 @@ _ALT_COLUMNS = {
     'cats': 'cat',
     'cate': 'cat',
     'targ': 'cat',
+    'clas': 'class',
+    'cls': 'class',
+    'labe': 'class',
     'lice': 'uci',
     'star': 'uci',
     'ucii': 'uci',
@@ -157,6 +161,14 @@ _RIDER_SCHEMA = {
         'attr': 'cat',
         'defer': True,
         'hint': 'Space separated list of categories',
+        'default': '',
+    },
+    'class': {
+        'prompt': 'Class Label:',
+        'attr': 'class',
+        'defer': True,
+        'control': 'short',
+        'hint': 'Optional cat or sport class label to be shown on reports',
         'default': '',
     },
     'nat': {
@@ -483,8 +495,9 @@ _TEAM_SCHEMA = {
 _RESERVED_SERIES = ('spare', 'cat', 'team', 'ds', 'series')
 
 # legacy csv file ordering
-_DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'cat', 'series', 'ref',
-                         'uci', 'dob', 'nat', 'sex', 'note', 'seed', 'data')
+_DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'cat', 'class',
+                         'series', 'ref', 'uci', 'dob', 'nat', 'sex',
+                         'note', 'seed', 'data')
 
 
 def primary_cat(catstr=''):
