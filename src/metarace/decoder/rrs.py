@@ -25,7 +25,7 @@ _RRS_STATUSLEN = 25
 _RRS_LOWBATT = 2.3
 _RRS_SYNFMT = 'SETTIME;{:04d}-{:02d}-{:02d};{:02d}:{:02d}:{:02d}.{:03d}'
 _RRS_EOL = '\r\n'
-_RRS_MARKER = '99999'
+_RRS_MARKER = '99999'  # default trigger marker
 _RRS_ENCODING = 'iso8859-1'
 _RRS_IOTIMEOUT = 1.0
 _RRS_PASSIVEID = '1'
@@ -46,14 +46,21 @@ _CONFIG_SCHEMA = {
         'prompt': 'Race Result System/Active Extension',
         'control': 'section'
     },
+    'trigno': {
+        'prompt': 'Trigger ID:',
+        'attr': 'trigno',
+        'control': 'short',
+        'default': _RRS_MARKER,
+        'hint': 'ID assigned to trigger passings in decoder',
+    },
     'allowstored': {
         'type': 'bool',
         'attr': 'allowstored',
         'subtext': 'Report stored passings?',
-        'prompt': 'Allow Stored:',
-        'hint': 'Stored passings will be reported as normal passings',
+        'prompt': 'Stored:',
+        'hint': 'Stored active passings will be reported as normal passings',
         'control': 'check',
-        'default': True,
+        'default': False,
     },
     'passiveloop': {
         'type': 'chan',
@@ -88,7 +95,8 @@ class rrs(decoder):
         self._dorefetch = True
         self._fetchpending = False
         self._pending_command = None
-        self._allowstored = True
+        self._allowstored = False
+        self._trigno = _RRS_MARKER
         self._passiveloop = 1
         self._curport = None
 
@@ -242,7 +250,7 @@ class rrs(decoder):
                 activestore = (int(adata) & 0x40) == 0x40
             if not active and tagid and eventid:
                 tagid = '-'.join((eventid, tagid))
-            if tagid == _RRS_MARKER:
+            if tagid == self._trigno:
                 tagid = ''
 
             if battery and tagid:
@@ -436,6 +444,7 @@ class rrs(decoder):
         _log.debug('Starting')
         sysconf.add_section('rrs', _CONFIG_SCHEMA)
         self._allowstored = sysconf.get_value('rrs', 'allowstored')
+        self._trigno = sysconf.get_value('rrs', 'trigno')
         self._passiveloop = sysconf.get_value('rrs', 'passiveloop')
         _log.debug('Allow stored passings: %r', self._allowstored)
         _log.debug('Passive loop id set to: %r', self._passiveloop)
