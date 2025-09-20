@@ -87,6 +87,9 @@ def pt2pt(pt=1):
 # Transitional baseline position - to be replaced with font metrics
 _CELL_BASELINE = 0.715
 
+# Flag small page width for A5 program size adjustment
+_SMALL_PAGE = mm2pt(90.0)
+
 # defaults
 PANGO_SCALE = float(Pango.SCALE)
 PANGO_INVSCALE = 1.0 / float(Pango.SCALE)
@@ -909,6 +912,7 @@ class twocol_startlist:
         self.lcount = 0
         self.nobreak = False
         self.even = False
+        self.pilots = False
         self.preh = None
         self.grey = False
         self.h = None
@@ -924,6 +928,8 @@ class twocol_startlist:
         ret['footer'] = self.footer
         ret['prizes'] = self.prizes
         ret['lines'] = self.lines
+        ret['even'] = self.even
+        ret['pilots'] = self.pilots
         ret['timestr'] = self.timestr
         ret['height'] = self.get_h(rep)
         ret['count'] = self.lcount
@@ -933,9 +939,17 @@ class twocol_startlist:
         """Return total height on page of section on report."""
         if self.h is None or len(self.lines) != self.lcount:
             self.preh = 0.0
-            collen = math.ceil(0.5 * len(self.lines))
-            if self.even and collen % 2:
-                collen += 1  # force an even number of rows in first column.
+            seclen = len(self.lines)
+            collen = math.ceil(0.5 * seclen)
+            if self.pilots:
+                if seclen % 2 == 0:
+                    if seclen:  # at least two records
+                        if 'pilot' in self.lines[collen]:
+                            collen += 1  # one extra row required
+            elif self.even:
+                if seclen % 2 == 0:
+                    if collen % 2:
+                        collen += 1  # one extra row will be required
             self.h = report.line_height * collen
             if self.heading:
                 self.h += report.section_height
@@ -978,8 +992,10 @@ class twocol_startlist:
                 rem = twocol_startlist()
                 ret.heading = self.heading
                 ret.subheading = self.subheading
-                ret.prizes = self.prizes
+                ret.pilots = self.pilots
+                ret.even = self.even
                 ret.footer = self.footer
+                ret.prizes = self.prizes
                 if ret.footer:
                     ret.footer += ' Continued over\u2026'
                 ret.timestr = self.timestr
@@ -987,6 +1003,8 @@ class twocol_startlist:
                 ret.lines = self.lines[0:maxlines]
                 rem.heading = self.heading
                 rem.subheading = self.subheading
+                rem.pilots = self.pilots
+                rem.even = self.even
                 rem.footer = self.footer
                 rem.prizes = self.prizes
                 rem.timestr = self.timestr
@@ -1015,10 +1033,24 @@ class twocol_startlist:
         #colof = report.body_left-mm2pt(10.0)
         colof = report.body_left
         hof = report.h
-        collen = int(math.ceil(0.5 * len(self.lines)))
-        if self.even and collen % 2:
-            collen += 1  # force an even number of rows in first column.
+        seclen = len(self.lines)
+        collen = int(math.ceil(0.5 * seclen))
+        if self.pilots:
+            if seclen > 1:
+                if 'pilot' in self.lines[collen]:
+                    if seclen % 2:
+                        collen -= 1  # move stoker to 2nd column
+                    else:
+                        collen += 1  # move pilot to 1st column
+        elif self.even:  # adjust columns to keep first col even
+            if collen % 2:  # col len is odd
+                if seclen % 2:  # and sec len is odd
+                    collen -= 1  # move last record to second col
+                else:
+                    collen += 1  # pull one record back to first col
         grey = 0
+        lcnt = 0
+        rcnt = 0
         if len(self.lines) > 0:
             cnt = 0
             for i in self.lines[0:collen]:
@@ -1028,6 +1060,7 @@ class twocol_startlist:
                 if len(i) > 2:
                     report.rms_rider(i, colof, hof, grey)
                 hof += report.line_height
+                lcnt += 1
             hof = report.h
             #colof = report.midpagew-mm2pt(5.0)
             colof = report.midpagew + mm2pt(2.0)
@@ -1039,7 +1072,8 @@ class twocol_startlist:
                 if len(i) > 2:
                     report.rms_rider(i, colof, hof, grey)
                 hof += report.line_height
-        report.h += collen * report.line_height
+                rcnt += 1
+        report.h += max(lcnt, rcnt) * report.line_height
 
         if self.timestr:
             baseline = report.get_baseline(report.h)
@@ -1658,9 +1692,9 @@ class rttstartlist:
             if self.colheader:
                 report.h += report.rttstart_row(report.h, self.colheader)
             for r in self.lines:
-                if len(r) > 5:
-                    if r[5] is not None and r[5].lower() == 'pilot':
-                        r[5] = 'Pilot'
+                if len(r) > 3:
+                    if r[3] and r[3].lower() == 'pilot':
+                        pass  # keep pilots in same shade
                     elif not (r[0] or r[1] or r[2] or r[3]):
                         cnt = 0  # empty row?
                     else:
@@ -1723,7 +1757,7 @@ class rttstartlist:
             if self.colheader:
                 rows.append(self.colheader)
             for r in self.lines:
-                nv = r[0:6]
+                nv = list(r[0:6])
                 if len(nv) == 2:
                     nv = [nv[0], None, nv[1]]
                 if len(nv) > 4:
@@ -3748,9 +3782,9 @@ class section:
                 report.text_left(report.col_oft_units, report.h, self.units,
                                  report.fonts['body'])
             for r in self.lines:
-                if len(r) > 5:
-                    if r[1] is not None and r[1].lower() == 'pilot':
-                        pass
+                if len(r) > 3:
+                    if r[3] and r[3].lower() == 'pilot':
+                        pass  # keep pilots in same shade
                     elif not (r[0] or r[1] or r[2] or r[3]):
                         cnt = 1  # empty row?
                     else:
@@ -4262,6 +4296,11 @@ class report:
         self.body_top = self.topmargin
         self.body_bot = self.pageh - self.botmargin
         self.body_len = self.body_bot - self.body_top
+
+        # width adjustments
+        self.infocol_w = mm2pt(15.0)
+        if self.midpagew < _SMALL_PAGE:
+            self.infocol_w = mm2pt(9.0)  # Use same w as number
 
     def loadconfig(self, template=None):
         """Initialise the report template."""
@@ -5582,8 +5621,16 @@ class report:
                               baseline - mgn)
 
     def rms_rider(self, rvec, w, h, zebra=None, strikethrough=False):
+        colw = self.midpagew - self.body_left - mm2pt(2.0)  # available w
+        linew = colw - mm2pt(1.0)
+        clsw = mm2pt(4.0)
+        name_oft = mm2pt(9.0)  # offset to name column
+        no_oft = name_oft - mm2pt(1.0)  # offset to right side of number col
+        info_w = self.infocol_w  # max width of class label/info
+        info_oft = colw - (info_w + mm2pt(0.5))  # offset to info col
+        name_w = colw - (name_oft + info_w + mm2pt(1.0))  # residual space
+
         baseline = self.get_baseline(h)
-        colw = self.midpagew - self.body_left - mm2pt(2.0)
         if zebra:
             self.drawbox(w - mm2pt(1), h, w + colw, h + self.line_height, 0.07)
         if len(rvec) > 6 and rvec[6]:
@@ -5591,27 +5638,26 @@ class report:
         if len(rvec) > 0 and rvec[0] is not None:
             self.text_left(w, h, rvec[0], self.fonts['body'])
         else:
-            self.drawline(w, baseline, w + mm2pt(4), baseline)
+            self.drawline(w, baseline, w + clsw, baseline)
         doline = True
         if len(rvec) > 1 and rvec[1]:  # rider no
-            self.text_right(w + mm2pt(8.0), h, rvec[1], self.fonts['body'])
+            self.text_right(w + no_oft, h, rvec[1], self.fonts['body'])
             doline = False
         if len(rvec) > 2 and rvec[2]:  # rider name
-            self.fit_text(w + mm2pt(9.0),
-                          h,
-                          rvec[2],
-                          mm2pt(50),
+            self.fit_text(w=w + name_oft,
+                          h=h,
+                          msg=rvec[2],
+                          maxwidth=name_w,
                           font=self.fonts['body'],
                           strikethrough=strikethrough)
             doline = False
         if doline:
-            self.drawline(w + mm2pt(8.0), baseline, w + mm2pt(60), baseline)
+            self.drawline(w + name_oft, baseline, w + linew, baseline)
         if len(rvec) > 3 and rvec[3]:  # cat/hcap/draw/etc
-            infooft = w + mm2pt(59.0)
-            self.fit_text(infooft,
-                          h,
-                          rvec[3],
-                          max(colw - infooft, mm2pt(5.0)),
+            self.fit_text(w=w + info_oft,
+                          h=h,
+                          msg=rvec[3],
+                          maxwidth=info_w,
                           font=self.fonts['bodyoblique'],
                           strikethrough=strikethrough)
 
