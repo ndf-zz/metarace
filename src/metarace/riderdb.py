@@ -496,8 +496,8 @@ _RESERVED_SERIES = ('spare', 'cat', 'team', 'ds', 'series')
 
 # legacy csv file ordering
 _DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'cat', 'class',
-                         'series', 'ref', 'uci', 'dob', 'nat', 'sex',
-                         'note', 'seed', 'data')
+                         'series', 'ref', 'uci', 'dob', 'nat', 'sex', 'note',
+                         'seed', 'data')
 
 
 def primary_cat(catstr=''):
@@ -537,6 +537,15 @@ class rider():
             nr.__store[k] = v
         nr.__notify = self.__notify
         return nr
+
+    def is_tandem(self):
+        """Return True if competitor is PARA MB or WB."""
+        if 'ist' not in self.__strcache or self.__strcache['ist'] is None:
+            istandem = bool(self.get_catset().intersection({'MB', 'WB'}))
+            if not istandem and self['class'].upper() in ('MB', 'WB'):
+                istandem = True
+            self.__strcache['ist'] = istandem
+        return self.__strcache['ist']
 
     def get_id(self):
         """Return this rider's unique id"""
@@ -580,8 +589,8 @@ class rider():
                 first.append(namebit)
         donotify = False
         newfirst = ' '.join(first)
-        if newfirst != self.get_value('firsname'):
-            self.set_value('firsname', newfirst)
+        if newfirst != self.get_value('firstname'):
+            self.set_value('firstname', newfirst)
             donotify = True
         neworg = ' '.join(org)
         if neworg != self.get_value('organisation'):
@@ -638,36 +647,35 @@ class rider():
         return ret
 
     def primary_cat(self):
-        """Return rider's primary category"""
+        """Return rider's primary category."""
         ret = ''
-        cv = self['cat'].split()
+        cv = self.get_cats()
         if cv:
-            ret = cv[0].upper()
+            ret = cv[0]
         return ret
 
-    def set_primary_cat(self, cat):
-        """Set the rider's primary category"""
+    def set_primary_cat(self, cat, notify=True):
+        """Set the rider's primary category."""
         new_primary = cat.upper()
         if new_primary:
             cmap = {new_primary: True}
             old_primary = None
             member = False
-            for c in self['cat'].split():
-                rcat = c.upper()
+            for rcat in self.get_cats():
                 if old_primary is None:
                     old_primary = rcat
-                if c == new_primary:
+                if rcat == new_primary:
                     member = True
                 cmap[rcat] = True
             if not member:
                 # replace old_primary, rider was not already a member
                 if old_primary is not None and old_primary in cmap:
                     del cmap[old_primary]
-            self['cat'] = ' '.join(cmap)
+            self.set_cats(cmap, notify)
         else:
             _log.warning('Cleared %s %s categories', self.get_label(),
                          self.get_bibstr())
-            self['cat'] = ''
+            self.set_cats((), notify)
 
     def in_series(self, series=None):
         """Return True if rider is in the nominated number series
@@ -682,30 +690,51 @@ class rider():
         return False
 
     def in_cat(self, cat):
-        """Return True if rider is in the nominated category"""
-        return cat.upper() in self['cat'].upper().split()
+        """Return True if rider is in the nominated category."""
+        return cat.upper() in self.get_cats()
+
+    def get_catset(self):
+        """Return a set of categories for this rider."""
+        if 'cts' not in self.__strcache or self.__strcache['cts'] is None:
+            self.__strcache['cts'] = set(self.get_cats())
+        return self.__strcache['cts']
 
     def get_cats(self):
-        """Return a list of categories for this rider"""
-        return (c.upper() for c in self['cat'].split())
+        """Return the rider's category list."""
+        if 'ctl' not in self.__strcache or self.__strcache['ctl'] is None:
+            self.__strcache['ctl'] = [c.upper() for c in self['cat'].split()]
+        return self.__strcache['ctl']
 
-    def add_cat(self, cat):
-        """Append cat to rider"""
+    def set_cats(self, cats=(), notify=True):
+        """Replace the rider's category list."""
+        if cats is None:
+            cats = ()
+        elif isinstance(cats, str):
+            cats = cats.split()
+        self.set_value('cat', ' '.join(cats))
+        self.__strcache['ctl'] = None
+        self.__strcache['cts'] = None
+        self.__strcache['ist'] = None
+        if notify:
+            self.__notify(self.get_id())
+
+    def add_cat(self, cat, notify=True):
+        """Append cat to rider, maintaining order if already present."""
         cmap = {}
-        for c in self['cat'].split():
-            cmap[c.upper()] = True
+        for c in self.get_cats():
+            cmap[c] = True
         cmap[cat.upper()] = True
-        self['cat'] = ' '.join((c for c in cmap))
+        self.set_cats(cmap, notify)
 
-    def del_cat(self, cat):
-        """Remove cat from rider"""
+    def del_cat(self, cat, notify=True):
+        """Remove cat from rider."""
         cmap = {}
-        for c in self['cat'].split():
-            cmap[c.upper()] = True
+        for c in self.get_cats():
+            cmap[c] = True
         rem = cat.upper()
         if rem in cmap:
             del cmap[rem]
-            self['cat'] = ' '.join(cmap)
+            self.set_cats(cmap, notify)
 
     def get_row(self, coldump=_DEFAULT_COLUMN_ORDER):
         """Return a row ready to export."""
@@ -726,7 +755,7 @@ class rider():
         """Update a value without triggering notify."""
         key = colkey(key)
         self.__store[key] = value
-        if key in ['no', 'series', 'first', 'last', 'org']:
+        if key in ('no', 'series', 'first', 'last', 'org', 'cat', 'class'):
             self.__strcache = {}
 
     def notify(self):
@@ -904,14 +933,14 @@ class rider():
     def __setitem__(self, key, value):
         key = colkey(key)
         self.__store[key] = value
-        if key in ['no', 'series', 'first', 'last', 'org']:
+        if key in ('no', 'series', 'first', 'last', 'org', 'cat', 'class'):
             self.__strcache = {}
         self.__notify(self.get_id())
 
     def __delitem__(self, key):
         key = colkey(key)
         del (self.__store[key])
-        if key in ['no', 'series', 'first', 'last', 'org']:
+        if key in ['no', 'series', 'first', 'last', 'org', 'cat', 'class']:
             self.__strcache = {}
         self.__notify(self.get_id())
 
@@ -1246,6 +1275,13 @@ class riderdb():
             if create:
                 nr = self.add_empty(rId[0], rId[1])
                 ret = self.__store[nr]
+        return ret
+
+    def get_pilot(self, rh):
+        """Return a handle to the pilot for rh, if rh is tandem."""
+        ret = None
+        if rh.is_tandem():
+            ret = self.get_rider(rh['no'], 'pilot')  # TBC pilot marking
         return ret
 
     def sort(self, notify=True):
