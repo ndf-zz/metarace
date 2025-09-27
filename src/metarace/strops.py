@@ -76,7 +76,15 @@ RUNNER_NOS = {
     'GRW': 13
 }
 
-DNFCODEMAP = {'otl': -1, 'abd': 1, 'dsq': 2, 'dnf': 3, 'dns': 4, '': 0}
+DNFCODEMAP = {
+    'rel': -2,
+    'otl': -1,
+    'dnf': 1,
+    'abd': 2,
+    'dns': 3,
+    'dsq': 4,
+    '': 0
+}
 _UNPLACEDRANK = 100000  # Arbitrarily large ranking for unplaced
 
 

@@ -574,10 +574,10 @@ FAKETIMES = {
     'lose': tod(MAX, chan='caught'),
     'rel': tod(MAX, chan='rel'),
     'otl': tod(MAX, chan='otl'),
-    'abd': tod(MAX, chan='abd'),
-    'dsq': tod(MAX, chan='dsq'),
     'dnf': tod(MAX, chan='dnf'),
+    'abd': tod(MAX, chan='abd'),
     'dns': tod(MAX, chan='dns'),
+    'dsq': tod(MAX, chan='dsq'),
 }
 extra = decimal.Decimal('0.000001')
 cof = decimal.Decimal('0.000001')
