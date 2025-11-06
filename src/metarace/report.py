@@ -618,6 +618,8 @@ class dual_ittt_startlist:
                 if len(r) > 3:  # front straight
                     nv[1] = r[1]
                     nv[2] = r[2]
+                    if isinstance(r[3], str):
+                        nv.append(r[3])
                 rows.append(nv)  # allow empty
                 if len(r) > 3 and isinstance(r[3], (tuple, list)):
                     for tm in r[3]:
@@ -625,6 +627,8 @@ class dual_ittt_startlist:
                         rows.append(tv)
                 if len(r) > 7:  # back straight
                     nv = [None, r[5], r[6]]
+                    if isinstance(r[7], str):
+                        nv.append(r[7])
                     rows.append(nv)
                 elif dual:
                     rows.append([None, None, '[No Rider]'])
@@ -663,12 +667,14 @@ class dual_ittt_startlist:
         if len(self.lines) > 0:
             rows = []
             for r in self.lines:
-                nv = [None, None, None]
+                nv = [None, None, None, None]
                 if self.showheats and r[0] and r[0] != '-':
                     nv[0] = 'Heat ' + str(r[0]) + ':'
                 if len(r) > 3:  # front straight
                     nv[1] = r[1]
                     nv[2] = r[2]
+                if not self.showheats:
+                    nv[3] = r[3]
                 rows.append(nv)
                 if len(r) > 3 and isinstance(r[3], (tuple, list)):
                     for tm in r[3]:
@@ -2356,6 +2362,7 @@ class laptimes:
         self.finish = None
         self.laptimes = None
         self.precision = 0
+        self.absolute = False
         self.showelapsed = False
 
     def serialize(self, rep, sectionid=None):
@@ -2374,6 +2381,7 @@ class laptimes:
         ret['count'] = self.lcount
         ret['precision'] = self.precision
         ret['showelapsed'] = self.showelapsed
+        ret['absolute'] = self.absolute
         ret['start'] = self.start
         ret['finish'] = self.finish
         return ret
@@ -2416,6 +2424,7 @@ class laptimes:
         chk.finish = self.finish
         chk.precision = self.precision
         chk.showelapsed = self.showelapsed
+        chk.absolute = self.absolute
         chk.laptimes = self.laptimes
         if len(self.lines) <= 4:  # special case, keep four or less together
             chk.lines = self.lines[0:]
@@ -2439,6 +2448,7 @@ class laptimes:
         ret.finish = self.finish
         ret.precision = self.precision
         ret.showelapsed = self.showelapsed
+        ret.absolute = self.absolute
         ret.laptimes = self.laptimes
         rem.heading = self.heading
         rem.subheading = self.subheading
@@ -2449,6 +2459,7 @@ class laptimes:
         rem.finish = self.finish
         rem.precision = self.precision
         rem.showelapsed = self.showelapsed
+        rem.absolute = self.absolute
         rem.laptimes = self.laptimes
         if rem.heading is not None:
             if rem.heading.rfind('(continued)') < 0:
@@ -2475,6 +2486,9 @@ class laptimes:
 
     def draw_pdf(self, report):
         """Output a single section to the page."""
+        if self.absolute:
+            return  # temp suppress this nonsense
+
         report.c.save()
         if self.heading:
             report.text_cent(report.midpagew, report.h, self.heading,
@@ -2492,9 +2506,14 @@ class laptimes:
             #report.h, (self.colheader[0], self.colheader[1],
             #self.colheader[2], 'elapsed', 'lap', 'avg', 'best', 'cat'))
             #else:
-            report.h += report.judges_row(
-                report.h, (self.colheader[0], self.colheader[1],
-                           self.colheader[2], 'lap', 'avg', 'best', 'cat'))
+            if self.absolute:
+                report.h += report.judges_row(
+                    report.h, (self.colheader[0], self.colheader[1],
+                               self.colheader[2], '', '', '', ''))
+            else:
+                report.h += report.judges_row(
+                    report.h, (self.colheader[0], self.colheader[1],
+                               self.colheader[2], 'lap', 'avg', 'best', 'cat'))
             starth = report.h
             cnt = 0
             for r in self.lines:
@@ -2609,7 +2628,8 @@ class laptimes:
                                     wsstyle)
                 col = 6
                 for lap in r['laps']:
-                    worksheet.write(row, col, lap.timeval / 86400, wsstyle)
+                    if lap is not None:
+                        worksheet.write(row, col, lap.timeval / 86400, wsstyle)
                     col += 1
                 if r['place'] and not r['place'].isdigit():
                     worksheet.write(row, col, r['place'], XLSX_STYLE['right'])
@@ -2640,18 +2660,19 @@ class laptimes:
                                  colspec=('r', 'l', 'l', 'r')))
             trows = []
             for r in self.lines:
-                nr = [
-                    r['no'],
-                    r['name'],
-                    r['cat'],
-                    str(r['count']),
-                ]
+                count = ''
+                if r['count'] is not None:
+                    count = str(r['count'])
+                nr = [r['no'], r['name'], r['cat'], count]
                 if r['average'] is not None:
                     nr.append(r['average'].rawtime(self.precision))
                 else:
                     nr.append(None)
                 for l in r['laps']:
-                    nr.append(l.rawtime(self.precision))
+                    if l is not None:
+                        nr.append(l.rawtime(self.precision))
+                    else:
+                        nr.append(None)
                 if r['place'] and not r['place'].isdigit():
                     nr.append(r['place'])
                 trows.append(
@@ -5532,7 +5553,16 @@ class report:
                 self.drawline(w, baseline, w + mm2pt(7), baseline)
                 self.drawline(w + mm2pt(8), baseline, w + mm2pt(58), baseline)
             if drawline:
-                self.drawline(w + mm2pt(59), baseline, w + mm2pt(75), baseline)
+                if rvec[2] and isinstance(rvec[2], str):
+                    self.fit_text(w=w + mm2pt(59),
+                                  h=h,
+                                  msg=rvec[2],
+                                  maxwidth=mm2pt(15.0),
+                                  font=self.fonts['bodyoblique'],
+                                  strikethrough=False)
+                else:
+                    self.drawline(w + mm2pt(59), baseline, w + mm2pt(75),
+                                  baseline)
 
     def ittt_heat(self, hvec, h, dual=False, showheat=True):
         """Output a single time trial heat."""
@@ -5545,7 +5575,7 @@ class report:
         rcnt = 1  # assume one row unless team members
         tcnt = 0
         if len(hvec) > 3:  # got a front straight
-            self.ittt_lane([hvec[1], hvec[2]],
+            self.ittt_lane([hvec[1], hvec[2], hvec[3]],
                            self.body_left,
                            h,
                            truncate=True)
@@ -5553,7 +5583,7 @@ class report:
                 tcnt = len(hvec[3])
                 tof = h + self.line_height
                 for t in hvec[3]:
-                    self.ittt_lane([t[0], t[1]],
+                    self.ittt_lane([t[0], t[1], None],
                                    self.body_left,
                                    tof,
                                    drawline=False)
@@ -5561,7 +5591,7 @@ class report:
         if len(hvec) > 7:  # got a back straight
             if hvec[5] is not None:
                 self.text_cent(self.midpagew, h, 'v', self.fonts['subhead'])
-            self.ittt_lane([hvec[5], hvec[6]],
+            self.ittt_lane([hvec[5], hvec[6], hvec[7]],
                            self.midpagew + mm2pt(5),
                            h,
                            truncate=True)
@@ -5569,14 +5599,14 @@ class report:
                 tcnt = max(tcnt, len(hvec[7]))
                 tof = h + self.line_height
                 for t in hvec[7]:
-                    self.ittt_lane([t[0], t[1]],
+                    self.ittt_lane([t[0], t[1], None],
                                    self.midpagew + mm2pt(5),
                                    tof,
                                    drawline=False)
                     tof += self.line_height
         elif dual:
             # No rider, but other heats are dual so add marker
-            self.ittt_lane([None, None], self.midpagew + mm2pt(5), h)
+            self.ittt_lane([None, None, None], self.midpagew + mm2pt(5), h)
         h += (rcnt + tcnt) * self.line_height
 
         return h

@@ -12,6 +12,34 @@
 
 ### Security
 
+## [2.1.18]
+
+### Added
+
+   - add "Sport Class" field to rider db for display on reports
+   - add pilot lookup for tandem competitors in rider db
+   - identify tandem competitors by cat and or class lookup
+   - add time factors library
+   - add support for AC Weather API
+   - return list of riders in a nominated series
+
+### Changed
+
+   - allow configuration of marker id for Race Result decoder (rrs)
+   - cache category membership and manipulation methods
+   - optionally notify category manipulation methods
+   - reduce info column width on twocol section in A5 reports
+   - comet weather station rolled into generic Weather class
+   - move sign outside of ISO format string for tod/agg eg: '-PT1.05s"
+
+### Fixed
+
+   - set name width on twocol section by available space instead of
+     fixed offset
+   - correct ordering for dnf, abd, dns and dsq
+
+### Security
+
 ## [2.1.17] - 2025-09-16
 
 ### Added
