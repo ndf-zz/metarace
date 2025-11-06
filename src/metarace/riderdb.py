@@ -458,6 +458,14 @@ _TEAM_SCHEMA = {
         'control': 'short',
         'default': '',
     },
+    'class': {
+        'prompt': 'Class Label:',
+        'attr': 'class',
+        'defer': True,
+        'control': 'short',
+        'hint': 'Optional cat or sport class label to be shown on reports',
+        'default': '',
+    },
     'uci': {
         'prompt': 'UCI ID:',
         'attr': 'uci',
@@ -1110,6 +1118,16 @@ class riderdb():
                     label = r.get_label()
                 ret.add(r.get_bibstr())
         _log.debug('Found %d %s in series %r', len(ret), label, series)
+        return ret
+
+    def fromseries(self, series):
+        """Return a list of rider ids in the supplied series"""
+        if series is not None:
+            series = series.lower()
+        ret = set()
+        for r in self.__store.values():
+            if r['series'] == series:
+                ret.add(r.get_id())
         return ret
 
     def save(self, csvfile=None, columns=None):
