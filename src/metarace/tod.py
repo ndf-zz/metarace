@@ -248,7 +248,7 @@ def _str2dec(timestr=''):
     	-H:MM:SS.dcmz		Omega
     	-H:MM'SS"dcmz		Chronelec
     	-H-MM-SS.dcmz		Keypad entry
-        PThHmMs.dcmzS		ISO8601 Interval
+        -PThHmMs.dcmzS		ISO8601 Interval w/ optional sign
     """
     dectod = None
     timestr = timestr.strip()  # assumes string
@@ -414,13 +414,23 @@ class tod:
 
     def isosecs(self, places=4):
         """Return ISO8601(4.4.1b) Refer : 4.4.3.2 Format with designators."""
-        return "PT{}S".format(
-            self.timeval.quantize(QUANT[places], rounding=ROUNDING))
+        # Note: Addition of sign outside the format is non-standard
+        tv = abs(self.timeval)
+        sign = ''
+        if self.timeval < 0:
+            sign = '-'
+        return "{}PT{}S".format(sign,
+                                tv.quantize(QUANT[places], rounding=ROUNDING))
 
     def isostr(self, places=4):
         """Return ISO8601(4.4.1b) Time interval string"""
-        return "PT{}S".format(
-            _dec2str(self.timeval, places, hoursep='H', minsep='M'))
+        # Note: Addition of sign outside the format is non-standard
+        tv = abs(self.timeval)
+        sign = ''
+        if self.timeval < 0:
+            sign = '-'
+        return "{}PT{}S".format(sign,
+                                _dec2str(tv, places, hoursep='H', minsep='M'))
 
     def rawtime(self, places=4, zeros=False, hoursep='h', minsep=':'):
         """Return time string of tod as string, without padding."""
