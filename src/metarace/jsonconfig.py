@@ -293,7 +293,10 @@ class config:
             otype = 'txt'
             if 'type' in schema:
                 otype = schema['type']
-            if otype != 'none':
+            control = None
+            if 'control' in schema:
+                control = schema['control']
+            if otype != 'none' and control != 'section':
                 val = self.get_value(section, option)
                 ret[option] = val
             else:
