@@ -1,3 +1,5 @@
+# Changelog
+
 ## [Unreleased]
 
 ### Added
@@ -11,6 +13,17 @@
 ### Fixed
 
 ### Security
+
+## [2.1.19]
+
+### Added
+
+   - Provide method to query currently subscribed telegraph topics
+
+### Changed
+
+   - Don't export section headers from jsonconfig schema
+   - Defer processing weather and telegraph options in schema
 
 ## [2.1.18]
 
