@@ -76,18 +76,20 @@ _log.setLevel(logging.DEBUG)
 _CONFIG_SCHEMA = {
     'ttype': {
         'prompt': 'MQTT Broker Details',
-        'control': 'section'
+        'control': 'section',
     },
     'host': {
         'prompt': 'Host:',
         'hint': 'Hostname or IP of MQTT broker',
         'default': 'localhost',
+        'defer': True,
     },
     'port': {
         'prompt': 'Port:',
         'control': 'short',
         'hint': 'TCP port number of MQTT broker',
         'type': 'int',
+        'defer': True,
     },
     'usetls': {
         'prompt': 'Security:',
@@ -95,15 +97,18 @@ _CONFIG_SCHEMA = {
         'type': 'bool',
         'control': 'check',
         'hint': 'Connect to MQTT broker using TLS',
-        'default': False
+        'default': False,
+        'defer': True,
     },
     'username': {
         'prompt': 'Username:',
-        'hint': 'Username on MQTT broker if required'
+        'hint': 'Username on MQTT broker if required',
+        'defer': True,
     },
     'password': {
         'prompt': 'Password:',
-        'hint': 'Password on MQTT broker if required'
+        'hint': 'Password on MQTT broker if required',
+        'defer': True,
     },
     'debug': {
         'prompt': 'Log:',
@@ -112,6 +117,7 @@ _CONFIG_SCHEMA = {
         'subtext': 'Debug MQTT connection?',
         'hint': 'Log detailed information on connection to MQTT broken',
         'default': False,
+        'defer': True,
     },
     'ssec': {
         'prompt': 'Session Options',
@@ -119,7 +125,8 @@ _CONFIG_SCHEMA = {
     },
     'clientid': {
         'prompt': 'Client ID:',
-        'hint': 'Specify client id for MQTT connection'
+        'hint': 'Specify client id for MQTT connection',
+        'defer': True,
     },
     'persist': {
         'prompt': 'Session:',
@@ -128,6 +135,7 @@ _CONFIG_SCHEMA = {
         'control': 'check',
         'hint': 'Request persistent session on broker',
         'default': True,
+        'defer': True,
     },
     'qos': {
         'prompt': 'QoS:',
@@ -137,13 +145,15 @@ _CONFIG_SCHEMA = {
         'options': {
             '0': '0 - At most once',
             '1': '1 - At least once',
-            '2': '2 - Exactly once'
+            '2': '2 - Exactly once',
         },
         'default': 0,
+        'defer': True,
     },
     'deftopic': {
         'prompt': 'Default Topic:',
         'hint': 'Default topic for messages published without one',
+        'defer': True,
     },
 }
 
@@ -191,6 +201,13 @@ class telegraph(threading.Thread):
         if self.__connected:
             for topic in topics:
                 self.__queue.put_nowait(('UNSUBSCRIBE', topic))
+
+    def get_subscriptions(self):
+        """Return a dictionary of current subscriptions"""
+        ret = {}
+        for topic,qos in self.__subscriptions.items():
+            ret[topic] = qos
+        return ret
 
     def setcb(self, func=None):
         """Set the message receive callback function."""

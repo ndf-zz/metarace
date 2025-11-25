@@ -40,6 +40,7 @@ _CONFIG_SCHEMA = {
         'prompt': 'Source:',
         'control': 'choice',
         'hint': 'Data source',
+        'defer': True,
         'conflicts': {
             'locationep': {
                 'enable': 'ac',
@@ -62,24 +63,28 @@ _CONFIG_SCHEMA = {
         'hint': 'Default facility code',
         'control': 'short',
         'default': None,
+        'defer': True,
     },
     'dataep': {
         'prompt': 'Data:',
         'attr': 'dataep',
         'hint': 'Endpoint for weather data readings',
         'default': _DATA_ENDPOINT,
+        'defer': True,
     },
     'locationep': {
         'prompt': 'Locations:',
         'attr': 'locationep',
         'hint': 'Endpoint for location IDs',
         'default': _LOCATION_ENDPOINT,
+        'defer': True,
     },
     'hostname': {
         'prompt': 'Hostname:',
         'attr': 'hostname',
         'hint': 'Hostname of weather service',
         'default': _HOSTNAME,
+        'defer': True,
     },
     'port': {
         'prompt': 'Port:',
@@ -88,6 +93,7 @@ _CONFIG_SCHEMA = {
         'hint': 'TCP port number',
         'type': 'int',
         'default': _PORT,
+        'defer': True,
     },
     'usetls': {
         'prompt': 'Security:',
@@ -97,6 +103,7 @@ _CONFIG_SCHEMA = {
         'control': 'check',
         'hint': 'Connect using TLS',
         'default': _USETLS,
+        'defer': True,
     },
     'polltime': {
         'prompt': 'Interval:',
@@ -106,6 +113,7 @@ _CONFIG_SCHEMA = {
         'hint': 'Delay in seconds between readings',
         'type': 'int',
         'default': _POLLTIME,
+        'defer': True,
     },
     'timeout': {
         'prompt': 'Timeout:',
@@ -115,6 +123,7 @@ _CONFIG_SCHEMA = {
         'hint': 'Request timeout in seconds',
         'type': 'int',
         'default': _TIMEOUT,
+        'defer': True,
     },
 }
 
