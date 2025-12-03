@@ -9,6 +9,7 @@ import grapheme
 
 import metarace
 from metarace import strops
+from contextlib import suppress
 
 _log = logging.getLogger('riderdb')
 _log.setLevel(logging.DEBUG)
@@ -28,7 +29,7 @@ _RIDER_COLUMNS = {
     'nat': 'Nationality',
     'ref': 'Transponder',
     'uci': 'UCI ID',
-    'dob': 'DoB',
+    'yob': 'Year of Birth',
     'sex': 'Sex',
     'note': 'Notes',
     'seed': 'Seeding',
@@ -79,7 +80,8 @@ _ALT_COLUMNS = {
     'memb': 'note',
     'rank': 'seed',
     'data': 'data',
-    'date': 'dob',
+    'date': 'yob',
+    'year': 'yob',
 }
 
 # Category columns
@@ -95,7 +97,7 @@ _CATEGORY_COLUMNS = {
     'class': 'Class Label',
     'uci': 'Start Offset',
     'nat': 'Nationality',
-    'dob': 'DoB',
+    'yob': 'Year of Birth',
     'sex': 'Sex',
     'seed': 'Seeding',
     'data': 'Data Reference',
@@ -112,7 +114,7 @@ _TEAM_COLUMNS = {
     'nat': 'Nationality',
     'ref': 'Start Time',
     'uci': 'UCI ID',
-    'dob': 'DoB',
+    'yob': 'Year of Birth',
     'sex': 'Division',
     'note': 'Members',
     'seed': 'Seeding',
@@ -196,13 +198,13 @@ _RIDER_SCHEMA = {
         'hint': '11 digit UCI ID',
         'default': '',
     },
-    'dob': {
-        'prompt': 'Date of Birth:',
-        'attr': 'dob',
+    'yob': {
+        'prompt': 'Year of Birth:',
+        'attr': 'yob',
         'control': 'short',
         'defer': True,
-        'subtext': '(YYYY-MM-DD)',
-        'hint': 'ISO8601 Date of birth eg: 2012-01-25',
+        'subtext': '(YYYY)',
+        'hint': 'Year of birth eg: 2012',
         'default': '',
     },
     'sex': {
@@ -506,7 +508,7 @@ _RESERVED_SERIES = ('spare', 'cat', 'team', 'ds', 'series')
 
 # legacy csv file ordering
 _DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'cat', 'class',
-                         'series', 'ref', 'uci', 'dob', 'nat', 'sex', 'note',
+                         'series', 'ref', 'uci', 'yob', 'nat', 'sex', 'note',
                          'seed', 'data')
 
 
@@ -535,6 +537,15 @@ def get_header(cols=_DEFAULT_COLUMN_ORDER, hdrs=_RIDER_COLUMNS):
 def cellnorm(unistr):
     """Normalise supplied string, then return only printing chars."""
     return normalize('NFC', unistr.strip()).translate(strops.PRINT_UTRANS)
+
+
+def _toyear(dob):
+    """Extract year from dob discarding month and day."""
+    ret = dob
+    with suppress(Exception):
+        if dob:
+            ret = dob.split('-', 1)[0]
+    return ret
 
 
 class rider():
@@ -1011,6 +1022,8 @@ class riderdb():
                 val = cellnorm(r[i])
                 if key == 'series':
                     val = val.lower()
+                elif key == 'yob':
+                    val = _toyear(val)
                 nr[key] = val
         if nr['no']:
             if colkey(nr['no']) in _RIDER_COLUMNS:
