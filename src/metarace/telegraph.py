@@ -205,7 +205,7 @@ class telegraph(threading.Thread):
     def get_subscriptions(self):
         """Return a dictionary of current subscriptions"""
         ret = {}
-        for topic,qos in self.__subscriptions.items():
+        for topic, qos in self.__subscriptions.items():
             ret[topic] = qos
         return ret
 

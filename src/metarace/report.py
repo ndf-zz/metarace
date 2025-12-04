@@ -460,10 +460,10 @@ class dual_ittt_startlist:
                 self.h *= 2
             for r in self.lines:  # account for any team members
                 tcnt = 0
-                if len(r) > 3 and isinstance(r[3], (tuple, list)):
-                    tcnt = len(r[3])
-                if len(r) > 7 and isinstance(r[7], (tuple, list)):
-                    tcnt = max(tcnt, len(r[7]))
+                if len(r) > 4 and isinstance(r[4], (tuple, list)):
+                    tcnt = len(r[4])
+                if len(r) > 9 and isinstance(r[9], (tuple, list)):
+                    tcnt = max(tcnt, len(r[9]))
                 if tcnt > 0:
                     self.h += tcnt * report.line_height
             if self.heading:
@@ -579,13 +579,10 @@ class dual_ittt_startlist:
             report.h += report.line_height  # account for lane label h
         hof = report.h
         lineheight = report.line_height
-        if self.showheats:
-            lineheight *= 2
         for i in self.lines:
             hof = report.ittt_heat(i, hof, dual, self.showheats)
-            #hof += lineheight
-            #if self.pairs:
-            #hof += lineheight
+        if self.showheats:
+            hof += lineheight  # allow trailing space for footer
         if self.footer:
             report.text_cent(report.midpagew, hof, self.footer,
                              report.fonts['subhead'])
@@ -5532,13 +5529,15 @@ class report:
                           h + (0.5 * self.line_height))
         return self.line_height
 
-    def ittt_lane(self, rvec, w, h, drawline=True, truncate=False):
+    def ittt_lane(self, rvec, w, h, drawline=True, truncate=True):
         """Draw a single lane."""
+        # rvec: no, name, info
+        #       0,  1,    2
         baseline = self.get_baseline(h)
         if rvec[0] is None:  # rider no None implies no rider
             self.text_left(w + mm2pt(8), h, '[No Rider]', self.fonts['body'])
         else:
-            if rvec[0]:  # non-empty rider no implies full info
+            if rvec[1]:  # non-empty rider name implies full info
                 self.text_right(w + mm2pt(7), h, rvec[0], self.fonts['body'])
                 if truncate:
                     self.fit_text(w=w + mm2pt(8.0),
@@ -5552,20 +5551,22 @@ class report:
             else:  # otherwise draw placeholder lines
                 self.drawline(w, baseline, w + mm2pt(7), baseline)
                 self.drawline(w + mm2pt(8), baseline, w + mm2pt(58), baseline)
-            if drawline:
-                if rvec[2] and isinstance(rvec[2], str):
-                    self.fit_text(w=w + mm2pt(59),
-                                  h=h,
-                                  msg=rvec[2],
-                                  maxwidth=mm2pt(15.0),
-                                  font=self.fonts['bodyoblique'],
-                                  strikethrough=False)
-                else:
-                    self.drawline(w + mm2pt(59), baseline, w + mm2pt(75),
+            if rvec[2] and isinstance(rvec[2], str):
+                self.fit_text(w=w + mm2pt(59),
+                              h=h,
+                              msg=rvec[2],
+                              maxwidth=mm2pt(15.0),
+                              font=self.fonts['bodyoblique'],
+                              strikethrough=False)
+            else:
+                if drawline:
+                    self.drawline(w + mm2pt(59), baseline, w + mm2pt(65),
                                   baseline)
 
     def ittt_heat(self, hvec, h, dual=False, showheat=True):
         """Output a single time trial heat."""
+        # hvec: heat, no, name, info, [members], heat, no, name, info, [members]
+        #       0     1   2     3     4          5     6   7     8     9
         if showheat:
             # allow for a heat holder but no text...
             if hvec[0] and hvec[0] != '-':
@@ -5574,32 +5575,29 @@ class report:
             h += self.line_height
         rcnt = 1  # assume one row unless team members
         tcnt = 0
-        if len(hvec) > 3:  # got a front straight
-            self.ittt_lane([hvec[1], hvec[2], hvec[3]],
-                           self.body_left,
-                           h,
-                           truncate=True)
-            if isinstance(hvec[3], (tuple, list)):  # additional 'team' rows
-                tcnt = len(hvec[3])
+        if len(hvec) > 4:  # got a front straight
+            self.ittt_lane([hvec[1], hvec[2], hvec[3]], self.body_left, h)
+            if isinstance(hvec[4], (tuple, list)):  # additional member rows
+                tcnt = len(hvec[4])
                 tof = h + self.line_height
-                for t in hvec[3]:
-                    self.ittt_lane([t[0], t[1], None],
+                for t in hvec[4]:
+                    self.ittt_lane([t[1], t[2], t[3]],
                                    self.body_left,
                                    tof,
                                    drawline=False)
                     tof += self.line_height
-        if len(hvec) > 7:  # got a back straight
-            if hvec[5] is not None:
+        if len(hvec) > 9:  # got a back straight
+            if hvec[6] is not None:
                 self.text_cent(self.midpagew, h, 'v', self.fonts['subhead'])
-            self.ittt_lane([hvec[5], hvec[6], hvec[7]],
+            self.ittt_lane([hvec[6], hvec[7], hvec[8]],
                            self.midpagew + mm2pt(5),
                            h,
                            truncate=True)
-            if isinstance(hvec[7], (tuple, list)):  # additional 'team' rows
-                tcnt = max(tcnt, len(hvec[7]))
+            if isinstance(hvec[9], (tuple, list)):
+                tcnt = max(tcnt, len(hvec[9]))
                 tof = h + self.line_height
-                for t in hvec[7]:
-                    self.ittt_lane([t[0], t[1], None],
+                for t in hvec[9]:
+                    self.ittt_lane([t[1], t[2], t[3]],
                                    self.midpagew + mm2pt(5),
                                    tof,
                                    drawline=False)

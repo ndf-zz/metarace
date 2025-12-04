@@ -551,6 +551,12 @@ def _toyear(dob):
 class rider():
     """Rider handle."""
 
+    def get_line(self, clslbl=None):
+        """Return a mutable standard result/start line."""
+        if clslbl is None:
+            clslbl = self.__store['class']
+        return [None, self.__store['no'], self.resname(), clslbl, None, None]
+
     def copy(self):
         """Return copy of this rider"""
         nr = rider()
@@ -1315,6 +1321,16 @@ class riderdb():
         ret = None
         if rh.is_tandem():
             ret = self.get_rider(rh['no'], 'pilot')  # TBC pilot marking
+        return ret
+
+    def get_pilot_line(self, rh):
+        """Return a pilot line or None if not available."""
+        ret = None
+        ph = self.get_pilot(rh)
+        if ph is not None:
+            ret = ph.get_line('pilot')
+            ret[0] = ' '  # suppress underline
+            ret[1] = ''  # suppress pilot number
         return ret
 
     def sort(self, notify=True):
