@@ -14,6 +14,22 @@
 
 ### Security
 
+## [2.1.20] - 2025-12-05
+
+### Added
+
+   - add rider db method to return standard row
+   - add rider db method to return pilot and pilot row
+
+### Changed
+
+   - expand ITTT startlist lines to allow for pilots and teams
+     without losing class label (info) field
+   - update default icon name
+   - update application ICON ID
+   - install script will attempt to remove old desktop and icon files
+     before adding new ones
+
 ## [2.1.19]
 
 ### Added
@@ -50,8 +66,6 @@
    - set name width on twocol section by available space instead of
      fixed offset
    - correct ordering for dnf, abd, dns and dsq
-
-### Security
 
 ## [2.1.17] - 2025-09-16
 

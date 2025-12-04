@@ -5,12 +5,18 @@
 set -e
 
 # XDG names
-XDG_APP_BASE="org.6_v"
+XDG_OLD_APP_BASE="org.6_v"
+XDG_APP_BASE="org._6_v"
 XDG_APP_METARACE="${XDG_APP_BASE}.metarace"
+XDG_OLD_APP_METARACE="${XDG_OLD_APP_BASE}.metarace"
 XDG_APP_TRACKMEET="${XDG_APP_BASE}.trackmeet"
+XDG_OLD_APP_TRACKMEET="${XDG_OLD_APP_BASE}.trackmeet"
 XDG_APP_ROADMEET="${XDG_APP_BASE}.roadmeet"
+XDG_OLD_APP_ROADMEET="${XDG_OLD_APP_BASE}.roadmeet"
 XDG_APP_TAGREG="${XDG_APP_BASE}.tagreg"
+XDG_OLD_APP_TAGREG="${XDG_OLD_APP_BASE}.tagreg"
 XDG_APP_TTSTART="${XDG_APP_BASE}.ttstart"
+XDG_OLD_APP_TTSTART="${XDG_OLD_APP_BASE}.ttstart"
 
 check_command() {
   command -v "$1" >/dev/null 2>&1
@@ -450,6 +456,7 @@ XDGPATH="${HOME}/.local/share"
 ICONBASE="icons/hicolor"
 ICONPATH="${ICONBASE}/scalable/apps"
 ICONNAME="${XDG_APP_METARACE}"
+OLDICONNAME="${XDG_OLD_APP_METARACE}"
 TEMPPATH="${XDGPATH}/applications"
 
 # Prepare XDG destinations for .desktop files
@@ -457,7 +464,7 @@ if [ -n "$WSL" ] ; then
   echo_continue "Installing icons and shortcuts to shared folder"
   XDGPATH="/usr/share"
   SHAREICON="${XDGPATH}/${ICONPATH}/${ICONNAME}.svg"
-  OLDICON="${XDGPATH}/${ICONPATH}/metarace.svg"
+  OLDICON="${XDGPATH}/${ICONPATH}/${OLDICONNAME}.svg"
   # remove old name icon if it exists
   if [ -e "$OLDICON" ] ; then
     sudo rm "$OLDICON"
@@ -473,6 +480,10 @@ if [ -n "$WSL" ] ; then
     for sz in 8 16 22 24 32 36 42 48 64 72 96 128 192 256 ; do
       dstpath="${XDGPATH}/${ICONBASE}/${sz}x${sz}/apps"
       sudo mkdir -p "$dstpath"
+      oldfile="${dstpath}/${OLDICONNAME}.png"
+      if [ -e "${oldfile}" ] ; then
+        sudo rm "${oldfile}"
+      fi
       dstfile="${dstpath}/${ICONNAME}.png"
       if [ -e "${dstfile}" ] ; then
         sudo rm "${dstfile}"
@@ -487,12 +498,19 @@ if [ -n "$WSL" ] ; then
     if [ -e "${XDGPATH}/applications/${oldname}.desktop" ] ; then
       sudo rm "${XDGPATH}/applications/${oldname}.desktop"
     fi
+    if [ -e "${XDGPATH}/applications/${XDG_OLD_APP_BASE}.${oldname}.desktop" ] ; then
+      sudo rm "${XDGPATH}/applications/${XDG_OLD_APP_BASE}.${oldname}.desktop"
+    fi
   done
 else
   echo_continue "Installing icons and shortcuts to home folder"
   SHAREICON="${XDGPATH}/${ICONPATH}/${ICONNAME}.svg"
+  OLDSHAREICON="${XDGPATH}/${ICONPATH}/${OLDICONNAME}.svg"
   if [ -e "$SHAREICON" ] ; then
     rm "$SHAREICON"
+  fi
+  if [ -e "$OLDSHAREICON" ] ; then
+    rm "$OLDSHAREICON"
   fi
   mkdir -p "${XDGPATH}/${ICONPATH}"
   cp "$DEFICON" "$SHAREICON"
@@ -500,6 +518,14 @@ else
   if [ -e "${XDGPATH}/applications/metarace" ] ; then
     rm -r "${XDGPATH}/applications/metarace"
   fi
+  for oldname in roadmeet trackmeet tagreg ttstart ; do
+    if [ -e "${XDGPATH}/applications/${oldname}.desktop" ] ; then
+      rm "${XDGPATH}/applications/${oldname}.desktop"
+    fi
+    if [ -e "${XDGPATH}/applications/${XDG_OLD_APP_BASE}.${oldname}.desktop" ] ; then
+      rm "${XDGPATH}/applications/${XDG_OLD_APP_BASE}.${oldname}.desktop"
+    fi
+  done
 fi
 
 # Ensure a temporary location exists to write new files

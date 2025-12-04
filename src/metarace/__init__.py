@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 """A collection of tools for preparing cycle race results."""
-__version__ = '2.1.19'
+__version__ = '2.1.20'
 
 import os
 import logging
@@ -29,7 +29,7 @@ DATA_PATH = os.path.realpath(
 DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
 RESOURCE_PKG = 'metarace.data'
 LOGO = 'metarace_icon.svg'
-ICON = 'org.6_v.metarace'
+ICON = 'org._6_v.metarace'
 SYSCONF = 'metarace.json'
 PDF_TEMPLATE = 'pdf_template.json'
 PROGRAM_TEMPLATE = 'program_template.json'
