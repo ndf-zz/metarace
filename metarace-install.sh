@@ -503,17 +503,11 @@ if [ -n "$WSL" ] ; then
     fi
   done
 else
-  echo_continue "Installing icons and shortcuts to home folder"
-  SHAREICON="${XDGPATH}/${ICONPATH}/${ICONNAME}.svg"
+  echo_continue "Installing shortcuts to home folder"
   OLDSHAREICON="${XDGPATH}/${ICONPATH}/${OLDICONNAME}.svg"
-  if [ -e "$SHAREICON" ] ; then
-    rm "$SHAREICON"
-  fi
   if [ -e "$OLDSHAREICON" ] ; then
     rm "$OLDSHAREICON"
   fi
-  mkdir -p "${XDGPATH}/${ICONPATH}"
-  cp "$DEFICON" "$SHAREICON"
   # Remove previous installation with old names
   if [ -e "${XDGPATH}/applications/metarace" ] ; then
     rm -r "${XDGPATH}/applications/metarace"

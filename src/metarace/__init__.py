@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 """A collection of tools for preparing cycle race results."""
-__version__ = '2.1.20'
+__version__ = '2.1.21a1'
 
 import os
 import logging
@@ -26,6 +26,9 @@ if flockstyle is None:
 VERSION = __version__
 DATA_PATH = os.path.realpath(
     os.path.expanduser(os.path.join('~', 'Documents', 'metarace')))
+ICON_PATH = os.path.realpath(
+    os.path.expanduser(
+        os.path.join('~', '.local', 'share', 'icons', 'hicolor', 'scalable')))
 DEFAULTS_PATH = os.path.join(DATA_PATH, 'default')
 RESOURCE_PKG = 'metarace.data'
 LOGO = 'metarace_icon.svg'
@@ -36,6 +39,12 @@ PROGRAM_TEMPLATE = 'program_template.json'
 LOGFILEFORMAT = '%(asctime)s %(levelname)s:%(name)s: %(message)s'
 LOGFORMAT = '%(levelname)s %(name)s: %(message)s'
 LOGLEVEL = logging.DEBUG  # default console log level
+ACTION_ICONS = {
+    'idle': 'bgidle-symbolic',
+    'activity': 'bgact-symbolic',
+    'ok': 'bgok-symbolic',
+    'error': 'bgerror-symbolic',
+}
 sysconf = jsonconfig.config()  # system-defaults, populated by init() method
 _log = logging.getLogger('metarace')
 _log.setLevel(logging.DEBUG)
@@ -44,6 +53,7 @@ _log.setLevel(logging.DEBUG)
 def init():
     """Shared metarace program initialisation."""
     copyconf = mk_data_path()
+    mk_icon_path()
 
     # set global logging options
     logging._srcfile = None
@@ -91,6 +101,43 @@ def mk_data_path():
             with savefile(lfile, mode='b') as df:
                 df.write(sf.read())
     return ret
+
+
+def mk_icon_path():
+    """Copy logo and action icons from resources into XDG folder."""
+    iconpath = os.path.join(ICON_PATH, 'apps')
+    if not os.path.exists(iconpath):
+        _log.debug('Creating app icon directory: %r', iconpath)
+        os.makedirs(iconpath)
+    iconfile = ICON + '.svg'
+    icon = os.path.join(iconpath, iconfile)
+    if not os.path.exists(icon):
+        _log.debug('Saving logo icon %s into app path', ICON)
+        ref = files(RESOURCE_PKG).joinpath(LOGO)
+        with ref.open('rb') as sf:
+            with savefile(icon, mode='b') as df:
+                df.write(sf.read())
+
+    iconpath = os.path.join(ICON_PATH, 'actions')
+    if not os.path.exists(iconpath):
+        _log.debug('Creating action directory: %r', iconpath)
+        os.makedirs(iconpath)
+    for actionid, name in ACTION_ICONS.items():
+        iconfile = name + '.svg'
+        icon = os.path.join(iconpath, iconfile)
+        if not os.path.exists(icon):
+            _log.debug('Saving action icon %s into icon path', actionid)
+            ref = files(RESOURCE_PKG).joinpath(iconfile)
+            with ref.open('rb') as sf:
+                with savefile(icon, mode='b') as df:
+                    df.write(sf.read())
+
+
+def action_icon(actionid=None):
+    """Return a symbolic icon name for the provided actionid."""
+    if actionid not in ACTION_ICONS:
+        actionid = 'idle'
+    return ACTION_ICONS[actionid]
 
 
 def config_path(configpath=None):
