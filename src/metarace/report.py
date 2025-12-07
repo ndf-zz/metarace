@@ -1865,6 +1865,8 @@ class bullet_text:
                 rem.heading += ' (continued)'
         ret.bullet = self.bullet
         rem.bullet = self.bullet
+        ret.width = self.width
+        rem.width = self.width
         seclines = len(self.lines)
         count = 0
         if seclines > 0:
