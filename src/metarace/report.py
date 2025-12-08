@@ -413,7 +413,7 @@ class dual_ittt_startlist:
         self.showheats = False  # show heat labels?
         self.units = None
         self.lines = []
-        self.fslbl = 'Front Straight'
+        self.fslbl = 'Home Straight'
         self.bslbl = 'Back Straight'
         self.lcount = 0
         self.nobreak = False
@@ -609,30 +609,25 @@ class dual_ittt_startlist:
         if len(self.lines) > 0:
             rows = []
             for r in self.lines:
-                nv = [None, None, None]
+                nv = [None, None, None, None]
                 if self.showheats and r[0] and r[0] != '-':
                     nv[0] = 'Heat ' + str(r[0])
-                if len(r) > 3:  # front straight
+                if len(r) > 4:  # home straight
                     nv[1] = r[1]
                     nv[2] = r[2]
-                    if isinstance(r[3], str):
-                        nv.append(r[3])
+                    nv[3] = r[3]
                 rows.append(nv)  # allow empty
-                if len(r) > 3 and isinstance(r[3], (tuple, list)):
-                    for tm in r[3]:
-                        tv = [None, tm[0], tm[1]]
-                        rows.append(tv)
-                if len(r) > 7:  # back straight
-                    nv = [None, r[5], r[6]]
-                    if isinstance(r[7], str):
-                        nv.append(r[7])
+                if len(r) > 4 and isinstance(r[4], (tuple, list)):
+                    for tm in r[4]:
+                        rows.append(tm)
+                if len(r) > 9:  # back straight
+                    nv = [None, r[6], r[7], r[8]]
                     rows.append(nv)
                 elif dual:
                     rows.append([None, None, '[No Rider]'])
-                if len(r) > 7 and isinstance(r[7], (tuple, list)):
-                    for tm in r[7]:
-                        tv = [None, tm[0], tm[1]]
-                        rows.append(tv)
+                if len(r) > 9 and isinstance(r[9], (tuple, list)):
+                    for tm in r[9]:
+                        rows.append(tm)
 
             for rw in rows:
                 l = vecmapstr(rw)
@@ -667,25 +662,22 @@ class dual_ittt_startlist:
                 nv = [None, None, None, None]
                 if self.showheats and r[0] and r[0] != '-':
                     nv[0] = 'Heat ' + str(r[0]) + ':'
-                if len(r) > 3:  # front straight
+                if len(r) > 4:  # home straight
                     nv[1] = r[1]
                     nv[2] = r[2]
-                if not self.showheats:
                     nv[3] = r[3]
                 rows.append(nv)
-                if len(r) > 3 and isinstance(r[3], (tuple, list)):
-                    for tm in r[3]:
-                        tv = [None, tm[0], tm[1]]
-                        rows.append(tv)
-                if len(r) > 7:  # back straight
-                    nv = [None, r[5], r[6]]
+                if len(r) > 4 and isinstance(r[4], (tuple, list)):
+                    for tm in r[4]:
+                        rows.append(tm)
+                if len(r) > 9:  # back straight
+                    nv = [None, r[6], r[7], r[8]]
                     rows.append(nv)
                 elif dual:
                     rows.append([None, None, '[No Rider]'])
-                if len(r) > 7 and isinstance(r[7], (tuple, list)):
-                    for tm in r[7]:
-                        tv = [None, tm[0], tm[1]]
-                        rows.append(tv)
+                if len(r) > 9 and isinstance(r[9], (tuple, list)):
+                    for tm in r[9]:
+                        rows.append(tm)
             trows = []
             for l in rows:
                 trows.append(vec2htmlrow(l))
@@ -5577,7 +5569,7 @@ class report:
             h += self.line_height
         rcnt = 1  # assume one row unless team members
         tcnt = 0
-        if len(hvec) > 4:  # got a front straight
+        if len(hvec) > 4:  # got a home straight
             self.ittt_lane([hvec[1], hvec[2], hvec[3]], self.body_left, h)
             if isinstance(hvec[4], (tuple, list)):  # additional member rows
                 tcnt = len(hvec[4])
