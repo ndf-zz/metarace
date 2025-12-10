@@ -309,11 +309,15 @@ def listname(first, last=None, club=None):
 
 def reformat_bibserlist(bibserstr):
     """Filter and return a bib.ser start list."""
+    if not isinstance(bibserstr, str):
+        return ''
     return ' '.join(bibserstr.translate(BIBSERLIST_UTRANS).split())
 
 
 def reformat_bibserplacelist(placestr):
     """Filter and return a canonically formatted bib.ser place list."""
+    if not isinstance(placestr, str):
+        return ''
     if '-' not in placestr:  # This is the 'normal' case!
         return reformat_bibserlist(placestr)
     # otherwise, filter dead heats
@@ -325,11 +329,16 @@ def reformat_bibserplacelist(placestr):
 
 def reformat_biblist(bibstr):
     """Filter and return a canonically formatted start list."""
+    if not isinstance(bibstr, str):
+        return ''
     return ' '.join(bibstr.translate(BIBLIST_UTRANS).split())
 
 
 def riderlist_split(riderstr, rdb=None, series=''):
     """Filter, search and return a list of matching riders for entry."""
+    if not isinstance(riderstr, str):
+        return []
+
     riderstr = riderstr.upper()
     dstlist = []
 
