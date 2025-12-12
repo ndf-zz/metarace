@@ -14,6 +14,37 @@
 
 ### Security
 
+## [2.1.21]
+
+### Added
+
+   - add method to fetch symbolic action icon for named action id
+
+### Changed
+
+   - replace stat but svg files with symbolic icons
+   - copy application icon and action icons to XDG folder in init
+   - update installer to skip loading application icon, except for WSL
+   - alter riderdb column Date of Birth to Year of Birth, and strip
+     month and day on save
+   - adjust bottom of program template to avoid overlap
+   - decreas width of sprint final boxes when page width is less than 150mm
+     for A5 program output
+
+### Deprecated
+
+### Removed
+
+   - stat button backgound svg images
+
+### Fixed
+
+   - retain overridden width on bullet section broken over a page boundary
+   - correct text and xlsx export on dual track startlist sections
+   - ignore non-str argument to rider/place split operations
+
+### Security
+
 ## [2.1.20] - 2025-12-05
 
 ### Added
