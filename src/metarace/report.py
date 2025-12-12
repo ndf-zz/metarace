@@ -1418,9 +1418,11 @@ class sprintfinal:
             report.h += report.section_height
         heatlbls = False
         hof = report.h
+        hw = mm2pt(20)
+        if report.body_width < mm2pt(150):
+            hw = mm2pt(15)
         if len(self.lines) > 0:
             for i in self.lines:
-                hw = mm2pt(20)
                 hl = report.midpagew + hw
                 h1t = hl + 0.5 * hw
                 h2t = h1t + hw

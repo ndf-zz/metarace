@@ -82,6 +82,7 @@ _ALT_COLUMNS = {
     'data': 'data',
     'date': 'yob',
     'year': 'yob',
+    'dob': 'yob',
 }
 
 # Category columns
@@ -765,6 +766,7 @@ class rider():
 
     def get_row(self, coldump=_DEFAULT_COLUMN_ORDER):
         """Return a row ready to export."""
+        self.set_value('yob', _toyear(self['yob']))
         return (str(self[c]) for c in coldump)
 
     def set_notify(self, callback=None):
@@ -1028,8 +1030,6 @@ class riderdb():
                 val = cellnorm(r[i])
                 if key == 'series':
                     val = val.lower()
-                elif key == 'yob':
-                    val = _toyear(val)
                 nr[key] = val
         if nr['no']:
             if colkey(nr['no']) in _RIDER_COLUMNS:
