@@ -2381,6 +2381,8 @@ class laptimes:
 
     def get_h(self, report):
         """Return total height on page of section on report."""
+        if self.absolute:
+            return 0
         if self.h is None or len(self.lines) != self.lcount:
             self.lcount = len(self.lines)
             self.h = report.line_height * self.lcount
@@ -3691,25 +3693,33 @@ class section:
     def get_h(self, report):
         """Return total height on page of section on report."""
         if self.h is None or len(self.lines) != self.lcount:
-            self.lcount = len(self.lines)
-            for l in self.lines:
-                if len(l) > 6 and l[6] and isinstance(l[6], (tuple, list)):
-                    self.lcount += 1
-            self.h = report.line_height * self.lcount
-            if self.colheader:  # colheader is written out with body
-                self.h += report.line_height
+            h = 0
             if self.heading:
-                self.h += report.section_height
+                h += report.section_height
             if self.subheading:
-                self.h += report.section_height
-            if self.footer:
-                self.h += report.line_height
+                h += report.section_height
+            cnt = 0
+            if len(self.lines) > 0:
+                if self.colheader:
+                    h += report.standard_row_height(report.h, self.colheader)
+                for r in self.lines:
+                    cnt += 1
+                    h += report.standard_row_height(report.h, r, False)
+                    if len(r) > 6 and isinstance(r[6], (tuple, list)):
+                        h += report.standard_row_height(report.h, r[6], False)
             if self.prizes:
-                self.h += report.line_height
+                h += report.line_height
+            if self.footer:
+                h += report.line_height
+            self.h = h
+            self.lcount = cnt
         return self.h
 
     def truncate(self, remainder, report):
         """Return a copy of the section up to page break."""
+
+        pagefrac = report.pagefrac()
+        h = self.get_h(report)
 
         # Special case: Entire section will fit on page
         if self.get_h(report) <= (remainder + report.page_overflow):
@@ -4206,7 +4216,6 @@ class report:
     def __init__(self, template=None):
 
         # load template	-> also declares page geometry variables
-        #_log.debug('Load report, template=%r', template)
         self.html_template = ''
         self.coverpage = None
         self.loadconfig(template)
@@ -4320,7 +4329,6 @@ class report:
         """Initialise the report template."""
 
         # Default page geometry
-        #_log.debug('Loading report configuration')
         self.pagew = 595.0
         self.pageh = 842.0
         self.sidemargin = mm2pt(25.5)
@@ -4381,12 +4389,9 @@ class report:
         self.template_version = ''
         self.template_descr = ''
         if cr.has_option('description', 'text'):
-            #_log.debug('API: %s, template: %s', APIVERSION,
-            #cr.get('description', 'text'))
             self.template_descr = cr.get('description', 'text')
         else:
             pass
-            #_log.debug('API: %s, template: UNKNOWN', APIVERSION)
         if cr.has_option('description', 'version'):
             self.template_version = cr.get('description', 'version')
         if cr.has_option('description', 'keywords'):
@@ -4432,7 +4437,6 @@ class report:
         self.twocol_width = TWOCOL_WIDTH
         if cr.has_option('page', 'twocolwidth'):
             self.twocol_width = str2len(cr.get('page', 'twocolwidth'))
-        #_log.debug('Reset page geometry')
         self.reset_geometry()
         if cr.has_option('page', 'elements'):
             self.header = cr.get('page', 'elements').split()
@@ -4446,7 +4450,6 @@ class report:
                 _log.info('Coverpage file not found - skipped')
 
         # read in font declarations
-        #_log.debug('Loading fonts from template')
         for s in cr.options('fonts'):
             if s == 'gamutstdfont':
                 self.gamutstdfont = cr.get('fonts', s)
@@ -4455,7 +4458,6 @@ class report:
             else:
                 self.fonts[s] = Pango.FontDescription(cr.get('fonts', s))
         # read in string declarations
-        #_log.debug('Reading strings from template')
         for s in cr.options('strings'):
             self.strings[s] = cr.get('strings', s)
         # read in colours
@@ -4662,11 +4664,9 @@ class report:
 
     def output_json(self, file=None):
         """Output the JSON version."""
-        #_log.debug('JSON output: Start')
         ret = self.serialise()
         # serialise to the provided file handle
         json.dump(ret, file, indent=1, sort_keys=True, cls=_publicEncoder)
-        #_log.debug('JSON output: End')
 
     def serialise(self):
         """Return a serialisable report object"""
@@ -4699,7 +4699,6 @@ class report:
         rep['sections'] = []
         secmap = ret['sections']
         for s in self.sections:
-            #_log.debug('Serialise section: %s', s.sectionid)
             secid = mksectionid(secmap, s.sectionid)
             secmap[secid] = s.serialize(self, secid)
             rep['sections'].append(secid)
@@ -4707,7 +4706,6 @@ class report:
 
     def output_xlsx(self, file=None):
         """Output xlsx spreadsheet."""
-        #_log.debug('XLSX output: Start')
         wb = xlsxwriter.Workbook(file, {'in_memory': True})
 
         sheetname = 'report'
@@ -4764,11 +4762,9 @@ class report:
         # output all the sections...
         for s in self.sections:
             if type(s) is not pagebreak:
-                #_log.debug('Draw xlsx section %s', s.sectionid)
                 s.draw_xlsx(self, ws)  # call into section to draw
 
         wb.close()
-        #_log.debug('XLSX output: End')
 
     def macrowrite(self, file=None, text=''):
         """Write text to file substituting macros in text."""
@@ -4800,7 +4796,6 @@ class report:
 
     def output_html(self, file=None, linkbase='', linktypes=[]):
         """Output a html version of the report."""
-        #_log.debug('HTML output: Start')
         cw = file
         navbar = []
         #for link in self.customlinks:  # to build custom toolbars
@@ -4895,7 +4890,6 @@ class report:
 
         # macro output the footer of the template
         self.macrowrite(cw, bot)
-        #_log.debug('HTML output: End')
 
     def output_htmlintext(self,
                           file=None,
@@ -4966,7 +4960,6 @@ class report:
             s.sectionid = secid
         for s in self.sections:
             if type(s) is not pagebreak:
-                #_log.debug('Output HTML section %s', s.sectionid)
                 s.draw_text(self, cw, htmlxtn)  # call into section
         cw.write('\n')
 
@@ -4990,7 +4983,6 @@ class report:
 
     def output_pdf(self, file=None, docover=False):
         """Prepare document and then output to a PDF surface."""
-        #_log.debug('PDF output: Start')
 
         # create output cairo surface and save contexts
         self.s = cairo.PDFSurface(file, self.pagew, self.pageh)
@@ -4999,7 +4991,6 @@ class report:
 
         # break report into pages as required
         self.paginate()
-        #_log.debug('Report len: %d pages', len(self.pages))
 
         # Special case: remove an empty final page
         if len(self.pages) > 0 and len(self.pages[-1]) == 0:
@@ -5014,29 +5005,23 @@ class report:
 
         # output each page
         for i in range(0, npages):
-            #_log.debug(' - %s draw page: Start', self.id)
             self.draw_page(i)
             if i < npages - 1:
-                #_log.debug(' - %s draw page: %d/%d', self.id, i + 1, npages)
                 self.c.show_page()  # start a new blank page
-            #_log.debug(' - %s draw page: End', self.id)
 
         # finalise surface - may be a blank pdf if no content
         self.s.flush()
         self.s.finish()
-        #_log.debug('PDF output: End')
 
     def draw_element(self, elem):
         """Draw the named element if it is defined."""
         if elem in self.elements:
             self.elements[elem].draw(self.c, self.p)
-            #_log.debug('Draw pdf template element %r', elem)
         else:
             pass
 
     def draw_template(self):
         """Draw page layout."""
-        #_log.debug('Draw pdf template')
         for e in self.header:
             self.draw_element(e)
         self.draw_element('pagestr')
@@ -5088,14 +5073,12 @@ class report:
             for s in self.pages[page_nr]:
                 s.draw_pdf(self)  # call into section to draw
                 self.h += self.line_height  # inter-section gap
-                #_log.debug('Add PDF section %s', s.sectionid)
 
         # if requested, overlay page marks
         if self.pagemarks:
             self.draw_pagemarks()
 
         # restore context
-        #_log.debug('draw page: restore context')
         self.c.restore()
 
     def teamname_height(self, text, width=None):
@@ -5446,6 +5429,10 @@ class report:
 
         return self.line_height
 
+    def standard_row_height(self, h, rvec, zebra=None, strikethrough=False):
+        """Return standard row height."""
+        return self.line_height
+
     def standard_row(self, h, rvec, zebra=None, strikethrough=False):
         """Output a standard section row, and return the row height."""
         if zebra:
@@ -5738,18 +5725,6 @@ class report:
             tw = logr.width * PANGO_INVSCALE
             th = logr.height * PANGO_INVSCALE
             oft = w + twof
-
-            # mark up reference
-            #metrics = l.get_context().get_metrics(font)
-            #fnh = metrics.get_height() * PANGO_INVSCALE
-            #fna = metrics.get_ascent() * PANGO_INVSCALE
-            #fnd = metrics.get_descent() * PANGO_INVSCALE
-            #stp = metrics.get_strikethrough_position() * PANGO_INVSCALE
-            #_log.debug('lh=%0.2f, fnh=%0.2f, fna=%0.2f, fnd=%0.2f',
-            #self.line_height, fnh, fna, fnd)
-            #fnh = fna+fnd
-            #cbl = 0.5 * self.line_height + 0.5 * fnh - fnd
-            #lineoft = cbl - baseline
 
             if right:
                 oft = w - (tw + twof)
