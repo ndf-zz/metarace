@@ -619,6 +619,14 @@ class todlist:
                 lt[0].refid = newno
                 lt[0].index = newseries
 
+    def istime(self, idx):
+        """Return true if there is a valid time at this index."""
+        ret = False
+        if len(self.__store) > idx:
+            if not self.__store[idx][0] > FAKETIMES['max']:
+                ret = True
+        return ret
+
     def rank(self, bib, series=''):
         """Return current 0-based rank for given bib."""
         ret = None
