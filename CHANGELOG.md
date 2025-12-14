@@ -28,8 +28,10 @@
    - alter riderdb column Date of Birth to Year of Birth, and strip
      month and day on save
    - adjust bottom of program template to avoid overlap
-   - decreas width of sprint final boxes when page width is less than 150mm
+   - decrease width of sprint final boxes when page width is less than 150mm
      for A5 program output
+   - suppress incomplete lap time implementation from PDF when
+     mode is absolute
 
 ### Deprecated
 
@@ -42,6 +44,8 @@
    - retain overridden width on bullet section broken over a page boundary
    - correct text and xlsx export on dual track startlist sections
    - ignore non-str argument to rider/place split operations
+   - correct height estimation on standard result sections to improve
+     pdf pagination near end of page
 
 ### Security
 
