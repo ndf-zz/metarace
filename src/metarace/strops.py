@@ -237,6 +237,18 @@ def rank2int(rank):
     return ret
 
 
+def mark2mark(handicap):
+    """Normalise a handicap string for use in trackmeet"""
+    ret = ''
+    mark = mark2int(str(handicap))
+    if mark is not None:
+        if mark == 0:
+            ret = 'scr'
+        else:
+            ret = str(mark) + 'm'
+    return ret
+
+
 def mark2int(handicap):
     """Convert a handicap string into an integer number of metres."""
     handicap = handicap.strip().lower()
