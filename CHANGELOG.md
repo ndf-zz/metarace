@@ -19,6 +19,7 @@
 ### Added
 
    - add method to fetch symbolic action icon for named action id
+   - add method to normalise wheelrace mark
 
 ### Changed
 

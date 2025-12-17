@@ -1323,14 +1323,20 @@ class riderdb():
             ret = self.get_rider(rh['no'], 'pilot')  # TBC pilot marking
         return ret
 
-    def get_pilot_line(self, rh):
+    def get_pilot_line(self, rh, uci=False):
         """Return a pilot line or None if not available."""
         ret = None
         ph = self.get_pilot(rh)
         if ph is not None:
-            ret = ph.get_line('pilot')
-            ret[0] = ' '  # suppress underline
-            ret[1] = ''  # suppress pilot number
+            if not uci:
+                ret = ph.get_line('pilot')
+                ret[0] = ' '  # suppress underline
+                ret[1] = ''  # suppress pilot number
+            else:
+                ret = [
+                    ' ', 'pilot',
+                    ph.resname(), ph['uciid'], ph['nation'], None
+                ]
         return ret
 
     def sort(self, notify=True):

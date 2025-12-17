@@ -1692,6 +1692,10 @@ class rttstartlist:
                 if len(r) > 3:
                     if r[3] and r[3].lower() == 'pilot':
                         pass  # keep pilots in same shade
+                    elif r[1] and r[1].lower() == 'pilot':
+                        pass  # keep pilots in same shade
+                    elif r[0] == ' ':
+                        pass  # keep teams in same shade
                     elif not (r[0] or r[1] or r[2] or r[3]):
                         cnt = 0  # empty row?
                     else:
@@ -3809,6 +3813,10 @@ class section:
                 if len(r) > 3:
                     if r[3] and r[3].lower() == 'pilot':
                         pass  # keep pilots in same shade
+                    elif r[1] and r[1].lower() == 'pilot':
+                        pass  # keep pilots in same shade
+                    elif r[0] == ' ':
+                        pass  # keep teams in same shade
                     elif not (r[0] or r[1] or r[2] or r[3]):
                         cnt = 1  # empty row?
                     else:
