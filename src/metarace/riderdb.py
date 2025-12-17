@@ -555,8 +555,8 @@ class rider():
     def get_line(self, clslbl=None):
         """Return a mutable standard result/start line."""
         if clslbl is None:
-            clslbl = self.__store['class']
-        return [None, self.__store['no'], self.resname(), clslbl, None, None]
+            clslbl = self['class']
+        return [None, self['no'], self.resname(), clslbl, None, None]
 
     def copy(self):
         """Return copy of this rider"""
