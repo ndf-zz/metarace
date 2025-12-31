@@ -524,9 +524,14 @@ def primary_cat(catstr=''):
 
 def colkey(colstr=''):
     """Convert a column header string to a colkey."""
-    col = colstr[0:4].strip().lower()
-    if col in _ALT_COLUMNS:
-        col = _ALT_COLUMNS[col]
+    if colstr.startswith('X '):
+        col = colstr.upper()
+        if col not in _RIDER_COLUMNS:
+            _RIDER_COLUMNS[col] = colstr  # retain extension columns
+    else:
+        col = colstr[0:4].strip().lower()
+        if col in _ALT_COLUMNS:
+            col = _ALT_COLUMNS[col]
     return col
 
 
@@ -1061,9 +1066,13 @@ class riderdb():
                         if colkey(r[0]) in _RIDER_COLUMNS:
                             incols = []
                             for col in r:
-                                incols.append(colkey(col))
+                                ck = colkey(col)
+                                incols.append(ck)
+                                if ck.startswith(
+                                        'X ') and ck not in self.include_cols:
+                                    self.include_cols.append(ck)
                         else:
-                            incols = _DEFAULT_COLUMN_ORDER  # assume full
+                            incols = list(_DEFAULT_COLUMN_ORDER)  # assume full
                             nr = self.__loadrow(r, incols)
                 if nr is not None:
                     self.add_rider(nr, notify=False, overwrite=overwrite)
@@ -1189,9 +1198,13 @@ class riderdb():
                         if colkey(r[0]) in _RIDER_COLUMNS:
                             incols = []
                             for col in r:
-                                incols.append(colkey(col))
+                                ck = colkey(col)
+                                incols.append(ck)
+                                if ck.startswith(
+                                        'X ') and ck not in self.include_cols:
+                                    self.include_cols.append(ck)
                         else:
-                            incols = _DEFAULT_COLUMN_ORDER  # assume full
+                            incols = list(_DEFAULT_COLUMN_ORDER)  # assume full
                             nr = self.__loadrow(r, incols)
                 if nr is not None:
                     if nr['refid'] and nr['series'] not in _RESERVED_SERIES:
@@ -1388,4 +1401,4 @@ class riderdb():
         """Constructor for the event db."""
         self.__store = {}
         self.__notify = self.__def_notify
-        self.include_cols = _DEFAULT_COLUMN_ORDER
+        self.include_cols = list(_DEFAULT_COLUMN_ORDER)
