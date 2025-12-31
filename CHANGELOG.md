@@ -13,13 +13,14 @@
 ### Fixed
 
 ### Security
-
-## [2.1.21]
+ 
+## [2.1.21] - 2025-12-31
 
 ### Added
 
    - add method to fetch symbolic action icon for named action id
    - add method to normalise wheelrace mark
+   - load and save user custom rider db headers prefixed with "X "
 
 ### Changed
 
@@ -34,8 +35,6 @@
    - suppress incomplete lap time implementation from PDF when
      mode is absolute
 
-### Deprecated
-
 ### Removed
 
    - stat button backgound svg images
@@ -47,8 +46,7 @@
    - ignore non-str argument to rider/place split operations
    - correct height estimation on standard result sections to improve
      pdf pagination near end of page
-
-### Security
+   - team member lookup with get_line
 
 ## [2.1.20] - 2025-12-05
 

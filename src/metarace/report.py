@@ -2175,7 +2175,7 @@ class event_index:
         """Return total height on page of section on report."""
         if self.h is None or len(self.lines) != self.lcount:
             # Set an estimate h for json export with no pdf
-            self.h = report.line_height * len(self.lines)
+            self.h = report.line_height * (len(self.lines) + 1)
             if self.colheader:  # colheader is written out with body
                 self.h += report.line_height
                 cvec.append(['-', '-', '-', '-', '-', '-'])
