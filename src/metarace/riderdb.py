@@ -537,7 +537,16 @@ def colkey(colstr=''):
 
 def get_header(cols=_DEFAULT_COLUMN_ORDER, hdrs=_RIDER_COLUMNS):
     """Return a row of header strings for the provided cols."""
-    return (hdrs[colkey(c)] for c in cols)
+    ret = []
+    for c in cols:
+        ck = colkey(c)
+        if c in hdrs:
+            ret.append(hdrs[ck])
+        elif c in _RIDER_COLUMNS:
+            ret.append(_RIDER_COLUMNS[ck])
+        else:
+            ret.append(ck)
+    return ret
 
 
 def cellnorm(unistr):

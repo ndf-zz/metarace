@@ -14,6 +14,22 @@
 
 ### Security
  
+## [2.1.22]
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+   - save/load riders with 'X ' cols and defined categories
+
+### Security
+
 ## [2.1.21] - 2025-12-31
 
 ### Added
