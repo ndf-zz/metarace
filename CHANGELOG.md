@@ -18,9 +18,11 @@
 
 ### Added
 
-   - Mark winners on sprint final report section with bullet
+   - mark winners on sprint final report section with bullet
 
 ### Changed
+
+   - suppress duplicate key entries in JSON config
 
 ### Deprecated
 
