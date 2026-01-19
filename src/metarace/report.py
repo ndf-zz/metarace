@@ -1463,7 +1463,10 @@ class sprintfinal:
                                     hb - 0.1 * report.line_height)
 
                 # draw all the "a" rider info
-                report.sprint_rider(i[1], report.body_left + hw, hof)
+                awin = False
+                if len(i[1]) > 8:
+                    awin = i[1][8]
+                report.sprint_rider(i[1], report.body_left + hw, hof, win=awin)
                 if i[1][4]:
                     report.text_cent(h1t, hof, i[1][4], report.fonts['body'])
                 if i[1][5]:
@@ -1473,7 +1476,10 @@ class sprintfinal:
                 hof += report.line_height
 
                 # draw all the "b" rider info
-                report.sprint_rider(i[2], report.body_left + hw, hof)
+                bwin = False
+                if len(i[2]) > 8:
+                    bwin = i[2][8]
+                report.sprint_rider(i[2], report.body_left + hw, hof, win=bwin)
                 if i[2][4]:
                     report.text_cent(h1t, hof, i[2][4], report.fonts['body'])
                 if i[2][5]:
@@ -5600,11 +5606,14 @@ class report:
 
         return h
 
-    def sprint_rider(self, rvec, w, h):
+    def sprint_rider(self, rvec, w, h, win=False):
         baseline = self.get_baseline(h)
         # ignore rank in sprint round - defer to other markup
         doline = True
+        if win:
+            self.text_right(w, h, '\u2023', self.fonts['body'])
         if rvec[1]:  # rider no
+            self.text_right(w + mm2pt(5.0), h, rno, self.fonts['body'])
             self.text_right(w + mm2pt(5.0), h, rvec[1], self.fonts['body'])
             doline = False
         if rvec[2]:  # rider name

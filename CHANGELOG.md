@@ -18,6 +18,8 @@
 
 ### Added
 
+   - Mark winners on sprint final report section with bullet
+
 ### Changed
 
 ### Deprecated
