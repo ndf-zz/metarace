@@ -53,17 +53,6 @@ def _config_object(obj):
     return obj
 
 
-def _config_pair_hook(obres):
-    """Suppress duplicate key/value entries in JSON object."""
-    ret = {}
-    for k, v in obres:
-        if k in ret:
-            _log.warning('Ignored duplicate object key: %r: %r', k, v)
-        else:
-            ret[k] = v
-    return ret
-
-
 class _configEncoder(json.JSONEncoder):
     """Serialise tod and Decimal objects to config."""
 
@@ -397,17 +386,11 @@ class config:
 
     def reads(self, s):
         """Read config from a JSON-encoded string."""
-        self.addconf(
-            json.loads(s,
-                       object_hook=_config_object,
-                       object_pairs_hook=_config_pair_hook))
+        self.addconf(json.loads(s, object_hook=_config_object))
 
     def read(self, file):
         """Read config from file."""
-        self.addconf(
-            json.load(file,
-                      object_hook=_config_object,
-                      object_pairs_hook=_config_pair_hook))
+        self.addconf(json.load(file, object_hook=_config_object))
 
     def addconf(self, obj):
         """Add all sections and values from obj to self."""
