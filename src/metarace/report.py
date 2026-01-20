@@ -4262,13 +4262,15 @@ class report:
         self.startlink = None
         self.canonical = None
         self.pagemarks = False
+        self.booklet = False
+        self.startpage = 0  # offsrt page numbers
+        self.endpages = 0  # additional pages after last
         self.meetcode = None
         self.keywords = []
         self.s = None
         self.c = None
         self.p = None  # these are filled as required by the caller
         self.h = None  # position on page during write
-        self.curpage = None  # current page in report
         self.sections = []  # source section data
         self.pages = []  # paginated sections
 
@@ -5071,11 +5073,17 @@ class report:
         self.c.clip()
 
         # initialise status values
-        self.curpage = page_nr + 1
         self.h = self.body_top
-        self.strings['pagestr'] = 'Page ' + str(self.curpage)
-        if self.get_pages() > 0:
-            self.strings['pagestr'] += ' of ' + str(self.get_pages())
+
+        if self.get_pages() > 1:
+            curpage = page_nr + 1 + self.startpage
+            self.strings['pagestr'] = 'Page ' + str(curpage)
+            tpages = self.endpages + self.get_pages()
+            if self.booklet:
+                tpages = 4 * int(math.ceil(tpages / 4))
+            self.strings['pagestr'] += ' of ' + str(tpages)
+        else:
+            self.strings['pagestr'] = ''
 
         # draw page template
         if self.provisional:
@@ -5613,7 +5621,6 @@ class report:
         if win:
             self.text_right(w, h, '\u2023', self.fonts['body'])
         if rvec[1]:  # rider no
-            self.text_right(w + mm2pt(5.0), h, rno, self.fonts['body'])
             self.text_right(w + mm2pt(5.0), h, rvec[1], self.fonts['body'])
             doline = False
         if rvec[2]:  # rider name

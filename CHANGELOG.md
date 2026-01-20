@@ -19,10 +19,9 @@
 ### Added
 
    - mark winners on sprint final report section with bullet
+   - start page offset and additional pages for booklet program reports
 
 ### Changed
-
-   - suppress duplicate key entries in JSON config
 
 ### Deprecated
 
