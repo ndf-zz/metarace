@@ -570,6 +570,7 @@ class agg(tod):
 ZERO = tod()
 ONE = tod(1)
 MINUTE = tod('1:00')
+HOUR = tod('1h00:00')
 MAX = tod('23h59:59.999980')  # largest val possible for tod
 MAXELAP = tod('23h30:00')  # max displayed elapsed time
 

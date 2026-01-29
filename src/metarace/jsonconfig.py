@@ -253,7 +253,7 @@ class config:
                 pass
                 #_log.debug('No value assigned for option %r:%r', section,key)
         else:
-            _log.debug('Requested value %r:%r not in schema', section, key)
+            #_log.debug('Requested value %r:%r not in schema', section, key)
             if self.has_option(section, key):
                 ret = self.get(section, key)
         return ret

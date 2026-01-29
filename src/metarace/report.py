@@ -2157,6 +2157,7 @@ class event_index:
         self.subheading = None  # scalar
         self.footer = None
         self.units = None  # scalar
+        self.breakhints = []  # suggested page break points
         self.lines = []  # list of column lists
         self.lcount = 0
         self.h = None
@@ -2168,6 +2169,7 @@ class event_index:
         ret['type'] = 'eventindex'
         ret['heading'] = self.heading
         ret['status'] = self.status
+        ret['breakhints'] = self.breakhints
         ret['subheading'] = self.subheading
         ret['colheader'] = self.colheader
         ret['footer'] = self.footer
@@ -2213,13 +2215,19 @@ class event_index:
             # move entire section onto next page
             return (pagebreak(), self)
 
-        # Standard case - section crosses page break, determines
+        # break required
         # ret: content on current page
         # rem: content on subsequent pages
-        ret = event_index()
-        rem = event_index()
+        ret = event_index(self.sectionid)
+        rem = event_index(self.sectionid)
+        ret.status = self.status
         ret.heading = self.heading
         ret.subheading = self.subheading
+        ret.footer = self.footer
+        ret.units = self.units
+        rem.status = self.status
+        rem.footer = self.footer
+        rem.units = self.units
         rem.heading = self.heading
         rem.subheading = self.subheading
         if rem.heading is not None:
@@ -2227,8 +2235,24 @@ class event_index:
                 rem.heading += ' (continued)'
         ret.colheader = self.colheader
         rem.colheader = self.colheader
-        ret.units = self.units
-        rem.units = self.units
+
+        # Try to break on a preferred line
+        _log.debug('index break required hints = %r', self.breakhints)
+        if self.breakhints:
+            hints = self.breakhints.copy()
+            while hints:
+                breakhint = hints.pop(0)
+                if breakhint > 2 and len(self.lines) > breakhint:
+                    _log.debug('check hint=%d', breakhint)
+                    ret.lines = self.lines[0:breakhint]
+                    if ret.get_h(report) <= remainder:
+                        # hinted break is OK, take it
+                        rem.breakhints = hints
+                        rem.lines = self.lines[breakhint:]
+                        _log.debug('break ok, remaining hints: %r', hints)
+                        return (ret, rem)
+
+        # Standard case - section crosses page break, determines
         seclines = len(self.lines)
         count = 0
         if seclines > 0:
@@ -3676,6 +3700,7 @@ class section:
         self.prizes = None
         self.footer = None
         self.lines = []
+        self.breakhints = []  # suggested page break points
         self.lcount = 0
         self.grey = True
         self.nobreak = False
@@ -3696,6 +3721,7 @@ class section:
         ret['prizes'] = self.prizes
         ret['units'] = self.units
         ret['lines'] = self.lines
+        ret['breakhints'] = self.breakhints
         ret['height'] = self.get_h(rep)
         ret['count'] = self.lcount
         return ret
@@ -3742,6 +3768,7 @@ class section:
 
         # Special case: Not enough space for minimum content
         chk = section()
+        chk.status = self.status
         chk.heading = self.heading
         chk.subheading = self.subheading
         chk.colheader = self.colheader
@@ -3756,17 +3783,21 @@ class section:
             # move entire section onto next page
             return (pagebreak(), self)
 
-        # Standard case - section crosses page break, determines
+        # Standard case - section crosses page break
         # ret: content on current page
         # rem: content on subsequent pages
-        ret = section()
-        rem = section()
+        ret = section(self.sectionid)
+        rem = section(self.sectionid)
+
+        ret.status = self.status
         ret.heading = self.heading
         ret.subheading = self.subheading
         ret.colheader = self.colheader
         ret.footer = self.footer
         ret.prizes = self.prizes
         ret.units = self.units
+
+        rem.status = self.status
         rem.heading = self.heading
         rem.subheading = self.subheading
         rem.colheader = self.colheader
@@ -3776,6 +3807,24 @@ class section:
         if rem.heading is not None:
             if rem.heading.rfind('(continued)') < 0:
                 rem.heading += ' (continued)'
+
+        # Try to break on a preferred line
+        _log.debug('Break required, hints=%r', self.breakhints)
+        if self.breakhints:
+            hints = self.breakhints.copy()
+            while hints:
+                breakhint = hints.pop(0)
+                if breakhint > 2 and len(self.lines) > breakhint:
+                    _log.debug('check hint=%d', breakhint)
+                    ret.lines = self.lines[0:breakhint]
+                    if ret.get_h(report) <= remainder:
+                        # hinted break is OK, take it
+                        rem.breakhints = hints
+                        rem.lines = self.lines[breakhint:]
+                        _log.debug('break ok, remaining hints: %r', hints)
+                        return (ret, rem)
+
+        # determine break line by line
         seclines = len(self.lines)
         count = 0
         if seclines > 0:
@@ -5019,10 +5068,14 @@ class report:
             self.c.show_page()  # start a new blank page
             _log.debug('Added coverpage')
 
-        # output each page
-        for i in range(0, npages):
+        # output each page  - Endpages are not generated by this, only padding
+        tpages = npages
+        if self.booklet:
+            tpages = 4 * int(math.ceil(tpages / 4))
+
+        for i in range(0, tpages):
             self.draw_page(i)
-            if i < npages - 1:
+            if i < tpages - 1:
                 self.c.show_page()  # start a new blank page
 
         # finalise surface - may be a blank pdf if no content
@@ -5075,10 +5128,11 @@ class report:
         # initialise status values
         self.h = self.body_top
 
+        startoft = max(0, self.startpage - 1)
         if self.get_pages() > 1:
-            curpage = page_nr + 1 + self.startpage
+            curpage = page_nr + 1 + startoft
             self.strings['pagestr'] = 'Page ' + str(curpage)
-            tpages = self.endpages + self.get_pages()
+            tpages = startoft + self.endpages + self.get_pages()
             if self.booklet:
                 tpages = 4 * int(math.ceil(tpages / 4))
             self.strings['pagestr'] += ' of ' + str(tpages)

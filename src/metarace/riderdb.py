@@ -277,6 +277,13 @@ _SERIES_SCHEMA = {
         'defer': True,
         'default': '',
     },
+    'cat': {
+        'prompt': 'Categories:',
+        'attr': 'cat',
+        'defer': True,
+        'hint': 'Space separated list of categories',
+        'default': '',
+    },
     'note': {
         'prompt': 'Footer:',
         'attr': 'note',
@@ -1047,11 +1054,11 @@ class riderdb():
                 nr[key] = val
         if nr['no']:
             if colkey(nr['no']) in _RIDER_COLUMNS:
-                _log.debug('Column header: %r', r)
+                _log.debug('Skip column header: %r', r)
                 return None
         else:
             if nr['series'] != 'series':
-                _log.warning('%s without number: %s %s', nr.get_label(),
+                _log.info('%s without number: %s %s', nr.get_label(),
                              nr.get_bibstr(), nr.resname())
         return nr
 
@@ -1377,7 +1384,7 @@ class riderdb():
         ret = None
         if series is not None:
             series = series.lower()
-        else:
+        elif riderno is not None:
             riderno, series = strops.bibstr2bibser(riderno)
         rkey = (riderno, series)
         if rkey in self.__store:
