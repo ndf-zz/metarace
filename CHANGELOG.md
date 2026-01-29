@@ -14,24 +14,21 @@
 
 ### Security
  
-## [2.1.22]
+## [2.1.22] 2026-01-29
 
 ### Added
 
    - mark winners on sprint final report section with bullet
    - start page offset and additional pages for booklet program reports
+   - allow page break hints on standard section and index of events
 
 ### Changed
 
-### Deprecated
-
-### Removed
+   - allow specifying number series with a list of categories for rider listings
 
 ### Fixed
 
    - save/load riders with 'X ' cols and defined categories
-
-### Security
 
 ## [2.1.21] - 2025-12-31
 

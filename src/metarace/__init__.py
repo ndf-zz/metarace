@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 """A collection of tools for preparing cycle race results."""
-__version__ = '2.1.22a1'
+__version__ = '2.1.22'
 
 import os
 import logging
