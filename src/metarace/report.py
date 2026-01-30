@@ -568,11 +568,11 @@ class dual_ittt_startlist:
         dual = False
         if self.fslbl:
             report.text_cent(report.midpagew - mm2pt(40), report.h, self.fslbl,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             dolanes = True
         if self.bslbl:
             report.text_left(report.midpagew + mm2pt(40), report.h, self.bslbl,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             dolanes = True
             dual = True  # heading flags presense of back straight
         if dolanes:
@@ -585,7 +585,7 @@ class dual_ittt_startlist:
             hof += lineheight  # allow trailing space for footer
         if self.footer:
             report.text_cent(report.midpagew, hof, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             hof += report.line_height
         report.h = hof
         report.c.restore()
@@ -828,7 +828,7 @@ class signon_list:
         report.h += 2.0 * collen * self.lineheight
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
 
     def draw_xlsx(self, report, worksheet):
@@ -1073,17 +1073,17 @@ class twocol_startlist:
         if self.timestr:
             baseline = report.get_baseline(report.h)
             report.text_right(report.body_right - mm2pt(21.0), report.h,
-                              self.timestr, report.fonts['subhead'])
+                              self.timestr, report.fonts['bodyoblique'])
             report.drawline(report.body_right - mm2pt(20.0), baseline,
                             report.body_right, baseline)
             report.h += report.line_height
         if self.prizes:
             report.text_cent(report.midpagew, report.h, self.prizes,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         report.c.restore()
 
@@ -1225,38 +1225,49 @@ class sprintround:
             report.h += report.section_height
         hof = report.h
         if len(self.lines) > 0:
+            leftside = report.body_left
+            rightside = report.body_right
+            lineleft = rightside - mm2pt(10)
+            leftcol = report.body_left + mm2pt(14)
+            midcol = report.midpagew - mm2pt(2)
+            rightcol = report.midpagew + mm2pt(4)
+            if report.body_width < mm2pt(150):
+                lineleft += mm2pt(2)
+                leftcol -= mm2pt(6)
+                midcol += mm2pt(2)
+                rightcol -= mm2pt(2)
+
             for i in self.lines:
                 heat = ''
                 if i[0]:
                     heat = i[0]
                 if heat:
-                    report.text_left(report.body_left, hof, heat,
-                                     report.fonts['subhead'])
-                report.sprint_rider(i[1], report.body_left + mm2pt(14), hof)
-                report.sprint_rider(i[2], report.midpagew + mm2pt(4), hof)
+                    report.text_left(leftside, hof, heat,
+                                     report.fonts['bodyoblique'])
+                report.sprint_rider(i[1], leftcol, hof)
+                report.sprint_rider(i[2], rightcol, hof)
                 vstr = 'v'
                 if i[1][0] and i[2][0]:  # assume result in order...
                     vstr = 'def'
                 if i[2][0] == ' ':  # hack for bye
                     vstr = None
                 if vstr:
-                    report.text_cent(report.midpagew, hof, vstr,
-                                     report.fonts['subhead'])
+                    report.text_cent(midcol, hof, vstr,
+                                     report.fonts['bodyoblique'])
                 time = ''
                 if len(i) > 3 and i[3]:
                     time = i[3]  # probably already have a result
                 if time:
-                    report.text_right(report.body_right, hof, time,
+                    report.text_right(rightside, hof, time,
                                       report.fonts['body'])
                 else:
                     baseline = report.get_baseline(hof)
-                    report.drawline(report.body_right - mm2pt(10), baseline,
-                                    report.body_right, baseline)
+                    report.drawline(lineleft, baseline, rightside, baseline)
                 hof += report.line_height
         report.h = hof
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         report.c.restore()
 
@@ -1434,11 +1445,11 @@ class sprintfinal:
                 # place heat headings
                 if not heatlbls:
                     report.text_cent(h1t, hof, 'Heat 1',
-                                     report.fonts['subhead'])
+                                     report.fonts['bodyoblique'])
                     report.text_cent(h2t, hof, 'Heat 2',
-                                     report.fonts['subhead'])
+                                     report.fonts['bodyoblique'])
                     report.text_cent(h3t, hof, 'Heat 3',
-                                     report.fonts['subhead'])
+                                     report.fonts['bodyoblique'])
                     hof += report.line_height
                     heatlbls = True
                 else:
@@ -1449,7 +1460,7 @@ class sprintfinal:
                     heat = i[0]
                 if heat:
                     report.text_left(report.body_left, hof, heat,
-                                     report.fonts['subhead'])
+                                     report.fonts['bodyoblique'])
 
                 ht = hof
                 bl = report.get_baseline(hof)
@@ -1498,7 +1509,7 @@ class sprintfinal:
         report.h = hof
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         report.c.restore()
 
@@ -1711,7 +1722,7 @@ class rttstartlist:
                 report.h += report.rttstart_row(report.h, r, cnt % 2)
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         report.c.restore()
 
@@ -1797,6 +1808,7 @@ class bullet_text:
         self.lcount = 0  # last count of lines/len
         self.bullet = '\u2022'  # bullet type
         self.width = None  # allow override of width
+        self.nobreak = False
         self.h = None  # computed height on page
 
     def serialize(self, rep, sectionid=None):
@@ -1840,15 +1852,23 @@ class bullet_text:
     def truncate(self, remainder, report):
         """Return a copy of the section up to page break."""
 
-        # Special case 1: Entire section will fit on page
+        pagefrac = report.pagefrac()
+        h = self.get_h(report)
+
+        # Special case: Entire section will fit on page
         if self.get_h(report) <= (remainder + report.page_overflow):
             return (self, None)
 
-        # Special case 2: Not enough space for minimum content
+        # Special case: Don't break if possible
+        if self.nobreak and report.pagefrac() > FEPSILON:
+            # move entire section onto next page
+            return (pagebreak(0.01), self)
+
+        # Special case: Not enough space for minimum content
         chk = bullet_text()
         chk.heading = self.heading
         chk.subheading = self.subheading
-        chk.lines = self.lines[0:1]  # minimum one item before break
+        chk.lines = self.lines[0:2]  # minimum 2 items
         if chk.get_h(report) > remainder:
             # move entire section onto next page
             return (pagebreak(), self)
@@ -1924,7 +1944,7 @@ class bullet_text:
                 report.h += max(ph, bh)
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         report.c.restore()
 
@@ -2237,19 +2257,16 @@ class event_index:
         rem.colheader = self.colheader
 
         # Try to break on a preferred line
-        _log.debug('index break required hints = %r', self.breakhints)
         if self.breakhints:
             hints = self.breakhints.copy()
             while hints:
                 breakhint = hints.pop(0)
                 if breakhint > 2 and len(self.lines) > breakhint:
-                    _log.debug('check hint=%d', breakhint)
                     ret.lines = self.lines[0:breakhint]
                     if ret.get_h(report) <= remainder:
                         # hinted break is OK, take it
                         rem.breakhints = hints
                         rem.lines = self.lines[breakhint:]
-                        _log.debug('break ok, remaining hints: %r', hints)
                         return (ret, rem)
 
         # Standard case - section crosses page break, determines
@@ -2606,7 +2623,7 @@ class laptimes:
                            report.col_oft_time + mm2pt(1.0), endh, 0.07)
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         report.c.restore()
 
@@ -2886,7 +2903,7 @@ class judgerep:
                            report.col_oft_time + mm2pt(1.0), eh, 0.07)
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         report.c.restore()
 
@@ -3205,7 +3222,7 @@ class teampage:
                 mv.append(self.footer)
             msg = '\u2003'.join(mv)
             report.text_cent(report.midpagew, report.h, msg,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         report.c.restore()
 
@@ -3423,7 +3440,7 @@ class gamut:
 
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         # advance report.h to end of page
         report.c.restore()
@@ -3603,7 +3620,7 @@ class threecol_section:
                 report.h += report.standard_3row(report.h, r1, r2, r3, grey)
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         report.c.restore()
 
@@ -3809,19 +3826,16 @@ class section:
                 rem.heading += ' (continued)'
 
         # Try to break on a preferred line
-        _log.debug('Break required, hints=%r', self.breakhints)
         if self.breakhints:
             hints = self.breakhints.copy()
             while hints:
                 breakhint = hints.pop(0)
                 if breakhint > 2 and len(self.lines) > breakhint:
-                    _log.debug('check hint=%d', breakhint)
                     ret.lines = self.lines[0:breakhint]
                     if ret.get_h(report) <= remainder:
                         # hinted break is OK, take it
                         rem.breakhints = hints
                         rem.lines = self.lines[breakhint:]
-                        _log.debug('break ok, remaining hints: %r', hints)
                         return (ret, rem)
 
         # determine break line by line
@@ -3889,11 +3903,11 @@ class section:
             #report.col_oft_time+mm2pt(1.0), eh, 0.07)
         if self.prizes:
             report.text_cent(report.midpagew, report.h, self.prizes,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         if self.footer:
             report.text_cent(report.midpagew, report.h, self.footer,
-                             report.fonts['subhead'])
+                             report.fonts['bodyoblique'])
             report.h += report.line_height
         report.c.restore()
 
@@ -4512,7 +4526,7 @@ class report:
                 self.coverpage = image_elem(0.0, 0.0, self.pagew, self.pageh,
                                             0.5, 0.5, cph)
             else:
-                _log.info('Coverpage file not found - skipped')
+                _log.debug('Coverpage file not found - skipped')
 
         # read in font declarations
         for s in cr.options('fonts'):
@@ -5630,7 +5644,7 @@ class report:
             # allow for a heat holder but no text...
             if hvec[0] and hvec[0] != '-':
                 self.text_left(self.body_left, h, 'Heat ' + str(hvec[0]),
-                               self.fonts['subhead'])
+                               self.fonts['bodyoblique'])
             h += self.line_height
         rcnt = 1  # assume one row unless team members
         tcnt = 0
@@ -5647,7 +5661,8 @@ class report:
                     tof += self.line_height
         if len(hvec) > 9:  # got a back straight
             if hvec[6] is not None:
-                self.text_cent(self.midpagew, h, 'v', self.fonts['subhead'])
+                self.text_cent(self.midpagew, h, 'v',
+                               self.fonts['bodyoblique'])
             self.ittt_lane([hvec[6], hvec[7], hvec[8]],
                            self.midpagew + mm2pt(5),
                            h,
@@ -5685,7 +5700,7 @@ class report:
                           maxwidth=mm2pt(39.0))
             doline = False
         if rvec[3]:  # qualifying time
-            self.text_left(w + mm2pt(45.0), h, 'Q: ' + rvec[3],
+            self.text_left(w + mm2pt(45.5), h, 'Q: ' + rvec[3],
                            self.fonts['bodyoblique'])
         if doline:
             self.drawline(w + mm2pt(1.0), baseline, w + mm2pt(50), baseline)
@@ -6132,13 +6147,20 @@ class report:
         tw = 0
         th = self.line_height
         if msg:
+            baseline = _CELL_BASELINE * self.line_height
             l = Pango.Layout.new(self.p)
             l.set_alignment(halign)
             if font is not None:
                 l.set_font_description(font)
             l.set_text(msg, -1)
-            (tw, th) = l.get_pixel_size()
-            self.c.move_to(w - (0.5 * tw), h)
+            intr, logr = l.get_extents()
+            fnbaseline = l.get_baseline() * PANGO_INVSCALE
+            thof = logr.y * PANGO_INVSCALE
+            twof = logr.x * PANGO_INVSCALE
+            tw = logr.width * PANGO_INVSCALE
+            th = logr.height * PANGO_INVSCALE
+            oft = w - 0.5 * (tw + twof)
+            self.c.move_to(oft, h + (baseline - fnbaseline) + thof)
             PangoCairo.update_context(self.c, self.p)
             l.context_changed()
             PangoCairo.show_layout(self.c, l)
