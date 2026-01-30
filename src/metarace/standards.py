@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: MIT
-"""Factors for combined categories"""
+"""Externally managed standards, time factors, categories."""
 import logging
-import requests
 import decimal
 import os
 import csv
 from contextlib import suppress
 from metarace import sysconf, default_file, savefile
 from metarace import tod
+from metarace import strops
 from tempfile import NamedTemporaryFile
 
 # Configuration defaults
@@ -17,12 +17,15 @@ _QUANT = decimal.Decimal('0.00001')  # desired factor precsion
 _DIVISOR = 100000
 _PLACES = 5
 _ROUND = decimal.ROUND_HALF_EVEN
-_FILENAME = 'factors'
-_DEFAULT_FILE = _FILENAME + '.csv'
-_DEFAULT_URL = None
+_FACTORFILENAME = 'factors'
+_DEFAULT_FACTORFILE = _FACTORFILENAME + '.csv'
+_CATFILENAME = 'categories'
+_DEFAULT_CATFILE = _CATFILENAME + '.csv'
+_DEFAULT_FACTORURL = None
+_DEFAULT_CATURL = None
 _TIMEOUT = 10
 _MISSING_FACTOR = _MAXFACTOR  # TBC
-_CATEGORIES = {
+_FACTORCATEGORIES = {
     'PF': 'Para-cycling Factored',
     'OF': 'Open Factored',
     'MOF': 'Men Open Factored',
@@ -33,7 +36,7 @@ _CATEGORIES = {
 }
 
 # Logging
-_log = logging.getLogger('factors')
+_log = logging.getLogger('standards')
 _log.setLevel(logging.DEBUG)
 logging.getLogger('urllib3').setLevel(logging.ERROR)
 
@@ -42,11 +45,21 @@ _CONFIG_SCHEMA = {
         'prompt': 'Time Factors',
         'control': 'section',
     },
-    'updateurl': {
+    'factorupdateurl': {
         'prompt': 'Source:',
-        'attr': 'updateurl',
+        'attr': 'factorupdateurl',
         'hint': 'Filename or URL to update factors',
-        'default': _DEFAULT_URL,
+        'default': _DEFAULT_FACTORURL,
+    },
+    'ctype': {
+        'prompt': 'Category Info',
+        'control': 'section',
+    },
+    'catupdateurl': {
+        'prompt': 'Source:',
+        'attr': 'catupdateurl',
+        'hint': 'Filename or URL to update category info',
+        'default': _DEFAULT_CATURL,
     },
 }
 
@@ -91,13 +104,161 @@ def _cleankey(keystr):
     return keystr
 
 
+class CategoryInfo:
+    """Provide external information on competitor categories."""
+
+    def __init__(self):
+        self._valid = False
+        self._store = {}
+
+    def get_cat(self, cat):
+        ret = None
+        if cat in self._store:
+            ret = self._store[cat]
+        return ret
+
+    def is_valid(self):
+        """Return True if some onfo loaded."""
+        return self._valid
+
+    def update(self, filename=None):
+        """Fetch published categories, overwriting current values if valid."""
+        if filename is None:
+            filename = _DEFAULT_CATFILE
+        sysconf.add_section('standards', _CONFIG_SCHEMA)
+        url = sysconf.get_value('standards', 'catupdateurl')
+        if not url:
+            _log.error('Category update URL not set, factors not updated')
+            return self._valid
+        try:
+            _log.debug('Fetching updated categories from %s', url)
+            from requests import Session
+            with Session() as s:
+                r = s.get(url, timeout=_TIMEOUT)
+                if r.status_code == 200:
+                    # write data to temp file
+                    with NamedTemporaryFile(mode='wb') as f:
+                        f.write(r.content)
+                        f.flush()
+                        _log.debug('Temp categories saved to: %s', f.name)
+                        with open(f.name) as g:
+                            self.read(g)
+                        if self._valid:
+                            self.save(filename)
+                else:
+                    _log.error('Invalid cat read response: %d', r.status_code)
+        except Exception as e:
+            if self._valid:
+                _log.warning('%s updating categories, values retained: %s',
+                             e.__class__.__name__, e)
+            else:
+                _log.error('%s updating categories: %s', e.__class__.__name__,
+                           e)
+        return self._valid
+
+    def write(self, file):
+        """Write categories to CSV file."""
+        hdr = (
+            'ID',
+            'Title',
+            'Min Age',
+            'Max Age',
+            'Type',
+            'Sex',
+            'Sport Class',
+            'Discipline',
+            'Time Trial',
+            'Pursuit',
+            'Scratch',
+            'Points',
+            'Madison',
+        )
+
+        cw = csv.DictWriter(file, fieldnames=hdr, quoting=csv.QUOTE_ALL)
+        cw.writeheader()
+        for cat, category in self._store.items():
+            orec = {'ID': cat}
+            for key, val in category.items():
+                if val:
+                    orec[key] = str(val)
+                else:
+                    orec[key] = ''
+            cw.writerow(orec)
+
+    def save(self, filename=None):
+        """Save current factors to filename if valid."""
+        if not self.is_valid():
+            _log.error('Categories not valid, not saved.')
+            return self._valid
+        if filename is None:
+            filename = _DEFAULT_CATFILE
+        try:
+            with savefile(filename) as f:
+                self.write(f)
+        except Exception as e:
+            _log.warning('%s cat save: %s', e.__class__.__name__, e)
+
+    def read(self, file):
+        count = 0
+        cr = csv.DictReader(file)
+        for r in cr:
+            if r['ID'] and r['Title']:
+                cat = None
+                catinfo = {}
+                for key, val in r.items():
+                    val = val.strip()
+                    if key == 'ID':
+                        cat = _cleankey(r['ID'])
+                    elif key in ('Min Age', 'Max Age', 'Time Trial', 'Pursuit',
+                                 'Scratch', 'Points', 'Madison'):
+                        catinfo[key] = strops.confopt_posint(val)
+                    elif key == 'Sex':
+                        ckval = val.upper()[0:1]
+                        if ckval not in ('M', 'W'):
+                            ckval = None
+                        catinfo[key] = ckval
+                    elif key == 'Discipline':
+                        ckval = val.lower()
+                        if ckval not in ('all', 'road', 'track', 'mtb'):
+                            ckval = None
+                        catinfo[key] = ckval
+                    else:
+                        if val:
+                            catinfo[key] = val
+                        else:
+                            catinfo[key] = None
+                self._store[cat] = catinfo
+                count += 1
+        if count:
+            _log.debug('Loaded %d categories', count)
+            self._valid = True
+        else:
+            _log.debug('No valid categories loaded')
+            self._valid = False
+
+    def load(self, filename=None):
+        """Load categories from filename."""
+        if filename is None:
+            filename = _DEFAULT_CATFILE
+        srcfile = default_file(filename)
+        if not os.path.exists(srcfile):
+            _log.warning('Source file not found')
+            return self._valid
+        try:
+            with open(srcfile) as f:
+                self.read(f)
+        except Exception as e:
+            _log.warning('%s cat load: %s', e.__class__.__name__, e)
+        return self._valid
+
+
 class Factors:
     """Provide time factors from published source."""
 
     def __init__(self):
         self._valid = False
         self._store = {}
-        for cat in _CATEGORIES:
+        for cat in _FACTORCATEGORIES:
             self._store[cat] = {}
 
     def is_valid(self):
@@ -158,15 +319,16 @@ class Factors:
     def update(self, filename=None):
         """Fetch published factors, overwriting current values if valid."""
         if filename is None:
-            filename = _DEFAULT_FILE
-        sysconf.add_section('factors', _CONFIG_SCHEMA)
-        url = sysconf.get_value('factors', 'updateurl')
+            filename = _DEFAULT_FACTORFILE
+        sysconf.add_section('standards', _CONFIG_SCHEMA)
+        url = sysconf.get_value('standards', 'factorupdateurl')
         if not url:
-            _log.error('Update URL not set, factors not updated')
+            _log.error('Factor update URL not set, factors not updated')
             return self._valid
         try:
             _log.debug('Fetching updated factors from %s', url)
-            with requests.Session() as s:
+            from requests import Session
+            with Session() as s:
                 r = s.get(url, timeout=_TIMEOUT)
                 if r.status_code == 200:
                     # write data to temp file
@@ -208,7 +370,7 @@ class Factors:
             _log.error('Factors not valid, not saved.')
             return self._valid
         if filename is None:
-            filename = _DEFAULT_FILE
+            filename = _DEFAULT_FACTORFILE
         try:
             with savefile(filename) as f:
                 self.write(f)
@@ -248,7 +410,7 @@ class Factors:
     def load(self, filename=None):
         """Load time factors from filename."""
         if filename is None:
-            filename = _DEFAULT_FILE
+            filename = _DEFAULT_FACTORFILE
         srcfile = default_file(filename)
         if not os.path.exists(srcfile):
             _log.warning('Source file not found')
