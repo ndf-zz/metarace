@@ -47,6 +47,13 @@
 	  or relay sytems with a fixed processing time. To adjust
 	  channel blocking delay times, instead use method timy.delaytime()
 
+        - Despite claiming 0.0001s precision on channels C0-C5, coincident
+          impulses on Timy channels C0-C5 may be reported with up to ~0.0003s
+          difference. To mitigate this issue, impulses arriving within a 0.0003s
+          period (configurable via maxdiff parameter) are considered to be
+          coincident, and will report the same time.
+          (Confirmed issue with manufacturer 2026-02-03)
+
 """
 
 import threading
@@ -61,6 +68,7 @@ from metarace.strops import chan2id, id2chan
 # Configuration defaults
 _DEFBAUD = 38400
 _DEFCTSRTS = False
+_MAXDIFF = tod.mktod('0.0003')
 
 # Internal constants
 _ENCODING = 'cp437'
@@ -100,6 +108,14 @@ _CONFIG_SCHEMA = {
         'control': 'check',
         'type': 'bool',
         'default': _DEFCTSRTS,
+    },
+    'maxdiff': {
+        'prompt': 'Coincidence:',
+        'control': 'short',
+        'type': 'tod',
+        'places': '4',
+        'hint': 'Maximum allowed difference between two coincident impulses',
+        'default': _MAXDIFF,
     },
     'dsec': {
         'prompt': 'Channel Delays',
@@ -226,6 +242,8 @@ class timy(threading.Thread):
             None,
             None,
         ]
+        self._lasttime = tod.mktod(0)
+        self._curinstant = tod.mktod(0)
         self._clearing = False
         self._armlocked = False
         self._chandelay = {}
@@ -236,6 +254,7 @@ class timy(threading.Thread):
         sysconf.add_section('timy', _CONFIG_SCHEMA)
         self._baudrate = sysconf.get_value('timy', 'baudrate')
         self._ctsrts = sysconf.get_value('timy', 'ctsrts')
+        self._maxdiff = sysconf.get_value('timy', 'maxdiff')
         _log.debug('Set serial baudrate to: %d', self._baudrate)
         _log.debug('Set serial CTSRTS to: %s', self._ctsrts)
         for c in range(0, 8):
@@ -436,6 +455,18 @@ class timy(threading.Thread):
                         cid = chan2id(e[1])
                         ret = tod.mktod(e[2])
                         if ret is not None:
+                            # check for coincident impulse
+                            if ret - self._lasttime > self._maxdiff:
+                                self._curinstant.timeval = ret.timeval
+                            else:
+                                if ret != self._curinstant:
+                                    _log.debug(
+                                        'Coincident impulse corrected %s => %s',
+                                        ret.rawtime(4),
+                                        self._curinstant.rawtime(4))
+                                    ret.timeval = self._curinstant.timeval
+                            self._lasttime.timeval = ret.timeval
+
                             if cid in self._chandelay:
                                 # note: ret might wrap over 24hr boundary
                                 ret = ret - self._chandelay[cid]
