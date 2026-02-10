@@ -5,6 +5,7 @@ import re
 from random import randint
 import grapheme
 from contextlib import suppress
+from datetime import date
 
 # replace codepoints 0->255 with space unless overridden
 # "protective" against unencoded ascii strings and control chars
@@ -538,6 +539,65 @@ def confopt_int(confstr, default=None):
     ret = default
     with suppress(ValueError, TypeError):
         ret = int(confstr)
+    return ret
+
+
+def confopt_date(confstr, default=None):
+    """Check and return a valid date."""
+    ret = default
+    with suppress(ValueError, TypeError):
+        ret = date.fromisoformat(confstr)
+    return ret
+
+
+def date_string(startdate=None, enddate=None):
+    """Return a human-readable date string for the provided date objects.
+
+    Single day: 'Monday, 9 February 2026'
+    Range of days in same month: '9 - 11 February 2026'
+    Different month: '30 January - 11 February 2026'
+    Different year: '30 December 2025 - 5 January 2026'
+
+    """
+    ret = None
+
+    if startdate is None:
+        startdate = date.today()
+    if enddate is not None and enddate <= startdate:
+        enddate = None
+
+    if startdate is not None:
+        if enddate is not None:
+            if startdate.year != enddate.year:
+                # different year: day month year - day month year
+                ret = '%d %s - %d %s' % (
+                    startdate.day,
+                    startdate.strftime('%B %Y'),
+                    enddate.day,
+                    enddate.strftime('%B %Y'),
+                )
+            elif startdate.month != enddate.month:
+                # different month: day month - day month year
+                ret = '%d %s - %d %s' % (
+                    startdate.day,
+                    startdate.strftime('%B'),
+                    enddate.day,
+                    enddate.strftime('%B %Y'),
+                )
+            else:
+                # same month: day-day month year
+                ret = '%d - %d %s' % (
+                    startdate.day,
+                    enddate.day,
+                    enddate.strftime('%B %Y'),
+                )
+        else:
+            # Single day: dow, day month year
+            ret = '%s, %d %s' % (
+                startdate.strftime('%A'),
+                startdate.day,
+                startdate.strftime('%B %Y'),
+            )
     return ret
 
 
