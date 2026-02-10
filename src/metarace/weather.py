@@ -5,6 +5,7 @@ import requests
 import threading
 import json
 import os
+import math
 from random import random
 from contextlib import suppress
 from time import sleep, time
@@ -128,6 +129,25 @@ _CONFIG_SCHEMA = {
 }
 
 
+def _estimateDensity(t, h, p):
+    """Return estimated density for given temperature, humidity and pressure."""
+    t_k = t + 273.15
+
+    svp_a = 6.112
+    svp_b = 17.67
+    svp_c = 243.5
+    svp = svp_a * math.exp(svp_b * t / (t + svp_c))
+
+    avp = svp * h / 100.0
+    dap = p - avp
+
+    rdt = 287.058 * t_k
+    rvt = 461.495 * t_k
+    d = dap / rdt + avp / rvt
+
+    return d * 100.0
+
+
 def _getFloatKey(data, key, default=None, min=0, max=1):
     ret = default
     if key in data and isinstance(data[key], float):
@@ -145,6 +165,7 @@ def _readAcWeather(data):
     t = None
     h = None
     p = None
+    d = None
     if isinstance(data, dict):
         lr = _getFloatKey(data,
                           'lastUpdated',
@@ -154,15 +175,17 @@ def _readAcWeather(data):
         t = _getFloatKey(data, 'temperature', min=-30, max=50)
         h = _getFloatKey(data, 'humidity', min=0, max=120)
         p = _getFloatKey(data, 'pressure', min=500, max=1100)
+        d = _getFloatKey(data, 'rho', min=0.5, max=1.4)
     if t is not None and h is not None and p is not None and lr is not None:
         if lr < _ACSTALE:
-            ret = (t, h, p)
+            ret = (t, h, p, d)
         else:
             lt = mkagg(str(lr))
-            _log.info('AC Weather stale %s: %0.1f\u00B0C, %0.1f%%, %0.1fhPa',
-                      lt.rawtime(0), t, h, p)
+            _log.info(
+                'AC Weather stale %s: %0.1f\u00B0C, %0.1fhPa, %0.1f%%, ~%0.4fkg/m^3',
+                lt.rawtime(0), t, p, h, d)
     else:
-        _log.info('AC Weather invalid: %r, %r, %r, %r', t, h, p, lr)
+        _log.info('AC Weather invalid: %r, %r, %r, %r, %r', t, p, h, d, lr)
     return ret
 
 
@@ -176,6 +199,7 @@ def _readComet(channels):
     t = None
     h = None
     p = None
+    d = None
     if isinstance(channels, list):
         with suppress(TypeError, ValueError):
             for channel in channels:
@@ -186,7 +210,8 @@ def _readComet(channels):
                 elif channel['name'] == 'Barometric pressure':
                     p = float(channel['value'])
     if t is not None and h is not None and p is not None:
-        ret = (t, h, p)
+        d = _estimateDensity(t, h, p)
+        ret = (t, h, p, d)
     return ret
 
 
@@ -210,6 +235,7 @@ class BaseWeather(threading.Thread):
         self.t = 0.0
         self.h = 0.0
         self.p = 0.0
+        self.d = 0.0
         self._lt = None
         self._running = None
         self._s = None
@@ -352,8 +378,10 @@ class ACWeather(BaseWeather):
                     self.t = nv[0]
                     self.h = nv[1]
                     self.p = nv[2]
-                    _log.debug('%s: %0.1f\u00B0C, %0.1f%%, %0.1fhPa',
-                               self._facility, self.t, self.h, self.p)
+                    self.d = nv[3]
+                    _log.debug(
+                        '%s: %0.1f\u00B0C, %0.1fhPa, %0.1f%%, ~%0.4fkg/m^3',
+                        self._facility, self.t, self.p, self.h, self.d)
                 else:
                     _log.info('Error reading %s data from %s', self._facility,
                               self._hostname)
@@ -386,8 +414,10 @@ class Comet(BaseWeather):
                         self.t = nv[0]
                         self.h = nv[1]
                         self.p = nv[2]
-                        _log.debug('%s: %0.1f\u00B0C, %0.1f%%, %0.1fhPa',
-                                   self._facility, self.t, self.h, self.p)
+                        self.d = nv[3]
+                        _log.debug(
+                            '%s: %0.1f\u00B0C, %0.1fhPa, %0.1f%%, ~%0.4kg/m^3',
+                            self._facility, self.t, self.p, self.h, self.d)
                     else:
                         _log.info('Error reading %s data from %s',
                                   self._facility, self._hostname)
