@@ -21,8 +21,8 @@ _FACTORFILENAME = 'factors'
 _DEFAULT_FACTORFILE = _FACTORFILENAME + '.csv'
 _CATFILENAME = 'categories'
 _DEFAULT_CATFILE = _CATFILENAME + '.csv'
-_DEFAULT_FACTORURL = None
-_DEFAULT_CATURL = None
+_DEFAULT_FACTORURL = 'https://6-v.org/au/factors.csv'
+_DEFAULT_CATURL = 'https://6-v.org/au/categories.csv'
 _TIMEOUT = 10
 _MISSING_FACTOR = _MAXFACTOR  # TBC
 _FACTORCATEGORIES = {
@@ -34,6 +34,25 @@ _FACTORCATEGORIES = {
     'MAF': 'Men Age-Based Factored',
     'WAF': 'Women Age-Based Factored',
 }
+_CATEGORY_COLUMNS = (
+    'ID',
+    'Title',
+    'Min Age',
+    'Max Age',
+    'Type',
+    'Sex',
+    'Sport Class',
+    'Discipline',
+    'Time Trial',
+    'Individual Pursuit',
+    'Scratch',
+    'Points',
+    'Madison',
+    'Team Sprint',
+    'Team Pursuit',
+    'Sprint',
+    'Omnium',
+)
 
 # Logging
 _log = logging.getLogger('standards')
@@ -158,21 +177,7 @@ class CategoryInfo:
 
     def write(self, file):
         """Write categories to CSV file."""
-        hdr = (
-            'ID',
-            'Title',
-            'Min Age',
-            'Max Age',
-            'Type',
-            'Sex',
-            'Sport Class',
-            'Discipline',
-            'Time Trial',
-            'Pursuit',
-            'Scratch',
-            'Points',
-            'Madison',
-        )
+        hdr = _CATEGORY_COLUMNS
 
         cw = csv.DictWriter(file, fieldnames=hdr, quoting=csv.QUOTE_ALL)
         cw.writeheader()
@@ -209,8 +214,10 @@ class CategoryInfo:
                     val = val.strip()
                     if key == 'ID':
                         cat = _cleankey(r['ID'])
-                    elif key in ('Min Age', 'Max Age', 'Time Trial', 'Pursuit',
-                                 'Scratch', 'Points', 'Madison'):
+                    elif key in ('Min Age', 'Max Age', 'Time Trial',
+                                 'Individual Pursuit', 'Team Pursuit',
+                                 'Scratch', 'Points', 'Madison',
+                                 'Team Sprint'):
                         catinfo[key] = strops.confopt_posint(val)
                     elif key == 'Sex':
                         ckval = val.upper()[0:1]
@@ -227,10 +234,13 @@ class CategoryInfo:
                             catinfo[key] = val
                         else:
                             catinfo[key] = None
+                for k in _CATEGORY_COLUMNS:
+                    if k != 'ID' and k not in catinfo:
+                        catinfo[k] = None
                 self._store[cat] = catinfo
                 count += 1
         if count:
-            _log.debug('Loaded %d categories', count)
+            _log.info('Loaded %d categories', count)
             self._valid = True
         else:
             _log.debug('No valid categories loaded')
@@ -401,7 +411,7 @@ class Factors:
                     self._store[cat][sportclass] = factor
                     count += 1
         if count:
-            _log.debug('Loaded %d factors', count)
+            _log.info('Loaded %d factors', count)
             self._valid = True
         else:
             _log.debug('No valid factors loaded')
