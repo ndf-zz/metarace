@@ -1059,7 +1059,7 @@ class riderdb():
         else:
             if nr['series'] != 'series':
                 _log.info('%s without number: %s %s', nr.get_label(),
-                             nr.get_bibstr(), nr.resname())
+                          nr.get_bibstr(), nr.resname())
         return nr
 
     def load(self, csvfile=None, overwrite=False):

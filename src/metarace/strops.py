@@ -559,7 +559,7 @@ def date_string(startdate=None, enddate=None):
     Different year: '30 December 2025 - 5 January 2026'
 
     """
-    ret = None
+    ret = ''
 
     if startdate is None:
         startdate = date.today()

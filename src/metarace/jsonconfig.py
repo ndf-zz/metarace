@@ -36,7 +36,9 @@ import json
 import os
 import csv
 import logging
+from contextlib import suppress
 from decimal import Decimal
+from datetime import datetime, date
 from metarace.tod import tod, fromobj, mktod
 from metarace.strops import confopt_chan, CHAN_UNKNOWN
 
@@ -61,6 +63,13 @@ class _configEncoder(json.JSONEncoder):
             return obj.serialize()
         elif isinstance(obj, Decimal):
             return {'__dec__': 1, 'value': str(obj)}
+        elif type(obj) is datetime:
+            ts = 'seconds'
+            if obj.microsecond:
+                ts = 'milliseconds'
+            return obj.isoformat(timespec=ts)
+        elif isinstance(obj, date):
+            return obj.isoformat()
         return json.JSONEncoder.default(self, obj)
 
 
@@ -136,23 +145,31 @@ class config:
 
     def get_decimal(self, section, key, default=None):
         ret = default
-        try:
+        with suppress(ValueError, TypeError):
             ret = Decimal(self.get(section, key))
-        except Exception:
-            pass
+        return ret
+
+    def get_date(self, section, key, default=None):
+        ret = default
+        with suppress(ValueError, TypeError):
+            ret = date.fromisoformat(self.get(section, key))
+        return ret
+
+    def get_datetime(self, section, key, default=None):
+        ret = default
+        with suppress(ValueError, TypeError):
+            ret = datetime.fromisoformat(self.get(section, key))
         return ret
 
     def get_float(self, section, key, default=None):
         ret = default
-        try:
+        with suppress(ValueError, TypeError):
             ret = float(self.get(section, key))
-        except Exception:
-            pass
         return ret
 
     def get_chan(self, section, key, default=None):
         ret = default
-        try:
+        with suppress(ValueError, TypeError, KeyError):
             rv = self.get(section, key)
             if rv is None or rv == '':
                 ret = None
@@ -160,26 +177,20 @@ class config:
                 nv = confopt_chan(rv)
                 if nv != CHAN_UNKNOWN:
                     ret = nv
-        except Exception:
-            pass
         return ret
 
     def get_posint(self, section, key, default=None):
         ret = default
-        try:
+        with suppress(ValueError, TypeError):
             ret = int(self.get(section, key))
             if ret < 0:
                 ret = default
-        except Exception:
-            pass
         return ret
 
     def get_int(self, section, key, default=None):
         ret = default
-        try:
+        with suppress(ValueError, TypeError):
             ret = int(self.get(section, key))
-        except Exception:
-            pass
         return ret
 
     def get_str(self, section, key, default=None):
@@ -243,6 +254,10 @@ class config:
                         ret = self.get_bool(section, key, ret)
                     elif otype == 'float':
                         ret = self.get_float(section, key, ret)
+                    elif otype == 'date':
+                        ret = self.get_date(section, key, ret)
+                    elif otype == 'datetime':
+                        ret = self.get_datetime(section, key, ret)
                     else:
                         # assume str
                         ret = self.get_str(section, key, ret)
