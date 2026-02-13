@@ -274,7 +274,10 @@ def vecmapstr(vec=[], maxkey=10):
         ret[i] = ''
     for i in range(0, len(vec)):
         if vec[i]:
-            ret[i] = str(vec[i]).strip()
+            if isinstance(vec[i], htlib.element):
+                ret[i] = vec[i]
+            else:
+                ret[i] = str(vec[i]).strip()
     return ret
 
 
@@ -2671,6 +2674,9 @@ class lapsplits:
                     grey = 0
                 if self.grey:
                     grey = (l) % 2
+                if self.onecol:  ##! hack: use middle column
+                    r2 = r1
+                    r1 = None
                 report.h += report.lapsplit_3row(report.h,
                                                  r1,
                                                  r2,
@@ -3109,7 +3115,16 @@ class laptimes:
                 count = ''
                 if r['count'] is not None:
                     count = str(r['count'])
-                nr = [r['no'], r['name'], r['cat'], count]
+                namecol = r['name']
+                if 'link' in r and r['link']:
+                    linkfile = r['link']
+                    if not linkfile.endswith('.html'):
+                        linkfile += '.html'
+                    namecol = htlib.a(r['name'], {
+                        'href': linkfile,
+                        'title': 'Detail'
+                    })
+                nr = [r['no'], namecol, r['cat'], count]
                 if r['average'] is not None:
                     nr.append(r['average'].rawtime(self.precision))
                 else:
