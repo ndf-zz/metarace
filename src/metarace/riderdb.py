@@ -909,6 +909,31 @@ class rider():
             ret = self.__strcache[nkey]
         return ret
 
+    def altname(self, pilot=False):
+        """Return alternate name form for official reports.
+
+            Firstname LASTNAME (NAT) CAT/CLASS UCIID
+        """
+        ret = None
+        nkey = ('an', pilot)
+        if nkey not in self.__strcache:
+            nv = []
+            nv.append(self.fitname(48))
+            if self['nationality']:
+                nv.append('(%s)' % (self['nationality'], ))
+            if not pilot:
+                if self['categories']:
+                    nv.append(self.primary_cat())
+                if self['class']:
+                    nv.append(self['class'])
+            if self['uciid']:
+                nv.append(self['uciid'])
+            ret = ' '.join(nv)
+            self.__strcache[nkey] = ret
+        else:
+            ret = self.__strcache[nkey]
+        return ret
+
     def fitname(self, width, trunc=False):
         """Return a truncated name string of width or less graphemes"""
         ret = None

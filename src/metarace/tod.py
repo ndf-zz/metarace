@@ -322,9 +322,9 @@ class tod:
 
     def __unicode__(self):
         """Return a normalised tod string."""
-        return '{0: >5} {1: <3} {2} {3} {4}'.format(self.index, self.chan,
-                                                    self.timestr(self.precision()),
-                                                    self.refid, self.source)
+        return '{0: >5} {1: <3} {2} {3} {4}'.format(
+            self.index, self.chan, self.timestr(self.precision()), self.refid,
+            self.source)
 
     def __repr__(self):
         """Return object representation string."""
