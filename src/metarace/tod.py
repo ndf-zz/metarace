@@ -5,7 +5,7 @@ Time of Day (tod) records are used to compute net times,
 and to communicate context of timing events. Each tod object
 includes the following properties:
 
-	timeval	decimal number of seconds, to 6 places
+	timeval	decimal number of seconds, to maximum 6 places
 	index	optional serial number or marker (from timing device)
 	chan	optional timing channel number or indicator
 	refid	optional transponder id or rider identifier
@@ -59,13 +59,13 @@ QUANT_PAD = ['     ', '   ', '  ', ' ', '', '', '']
 QUANT_OPAD = ['    ', '  ', ' ', '', '', '', '']
 MILL = decimal.Decimal(1000000)
 
-# default rounding is toward zero
+# default rounding for display is toward zero
 ROUNDING = decimal.ROUND_DOWN
 TRUNCATE = decimal.ROUND_DOWN
 ROUND = decimal.ROUND_HALF_EVEN
 
 
-def now(index='', chan='CLK', refid='', source=''):
+def now(index='', chan='CLK', refid='', source='sys'):
     """Return a tod set to the current local time."""
     return tod(_now2dec(), index, chan, refid, source)
 
@@ -109,7 +109,7 @@ def mergedate(ltime=None, date=None, micros=False):
         ltime = now()
     places = 0
     if micros:
-        places = 6
+        places = ltime.precision()
     lt = time.fromisoformat(
         ltime.rawtime(places=places, hoursep=':', zeros=True))
     if date is None:
@@ -174,7 +174,7 @@ def mktod(timeval=''):
 def _now2dec():
     """Create a decimal timevalue for the current local time."""
     dv = datetime.now()
-    ret = (dv.microsecond / MILL).quantize(QUANT_4PLACES)
+    ret = (dv.microsecond / MILL).quantize(QUANT_6PLACES)
     ret += 3600 * dv.hour + 60 * dv.minute + dv.second
     return ret
 
@@ -323,7 +323,7 @@ class tod:
     def __unicode__(self):
         """Return a normalised tod string."""
         return '{0: >5} {1: <3} {2} {3} {4}'.format(self.index, self.chan,
-                                                    self.timestr(4),
+                                                    self.timestr(self.precision()),
                                                     self.refid, self.source)
 
     def __repr__(self):
@@ -347,6 +347,11 @@ class tod:
     def round(self, places=4):
         """Return a new rounded time value."""
         return self.places(places, ROUND, 'ROUND')
+
+    def precision(self):
+        """Return the number of places of precision in timeval."""
+        b = (self.timeval * 0).as_tuple()
+        return min(-(b.exponent), 6)
 
     def truncate(self, places=4):
         """Return a new truncated time value."""
@@ -412,9 +417,11 @@ class tod:
             ret = _dec2hm(tv) + med
         return ret
 
-    def isosecs(self, places=4):
+    def isosecs(self, places=None):
         """Return ISO8601(4.4.1b) Refer : 4.4.3.2 Format with designators."""
         # Note: Addition of sign outside the format is non-standard
+        if places is None:
+            places = self.precision()
         tv = abs(self.timeval)
         sign = ''
         if self.timeval < 0:
@@ -422,9 +429,11 @@ class tod:
         return "{}PT{}S".format(sign,
                                 tv.quantize(QUANT[places], rounding=ROUNDING))
 
-    def isostr(self, places=4):
+    def isostr(self, places=None):
         """Return ISO8601(4.4.1b) Time interval string"""
         # Note: Addition of sign outside the format is non-standard
+        if places is None:
+            places = self.precision()
         tv = abs(self.timeval)
         sign = ''
         if self.timeval < 0:
