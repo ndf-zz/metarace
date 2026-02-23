@@ -1,7 +1,7 @@
 {
  "description": {
   "text": "Trackmeet Program A5 Booklet",
-  "version": "20250107",
+  "version": "20260219",
   "extra": "SPDX-License-Identifier: MIT"
  },
  "fonts": {
@@ -31,7 +31,7 @@
   "sublogo": "image, mid, 2, -5, 13.5, 1.0, 0.5, sublogo",
   "htopline": "line, 5.0, 14, -5, 14, 0.5pt, dark,",
   "header": "group, htopline, sublogo, title, subtitle",
-  "hbotline": "line, 5, -7.6, -5, -7.5, 0.5pt, dark,",
+  "hbotline": "line, 5, -7.6, -5, -7.6, 0.5pt, dark,",
   "timestamp": "text, 5, -4, 0.0, timestamp, white, timestamp",
   "diststr": "text, 5, -8, 0.0, footline, dark,diststr",
   "footer": "group, hbotline, timestamp, diststr",
@@ -48,10 +48,10 @@
   "height": "210mm",
   "sidemargin": "5.5mm",
   "topmargin": "16mm",
-  "botmargin": "12mm",
+  "botmargin": "9.0mm",
   "printmargin": "1mm",
   "twocolwidth": "70mm",
-  "pageoverflow": "0.5mm",
+  "pageoverflow": "1mm",
   "coverpage": "coverpage"
  }
 }
