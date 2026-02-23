@@ -131,21 +131,7 @@ _CONFIG_SCHEMA = {
 
 def _estimateDensity(t, h, p):
     """Return estimated density for given temperature, humidity and pressure."""
-    t_k = t + 273.15
-
-    svp_a = 6.112
-    svp_b = 17.67
-    svp_c = 243.5
-    svp = svp_a * math.exp(svp_b * t / (t + svp_c))
-
-    avp = svp * h / 100.0
-    dap = p - avp
-
-    rdt = 287.058 * t_k
-    rvt = 461.495 * t_k
-    d = dap / rdt + avp / rvt
-
-    return d * 100.0
+    return None
 
 
 def _getFloatKey(data, key, default=None, min=0, max=1):
