@@ -481,27 +481,30 @@ class dual_ittt_startlist:
 
     def get_h(self, report):
         """Return total height on page of section on report."""
-        if self.h is None or len(self.lines) != self.lcount:
-            self.h = report.line_height * len(self.lines)
-            if self.showheats:  # if heats are shown, double line height
-                self.h *= 2
-            for r in self.lines:  # account for any team members
-                tcnt = 0
-                if len(r) > 4 and isinstance(r[4], (tuple, list)):
-                    tcnt = len(r[4])
-                if len(r) > 9 and isinstance(r[9], (tuple, list)):
-                    tcnt = max(tcnt, len(r[9]))
-                if tcnt > 0:
-                    self.h += tcnt * report.line_height
-            if self.heading:
-                self.h += report.section_height
-            if self.subheading:
-                self.h += report.section_height
-            if self.fslbl or self.bslbl:
-                self.h += report.line_height
-            if self.footer:
-                self.h += report.line_height
-            self.lcount = len(self.lines)
+        bodylen = len(self.lines)
+        if self.showheats:
+            if self.lines:  # if heats are shown, double line height
+                bodylen *= 2
+            # one extra line added in pdf
+            bodylen += 1
+        for r in self.lines:  # account for any team members
+            tcnt = 0
+            if len(r) > 4 and isinstance(r[4], (tuple, list)):
+                tcnt = len(r[4])
+            if len(r) > 9 and isinstance(r[9], (tuple, list)):
+                tcnt = max(tcnt, len(r[9]))
+            if tcnt > 0:
+                bodylen += tcnt
+        self.h = bodylen * report.line_height
+        if self.heading:
+            self.h += report.section_height
+        if self.subheading:
+            self.h += report.section_height
+        if self.fslbl or self.bslbl:
+            self.h += report.line_height
+        if self.footer:
+            self.h += report.line_height
+        self.lcount = len(self.lines)
         return self.h
 
     def truncate(self, remainder, report):
@@ -509,11 +512,15 @@ class dual_ittt_startlist:
 
         # Special case 1: Entire section will fit on page
         if self.get_h(report) <= (remainder + report.page_overflow):
+            _log.debug('%s all to fit %r <= rem: %r', self.sectionid,
+                       self.get_h(report), remainder + report.page_overflow)
             return (self, None)
 
         # Special case: Don't break if possible
         if self.nobreak and report.pagefrac() > FEPSILON:
             # move entire section onto next page
+            _log.debug('%s move whole section nobreak: %r, frac:%r',
+                       self.sectionid, self.nobreak, report.pagefrac())
             return (pagebreak(0.01), self)
 
         # Special case 2: Not enough space for minimum content
@@ -583,6 +590,7 @@ class dual_ittt_startlist:
     def draw_pdf(self, report):
         """Output a single section to the page."""
         report.c.save()
+        cacheh = report.h
         if self.heading is not None:
             report.text_cent(report.midpagew, report.h, self.heading,
                              report.fonts['section'])
@@ -615,6 +623,9 @@ class dual_ittt_startlist:
                              report.fonts['bodyoblique'])
             hof += report.line_height
         report.h = hof
+        endh = report.h
+        _log.debug('%s starth: %r endh: %r height: %r', self.sectionid, cacheh,
+                   endh, endh - cacheh)
         report.c.restore()
 
     def draw_xlsx(self, report, worksheet):
@@ -1215,15 +1226,15 @@ class sprintround:
 
     def get_h(self, report):
         """Return total height on page of section on report."""
-        if self.h is None or len(self.lines) != self.lcount:
-            self.h = report.line_height * len(self.lines)  # one per line?
-            if self.heading:
-                self.h += report.section_height
-            if self.subheading:
-                self.h += report.section_height
-            if self.footer:
-                self.h += report.line_height
-            self.lcount = len(self.lines)
+        #if self.h is None or len(self.lines) != self.lcount:
+        self.h = report.line_height * len(self.lines)  # one per line?
+        if self.heading:
+            self.h += report.section_height
+        if self.subheading:
+            self.h += report.section_height
+        if self.footer:
+            self.h += report.line_height
+        self.lcount = len(self.lines)
         return self.h
 
     def truncate(self, remainder, report):
@@ -3898,6 +3909,7 @@ class gamut:
 
 
 class threecol_section:
+    """Old-style three-column section from standard rows."""
 
     def __init__(self, secid=''):
         self.sectionid = secid
@@ -3909,6 +3921,7 @@ class threecol_section:
         self.footer = None
         self.lines = []
         self.lcount = 0
+        self.mincol = 0
         self.monospace = False
         self.grey = True
         self.h = None
@@ -3930,23 +3943,37 @@ class threecol_section:
         ret['count'] = self.lcount
         return ret
 
+    def _extra_h(self, report):
+        """Return height on page of title, subtitle, footer, header."""
+        ret = 0
+        if self.colheader:  # colheader is written out with body
+            ret += report.line_height
+        if self.heading:
+            ret += report.section_height
+        if self.subheading:
+            ret += report.section_height
+        if self.footer:
+            ret += report.line_height
+        return ret
+
     def get_h(self, report):
         """Return total height on page of section on report."""
         if self.h is None or len(self.lines) != self.lcount:
             self.lcount = len(self.lines)
-            self.h = report.line_height * math.ceil(self.lcount / 3.0)
-            if self.colheader:  # colheader is written out with body
-                self.h += report.line_height
-            if self.heading:
-                self.h += report.section_height
-            if self.subheading:
-                self.h += report.section_height
-            if self.footer:
-                self.h += report.line_height
+            hcount = max(3 * self.mincol, self.lcount)
+            self.h = report.line_height * math.ceil(hcount / 3.0)
+            self.h += self._extra_h(report)
         return self.h
 
     def truncate(self, remainder, report):
         """Return a copy of the section up to page break."""
+
+        # Set mincol to use as much of avalable page as possible
+        crem = remainder - self._extra_h(report)
+        if crem > 0:
+            self.mincol = math.floor(crem / report.line_height)
+        else:
+            self.mincol = 0
 
         # Special case 1: Entire section will fit on page
         if self.get_h(report) <= (remainder + report.page_overflow):
@@ -3961,8 +3988,8 @@ class threecol_section:
         chk.units = self.units
         if len(self.lines) <= 6:  # special case, keep 2 lines of 3
             chk.lines = self.lines[0:]
-        else:  # BUT, don't break before third rider
-            chk.lines = self.lines[0:6]
+        else:  # BUT, don't break before 3rd row
+            chk.lines = self.lines[0:9]
         if chk.get_h(report) > remainder:
             # move entire section onto next page
             return (pagebreak(), self)
@@ -3998,7 +4025,7 @@ class threecol_section:
                 # pop last line onto rem and break
                 rem.lines.append(ret.lines.pop(-1))
                 break
-            elif seclines - count <= 6:  # push min 6 names over to next page
+            elif seclines - count <= 6:  # push min 6 lines over to next page
                 break
             ret.lines.append(self.lines[count])
             count += 1
@@ -4024,19 +4051,24 @@ class threecol_section:
                 report.h += report.standard_3row(report.h, self.colheader,
                                                  self.colheader,
                                                  self.colheader)
-            lcount = int(math.ceil(self.lcount / 3.0))
-            for l in range(0, lcount):
-                r1 = self.lines[l]
-                if len(r1) == 1:
-                    r1 = [None, None, r1[0]]
+            lines = len(self.lines)
+            rows = math.ceil(lines / 3.0)
+            colstride = max(self.mincol, rows)
+            rowcount = min(self.mincol, lines)
+            for l in range(0, rowcount):
+                r1 = None
+                if lines > l:
+                    r1 = self.lines[l]
+                    if len(r1) == 1:
+                        r1 = [None, None, r1[0]]
                 r2 = None
-                if len(self.lines) > l + lcount:
-                    r2 = self.lines[l + lcount]  # for degenerate n<5
+                if lines > l + colstride:
+                    r2 = self.lines[l + colstride]
                     if len(r2) == 1:
                         r2 = [None, None, r2[0]]
                 r3 = None
-                if len(self.lines) > l + lcount + lcount:
-                    r3 = self.lines[l + lcount + lcount]
+                if lines > l + colstride + colstride:
+                    r3 = self.lines[l + colstride + colstride]
                     if len(r3) == 1:
                         r3 = [None, None, r3[0]]
                 grey = 0
@@ -4187,12 +4219,12 @@ class section:
             cnt = 0
             if len(self.lines) > 0:
                 if self.colheader:
-                    h += report.standard_row_height(report.h, self.colheader)
+                    h += report.line_height
                 for r in self.lines:
                     cnt += 1
-                    h += report.standard_row_height(report.h, r, False)
+                    h += report.line_height
                     if len(r) > 6 and isinstance(r[6], (tuple, list)):
-                        h += report.standard_row_height(report.h, r[6], False)
+                        h += report.line_height
             if self.prizes:
                 h += report.line_height
             if self.footer:
@@ -4204,14 +4236,12 @@ class section:
     def truncate(self, remainder, report):
         """Return a copy of the section up to page break."""
 
-        pagefrac = report.pagefrac()
-        h = self.get_h(report)
-
         # Special case: Entire section will fit on page
         if self.get_h(report) <= (remainder + report.page_overflow):
             return (self, None)
 
         # Special case: Don't break if possible
+        pagefrac = report.pagefrac()
         if self.nobreak and report.pagefrac() > FEPSILON:
             # move entire section onto next page
             return (pagebreak(0.01), self)
@@ -4275,6 +4305,7 @@ class section:
                         remhints.insert(0, breakhint)
 
         # determine break line by line
+        ret.lines.clear()
         seclines = len(self.lines)
         count = 0
         if seclines > 0:
@@ -5159,6 +5190,10 @@ class report:
 
     def add_section(self, sec):
         self.sections.append(sec)
+
+    def empty(self):
+        """Return true if the report is empty."""
+        return not self.sections
 
     def del_section(self, secid=None):
         """Crude section removal by section id component match."""
