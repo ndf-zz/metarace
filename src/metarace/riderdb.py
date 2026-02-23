@@ -24,6 +24,7 @@ _RIDER_COLUMNS = {
     'first': 'First Name',
     'last': 'Last Name',
     'org': 'Organisation',
+    'state': 'State',
     'cat': 'Categories',
     'class': 'Class Label',
     'nat': 'Nationality',
@@ -62,6 +63,7 @@ _ALT_COLUMNS = {
     'cats': 'cat',
     'cate': 'cat',
     'targ': 'cat',
+    'stat': 'state',
     'clas': 'class',
     'cls': 'class',
     'labe': 'class',
@@ -110,6 +112,7 @@ _TEAM_COLUMNS = {
     'first': 'Name',
     'last': 'Short Name',
     'org': 'Organisation',
+    'state': 'State',
     'cat': 'Categories',
     'class': 'Class Label',
     'nat': 'Nationality',
@@ -159,6 +162,14 @@ _RIDER_SCHEMA = {
         'attr': 'org',
         'defer': True,
         'hint': 'Club or team affiliation',
+        'default': '',
+    },
+    'state': {
+        'prompt': 'State:',
+        'attr': 'state',
+        'defer': True,
+        'control': 'short',
+        'hint': 'Competitor state of affiliation',
         'default': '',
     },
     'cat': {
@@ -460,6 +471,14 @@ _TEAM_SCHEMA = {
         'hint': 'Club or team affiliation',
         'default': '',
     },
+    'state': {
+        'prompt': 'State:',
+        'attr': 'state',
+        'defer': True,
+        'control': 'short',
+        'hint': 'Team state of affiliation',
+        'default': '',
+    },
     'nat': {
         'prompt': 'Nationality:',
         'attr': 'nat',
@@ -515,7 +534,7 @@ _TEAM_SCHEMA = {
 _RESERVED_SERIES = ('spare', 'cat', 'team', 'ds', 'series')
 
 # legacy csv file ordering
-_DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'cat', 'class',
+_DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'state', 'cat', 'class',
                          'series', 'ref', 'uci', 'yob', 'nat', 'sex', 'note',
                          'seed', 'data')
 
