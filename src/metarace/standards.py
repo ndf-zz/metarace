@@ -130,6 +130,54 @@ class CategoryInfo:
         self._valid = False
         self._store = {}
 
+    def is_u13(self, cat):
+        """Return True if cat is under 13."""
+        return cat in ('M9', 'W9', 'U9', 'M11', 'W11', 'U11', 'M13', 'W13',
+                       'U13')
+
+    def is_u17(self, cat):
+        """Return True if cat is under 17."""
+        return cat in ('M15', 'W15', 'U15', 'M17', 'W17', 'U17')
+
+    def is_masters(self, cat):
+        """Return True if cat is a Masters category for the purposes of results."""
+        return cat in ('MM1', 'MM2', 'MM3', 'MM4', 'MM5', 'MM6', 'MM7', 'MM8',
+                       'MM9', 'MM10', 'MM', 'WM1', 'WM2', 'WM3', 'WM4', 'WM5',
+                       'WM6', 'WM7', 'WM8', 'WM9', 'WM10', 'WM')
+
+    def get_age_cat(self, ctype, sex, age):
+        """Return a category info line for the nominated type, sex and age."""
+        ret = None
+        stype = None
+        if sex:
+            sex = sex.lower()[0:1]
+            if sex == 'm':
+                stype = 'M'
+            elif sex in ('f', 'w'):
+                stype = 'W'
+
+        for catinfo in self._store.values():
+            if catinfo['Type'] == ctype:
+                if catinfo['Sex'] == stype:
+                    if catinfo['Min Age'] and catinfo['Max Age']:
+                        if age >= catinfo['Min Age'] and age <= catinfo[
+                                'Max Age']:
+                            ret = catinfo
+                            break
+        return ret
+
+    def get_youth_cat(self, sex, age):
+        """Return Youth (U17) category for nominated sex and age."""
+        return self.get_age_cat('Youth', sex, age)
+
+    def get_masters_cat(self, sex, age):
+        """Return Masters category for nominated sex and age."""
+        return self.get_age_cat('Masters', sex, age)
+
+    def get_c4a_cat(self, sex, yob, age):
+        """Return Cycling for All category for nominated sex and age."""
+        return self.get_age_cat('Cycling for All', sex, age)
+
     def get_cat(self, cat):
         ret = None
         if cat in self._store:
@@ -185,7 +233,8 @@ class CategoryInfo:
             orec = {'ID': cat}
             for key, val in category.items():
                 if val:
-                    orec[key] = str(val)
+                    if key != 'ID':
+                        orec[key] = str(val)
                 else:
                     orec[key] = ''
             cw.writerow(orec)
@@ -214,6 +263,7 @@ class CategoryInfo:
                     val = val.strip()
                     if key == 'ID':
                         cat = _cleankey(r['ID'])
+                        catinfo['ID'] = cat
                     elif key in ('Min Age', 'Max Age', 'Time Trial',
                                  'Individual Pursuit', 'Team Pursuit',
                                  'Scratch', 'Points', 'Madison',
