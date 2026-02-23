@@ -354,11 +354,12 @@ class tod:
         return min(-(b.exponent), 6)
 
     def truncate(self, places=4):
-        """Return a new truncated time value."""
+        """Return a new tod with reduced precision."""
         return self.places(places, TRUNCATE, 'TRUNC')
 
     def places(self, places=4, rounding=ROUNDING, flag='PLACES'):
-        return self.__class__(timeval=self.timeval.quantize(QUANT[places],
+        quant = min(self.precision(), places)
+        return self.__class__(timeval=self.timeval.quantize(QUANT[quant],
                                                             rounding=rounding),
                               chan=flag)
 
@@ -581,7 +582,7 @@ ONE = tod(1)
 MINUTE = tod('1:00')
 HOUR = tod('1h00:00')
 MAX = tod('23h59:59.999980')  # largest val possible for tod
-MAXELAP = tod('23h30:00')  # max displayed elapsed time
+MAXELAP = tod('20h00:00')  # max displayed elapsed time
 
 # Fake times for special cases
 # these are unused tods that sort correctly when compared
