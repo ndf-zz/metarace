@@ -51,7 +51,9 @@ _CATEGORY_COLUMNS = (
     'Team Sprint',
     'Team Pursuit',
     'Sprint',
-    'Omnium',
+    'Omnium Scratch',
+    'Omnium Tempo',
+    'Omnium Points',
 )
 
 # Logging
@@ -169,6 +171,26 @@ class CategoryInfo:
     def get_youth_cat(self, sex, age):
         """Return Youth (U17) category for nominated sex and age."""
         return self.get_age_cat('Youth', sex, age)
+
+    def get_junior_cat(self, sex, age):
+        """Return Junior category for nominated sex and age."""
+        return self.get_age_cat('Junior', sex, age)
+
+    def get_elite_cat(self, sex, age):
+        """Return Elite category for nominated sex and age."""
+        ret = None
+        stype = None
+        if sex:
+            sex = sex.lower()[0:1]
+            if sex == 'm':
+                stype = 'M'
+            elif sex in ('f', 'w'):
+                stype = 'W'
+        if stype in ('M', 'W'):
+            cat = stype + 'E'
+            if cat in self._store:
+                ret = self._store[cat]
+        return ret
 
     def get_masters_cat(self, sex, age):
         """Return Masters category for nominated sex and age."""
