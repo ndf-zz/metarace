@@ -539,6 +539,19 @@ _DEFAULT_COLUMN_ORDER = ('no', 'first', 'last', 'org', 'state', 'cat', 'class',
                          'seed', 'data')
 
 
+def namekey(first, last, ctype='Rider'):
+    """Return a name key for the provided competitor type."""
+    ret = ''
+    if ctype == 'Rider':
+        ret = '.'.join((first.lower().strip()[0:3], last.lower().strip()[0:5]))
+    else:
+        if not first and last:
+            ret = last.lower().strip()
+        else:
+            ret = first.lower().strip()
+    return ret
+
+
 def primary_cat(catstr=''):
     """Return the primary cat from a catlist (legacy support)."""
     ret = ''
@@ -605,6 +618,14 @@ class rider():
             nr.__store[k] = v
         nr.__notify = self.__notify
         return nr
+
+    def namekey(self):
+        """Return a name matching key for this competitor entry."""
+        if 'namekey' not in self.__strcache or self.__strcache[
+                'namekey'] is None:
+            self.__strcache['namekey'] = namekey(self['first'], self['last'],
+                                                 self.get_label())
+        return self.__strcache['namekey']
 
     def is_tandem(self):
         """Return True if competitor is PARA MB or WB."""
@@ -1067,6 +1088,43 @@ class riderdb():
         del (self.__store[key])
         if notify:
             self.__notify(None)
+
+    def match_add(self, riderno, series, listname, notify=True):
+        """Match a rider with no number or add a new entry."""
+        nr = rider(no=riderno, series=series)
+        nr.rename(listname, notify=False)
+        sk = nr.namekey()
+
+        # try to match name key with one other entry
+        matchid = None
+        match = None
+        for rid, r in self.__store.items():
+            rk = r.namekey()
+            if rk == sk:
+                if match is not None:
+                    # already found a match
+                    match = None
+                    _log.debug('Multiple matches, defer to add')
+                    break
+                else:
+                    if r['no'] == '':  # rider without number
+                        match = r
+                        matchid = rid
+                        _log.debug('Match found: %r %s', rid, r.summary())
+
+        if match is not None:
+            # remove the existing entry
+            self.del_rider(matchid, notify=False)
+            match.set_value('series', series)
+            match.set_value('no', riderno)
+            self.add_rider(match, notify=notify)
+            if notify:
+                # required due to del/edit/add cycle
+                self.notify(None)
+            _log.debug('Updated no/series on rider %s', match.summary())
+        else:
+            # add the modified dummy to rdb with provided rno and series
+            self.add_rider(nr, notify=notify)
 
     def add_rider(self, newrider, notify=True, overwrite=False):
         """Append newrider to model with optional notify."""
