@@ -54,6 +54,7 @@ ICONMAP = {
     'default': 'bi-file-earmark',
     'pdf': 'bi-file-earmark-pdf',
     'xlsx': 'bi-file-earmark-spreadsheet',
+    'contact': 'bi-chat-text',
 }
 
 # "download as" file types
@@ -4790,6 +4791,7 @@ class report:
         self.indexlink = None
         self.resultlink = None
         self.startlink = None
+        self.email = None
         self.canonical = None
         self.pagemarks = False
         self.booklet = False
@@ -5354,7 +5356,15 @@ class report:
         #'href': link[1] + '.html',
         #'class': 'nav-link'
         #}))
-        if self.prevlink:
+        if self.prevlink is True:
+            navbar.append(
+                htlib.button(
+                    htlib.span((), {'class': 'bi-caret-left'}), {
+                        'id': 'pageBack',
+                        'title': 'Previous',
+                        "class": "btn btn-secondary"
+                    }))
+        elif self.prevlink:
             navbar.append(
                 htlib.a(
                     htlib.span((), {'class': 'bi-caret-left'}), {
@@ -5411,6 +5421,18 @@ class report:
                     htlib.span((), {'class': 'bi-caret-right'}), {
                         'href': self.nextlink + '.html',
                         'title': 'Next',
+                        'class': 'btn btn-secondary'
+                    }))
+        if self.email:
+            subject = ''
+            if self.meetcode and self.shortname:
+                subject = '?subject=[%s] %s' % (self.meetcode, self.shortname)
+            mto = 'mailto:%s%s' % (self.email, subject)
+            navbar.append(
+                htlib.a(
+                    htlib.span((), {'class': 'bi-chat-text'}), {
+                        'href': mto,
+                        'title': 'Report Issue',
                         'class': 'btn btn-secondary'
                     }))
         brand = None
