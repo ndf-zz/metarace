@@ -45,9 +45,12 @@ _CATEGORY_COLUMNS = (
     'Discipline',
     'Time Trial',
     'Individual Pursuit',
-    'Scratch',
-    'Points',
+    'Scratch Race',
+    'Scratch Qualifying',
+    'Points Race',
+    'Points Qualifying',
     'Madison',
+    'Madison Qualifying',
     'Team Sprint',
     'Team Pursuit',
     'Sprint',
@@ -288,8 +291,11 @@ class CategoryInfo:
                         catinfo['ID'] = cat
                     elif key in ('Min Age', 'Max Age', 'Time Trial',
                                  'Individual Pursuit', 'Team Pursuit',
-                                 'Scratch', 'Points', 'Madison',
-                                 'Team Sprint'):
+                                 'Scratch Race', 'Scratch Qualifying',
+                                 'Points Race', 'Points Qualifying', 'Madison',
+                                 'Madison Qualifying', 'Team Sprint',
+                                 'Omnium Scratch', 'Omnium Points',
+                                 'Omnium Tempo'):
                         catinfo[key] = strops.confopt_posint(val)
                     elif key == 'Sex':
                         ckval = val.upper()[0:1]
