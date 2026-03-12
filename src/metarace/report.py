@@ -2459,6 +2459,354 @@ class lapsplitsummary:
     pass
 
 
+class detailsplits:
+    """Section for display of a single competitor's laps and times.
+
+    Line values are like databridge DETAIL objects:
+
+      {
+        "label": str,  # text label for split eg "1250\u2006m"
+        "rank": int,  # competitors rank at the split (if known)
+        "elapsed": tod,  # elapsed time to this split (if known)
+        "interval": tod,  # interval since previous split (if known)
+        "points": numeric,  # points awarded at this split (ignored)
+        "distance": numeric,  # distance of split (ignored)
+        "adjusted": tod,  # weather adjusted elapsed (optional)
+      }
+
+    """
+
+    def __init__(self, secid='detailsplits'):
+        self.sectionid = secid
+        self.heading = None
+        self.status = None
+        self.subheading = None
+        self.colheader = None
+        self.units = None
+        self.prizes = None
+        self.footer = None
+        self.adjust = False  # include weather-adjusted elapsed times
+        self.lines = []
+        self.breakhints = []  # suggested page break points
+        self.onecol = True
+        self.lcount = 0
+        self.grey = True
+        self.nobreak = False
+        self.places = 3  # display time precision
+        self.weather = None  # weather observations at time of effort
+        self.h = None
+
+    def serialize(self, rep, sectionid=None):
+        """Return a serializable map for JSON export."""
+        ret = {}
+        if sectionid is None:
+            sectionid = self.sectionid
+        ret['sectionid'] = sectionid
+        ret['type'] = 'splitlist'
+        ret['heading'] = self.heading
+        ret['status'] = self.status
+        ret['subheading'] = self.subheading
+        ret['colheader'] = self.colheader
+        ret['footer'] = self.footer
+        ret['prizes'] = self.prizes
+        ret['units'] = self.units
+        ret['lines'] = self.lines
+        ret['breakhints'] = self.breakhints
+        ret['onecol'] = self.onecol
+        ret['height'] = self.get_h(rep)
+        ret['count'] = self.lcount
+        ret['places'] = self.places
+        ret['adjust'] = self.adjust
+        ret['weather'] = self.weather
+        return ret
+
+    def get_h(self, report):
+        """Return total height on page of section on report."""
+        if self.h is None or len(self.lines) != self.lcount:
+            h = 0
+            if self.heading:
+                h += report.section_height
+            if self.subheading:
+                h += report.section_height
+            if self.colheader:
+                h += report.standard_row_height(report.h, self.colheader)
+            self.lcount = len(self.lines)
+            h += report.standard_row_height(report.h, None) * self.lcount
+            if self.prizes:
+                h += report.line_height
+            if self.footer:
+                h += report.line_height
+            self.h = h
+        return self.h
+
+    def truncate(self, remainder, report):
+        """Return a copy of the section up to page break."""
+
+        pagefrac = report.pagefrac()
+        h = self.get_h(report)
+
+        # Special case: Entire section will fit on page
+        if self.get_h(report) <= (remainder + report.page_overflow):
+            return (self, None)
+
+        # Special case: Don't break if possible
+        if self.nobreak and report.pagefrac() > FEPSILON:
+            # move entire section onto next page
+            return (pagebreak(0.01), self)
+
+        # Special case: Not enough space for minimum content
+        chk = lapsplits()
+        chk.status = self.status
+        chk.heading = self.heading
+        chk.subheading = self.subheading
+        chk.colheader = self.colheader
+        chk.footer = self.footer
+        chk.prizes = self.prizes
+        chk.units = self.units
+        chk.onecol = self.onecol
+        if len(self.lines
+               ) <= 3:  # special case, keep at least three lines of three
+            chk.lines = self.lines[0:]
+        else:  # BUT, don't break before second line
+            chk.lines = self.lines[0:2]
+        if chk.get_h(report) > remainder:
+            # move entire section onto next page
+            return (pagebreak(), self)
+
+        # Standard case - section crosses page break
+        # ret: content on current page
+        # rem: content on subsequent pages
+        ret = lapsplits(self.sectionid)
+        rem = lapsplits(self.sectionid)
+
+        ret.status = self.status
+        ret.heading = self.heading
+        ret.subheading = self.subheading
+        ret.colheader = self.colheader
+        ret.footer = self.footer
+        ret.prizes = self.prizes
+        ret.units = self.units
+        ret.places = self.places
+        ret.weather = self.weather
+        ret.onecol = self.onecol
+        ret.adjust = self.adjust
+
+        rem.status = self.status
+        rem.heading = self.heading
+        rem.subheading = self.subheading
+        rem.colheader = self.colheader
+        rem.footer = self.footer
+        rem.prizes = self.prizes
+        rem.units = self.units
+        rem.places = self.places
+        rem.weather = self.weather
+        rem.onecol = self.onecol
+        rem.adjust = self.adjust
+        if rem.heading is not None:
+            if rem.heading.rfind('(continued)') < 0:
+                rem.heading += ' (continued)'
+
+        # Try to break on a preferred line, working backward from end of section
+        minbreak = 4
+        if self.breakhints:
+            hints = self.breakhints.copy()
+            remhints = []
+            while hints:
+                breakhint = hints.pop(-1)
+                if breakhint > minbreak and len(
+                        self.lines) > breakhint:  # possible
+                    ret.lines = self.lines[0:breakhint]
+                    if ret.get_h(report) <= remainder:  # content now fits
+                        ret.breakhints = []
+                        rem.breakhints = shift_breakhints(remhints, breakhint)
+                        rem.lines = self.lines[breakhint:]
+                        return (ret, rem)
+                    else:  # too much content
+                        remhints.insert(0, breakhint)
+
+        # determine break line by line
+        seclines = len(self.lines)
+        count = 0
+        if seclines > 0:
+            while count < seclines and count < minbreak:
+                ret.lines.append(self.lines[count])
+                count += 1
+        while count < seclines:
+            if ret.get_h(report) > remainder:
+                # pop last line onto rem and break
+                rem.lines.append(ret.lines.pop(-1))
+                break
+            elif seclines - count <= minbreak:  # push min content onto next page
+                break
+            ret.lines.append(self.lines[count])
+            count += 1
+        while count < seclines:
+            rem.lines.append(self.lines[count])
+            count += 1
+        return (ret, rem)
+
+    def draw_pdf(self, report):
+        """Output a single section to the page."""
+        report.c.save()
+        if self.heading:
+            report.text_cent(report.midpagew, report.h, self.heading,
+                             report.fonts['section'])
+            report.h += report.section_height
+        if self.subheading:
+            report.text_cent(report.midpagew, report.h, self.subheading,
+                             report.fonts['subhead'])
+            report.h += report.section_height
+
+        if len(self.lines) > 0:
+            l = 0
+            grey = 0
+            if self.colheader:
+                # columns are fixed: Split Lap Elapsed [rank] Adjusted
+                report.h += report.lapsplit_detail(report.h,
+                                                   self.colheader,
+                                                   header=True)
+            for r in self.lines:
+                row = [None, None, None, None, None]
+                if 'label' in r and r['label']:
+                    row[0] = r['label']
+                if 'interval' in r and r['interval'] is not None:
+                    row[1] = r['interval'].rawtime(self.places)
+                if 'elapsed' in r and r['elapsed'] is not None:
+                    row[2] = r['elapsed'].rawtime(self.places)
+                if 'rank' in r and r['rank']:
+                    row[3] = '(%d.)' % (r['rank'], )
+                if self.adjust and 'adjusted' in r and r['adjusted']:
+                    row[4] = r['adjusted'].rawtime(self.places)
+                if self.grey:
+                    grey = (l) % 2
+                report.h += report.lapsplit_detail(report.h, row, zebra=grey)
+                l += 1
+        if self.prizes:
+            report.text_cent(report.midpagew, report.h, self.prizes,
+                             report.fonts['bodyoblique'])
+            report.h += report.line_height
+        if self.footer:
+            report.text_cent(report.midpagew, report.h, self.footer,
+                             report.fonts['bodyoblique'])
+            report.h += report.line_height
+        report.c.restore()
+
+    def draw_xlsx(self, report, worksheet):
+        """Output program element to excel worksheet."""
+        row = report.h
+        if self.heading:
+            worksheet.write(row, 2, self.heading.strip(), XLSX_STYLE['title'])
+            row += 1
+        if self.subheading:
+            worksheet.write(row, 2, self.subheading.strip(),
+                            XLSX_STYLE['subtitle'])
+            row += 2
+        else:
+            row += 1
+
+        if self.colheader:
+            if len(self.colheader) > 0 and self.colheader[0]:
+                worksheet.write(row, 2, self.colheader[0], XLSX_STYLE['left'])
+            if len(self.colheader) > 1 and self.colheader[1]:
+                worksheet.write(row, 3, self.colheader[1], XLSX_STYLE['right'])
+            if len(self.colheader) > 2 and self.colheader[2]:
+                worksheet.write(row, 4, self.colheader[2], XLSX_STYLE['right'])
+            if len(self.colheader) > 3 and self.colheader[3]:
+                worksheet.write(row, 5, self.colheader[3], XLSX_STYLE['left'])
+            if len(self.colheader) > 4 and self.colheader[4]:
+                worksheet.write(row, 6, self.colheader[4], XLSX_STYLE['right'])
+            row += 1
+
+        wsstyle = XLSX_STYLE['laptime0']
+        if self.places == 3:
+            wsstyle = XLSX_STYLE['laptime3']
+        if self.places == 2:
+            wsstyle = XLSX_STYLE['laptime2']
+        elif self.places == 1:
+            wsstyle = XLSX_STYLE['laptime1']
+
+        if self.lines:
+            for r in self.lines:
+                if 'label' in r and r['label']:
+                    worksheet.write(row, 2, r['label'], XLSX_STYLE['left'])
+                if 'interval' in r and r['interval'] is not None:
+                    interval = r['interval'].timeval / 86400
+                    worksheet.write(row, 3, interval, wsstyle)
+                if 'elapsed' in r and r['elapsed'] is not None:
+                    elapsed = r['elapsed'].timeval / 86400
+                    worksheet.write(row, 4, elapsed, wsstyle)
+                if 'rank' in r and r['rank']:
+                    elapsed = '(%d.)' % (r['rank'], )
+                    worksheet.write(row, 5, elapsed, XLSX_STYLE['subtitle'])
+                if self.adjust and 'adjusted' in r and r['adjusted']:
+                    adjusted = r['adjusted'].timeval / 86400
+                    worksheet.write(row, 6, adjusted, wsstyle)
+                row += 1
+
+            row += 1
+        if self.prizes:
+            worksheet.write(row, 2, self.prizes.strip(),
+                            XLSX_STYLE['subtitle'])
+            row += 1
+        if self.footer:
+            worksheet.write(row, 2, self.footer.strip(),
+                            XLSX_STYLE['subtitle'])
+            row += 2
+        report.h = row
+        return None
+
+    def draw_text(self, report, f, xtn):
+        """Write out a section in html."""
+        if self.heading:
+            f.write(htlib.h3(self.heading.strip(), {'id': self.sectionid}))
+        if self.subheading:
+            f.write(htlib.p(self.subheading.strip(), {'class': 'lead'}))
+
+        if len(self.lines) > 0:
+            hdr = ''
+            # output table rows: [l, r, r, l]
+            if self.colheader:
+                hdr = htlib.thead(
+                    vec2htmlhead(self.colheader[0:5],
+                                 maxcol=5,
+                                 colspec=('l', 'r', 'r', 'l', 'r')))
+            rows = []
+            for r in self.lines:
+                label = ''
+                if 'label' in r and r['label']:
+                    label = r['label']
+                interval = ''
+                if 'interval' in r and r['interval'] is not None:
+                    interval = r['interval'].rawtime(self.places)
+                elapsed = ''
+                if 'elapsed' in r and r['elapsed'] is not None:
+                    elapsed = r['elapsed'].rawtime(self.places)
+                rank = ''
+                if 'rank' in r and r['rank']:
+                    rank = '(%d.)' % (r['rank'], )
+                adjusted = ''
+                if self.adjust and 'adjusted' in r and r[
+                        'adjusted'] is not None:
+                    adjusted = r['adjusted'].rawtime(self.places)
+                nv = [label, interval, elapsed, rank, adjusted]
+                rows.append(nv)
+            trows = []
+            for l in rows:
+                trows.append(
+                    vec2htmlrow(l, maxcol=5,
+                                colspec=('l', 'r', 'r', 'i', 'i')))
+            f.write(
+                htlib.table((hdr, htlib.tbody(trows)),
+                            {'class': report.tablestyle}))
+            f.write('\n')
+
+        if self.prizes:
+            f.write(htlib.p(self.prizes.strip(), {'class': 'fst-italic'}))
+        if self.footer:
+            f.write(htlib.p(self.footer.strip()))
+        return None
+
+
 class lapsplits:
     """Section for display of a single competitor's laps and times in three columns.
 
@@ -2471,6 +2819,7 @@ class lapsplits:
         "interval": tod,  # interval since previous split (if known)
         "points": numeric,  # points awarded at this split (ignored)
         "distance": numeric,  # distance of split (ignored)
+        "adjusted": tod,  # weather adjusted elapsed (optional)
       }
 
     """
@@ -2484,6 +2833,7 @@ class lapsplits:
         self.units = None
         self.prizes = None
         self.footer = None
+        self.adjust = False  # include weather-adjusted elapsed times
         self.lines = []
         self.breakhints = []  # suggested page break points
         self.onecol = False  # if True, use only left column
@@ -2514,6 +2864,7 @@ class lapsplits:
         ret['height'] = self.get_h(rep)
         ret['count'] = self.lcount
         ret['places'] = self.places
+        ret['adjust'] = self.adjust
         ret['weather'] = self.weather
         return ret
 
@@ -2590,6 +2941,7 @@ class lapsplits:
         ret.places = self.places
         ret.weather = self.weather
         ret.onecol = self.onecol
+        ret.adjust = self.adjust
 
         rem.status = self.status
         rem.heading = self.heading
@@ -2601,6 +2953,7 @@ class lapsplits:
         rem.places = self.places
         rem.weather = self.weather
         rem.onecol = self.onecol
+        rem.adjust = self.adjust
         if rem.heading is not None:
             if rem.heading.rfind('(continued)') < 0:
                 rem.heading += ' (continued)'
@@ -2720,8 +3073,17 @@ class lapsplits:
             row += 1
 
         if self.colheader:
-            ##!! TODO
-            pass
+            if len(self.colheader) > 0 and self.colheader[0]:
+                worksheet.write(row, 2, self.colheader[0], XLSX_STYLE['left'])
+            if len(self.colheader) > 1 and self.colheader[1]:
+                worksheet.write(row, 3, self.colheader[1], XLSX_STYLE['right'])
+            if len(self.colheader) > 2 and self.colheader[2]:
+                worksheet.write(row, 4, self.colheader[2], XLSX_STYLE['right'])
+            if len(self.colheader) > 3 and self.colheader[3]:
+                worksheet.write(row, 5, self.colheader[3], XLSX_STYLE['left'])
+            if len(self.colheader) > 4 and self.colheader[4]:
+                worksheet.write(row, 6, self.colheader[4], XLSX_STYLE['right'])
+            row += 1
 
         wsstyle = XLSX_STYLE['laptime0']
         if self.places == 3:
@@ -2744,6 +3106,9 @@ class lapsplits:
                 if 'rank' in r and r['rank']:
                     elapsed = '(%d.)' % (r['rank'], )
                     worksheet.write(row, 5, elapsed, XLSX_STYLE['subtitle'])
+                if self.adjust and 'adjusted' in r and r['adjusted']:
+                    adjusted = r['adjusted'].timeval / 86400
+                    worksheet.write(row, 6, adjusted, wsstyle)
                 row += 1
 
             row += 1
@@ -2770,9 +3135,9 @@ class lapsplits:
             # output table rows: [l, r, r, l]
             if self.colheader:
                 hdr = htlib.thead(
-                    vec2htmlhead(self.colheader[0:4],
-                                 maxcol=4,
-                                 colspec=('l', 'r', 'r', 'l')))
+                    vec2htmlhead(self.colheader[0:5],
+                                 maxcol=5,
+                                 colspec=('l', 'r', 'r', 'l', 'r')))
             rows = []
             for r in self.lines:
                 label = ''
@@ -2787,12 +3152,17 @@ class lapsplits:
                 rank = ''
                 if 'rank' in r and r['rank']:
                     rank = '(%d.)' % (r['rank'], )
-                nv = [label, interval, elapsed, rank]
+                adjusted = ''
+                if self.adjust and 'adjusted' in r and r[
+                        'adjusted'] is not None:
+                    adjusted = r['adjusted'].rawtime(self.places)
+                nv = [label, interval, elapsed, rank, adjusted]
                 rows.append(nv)
             trows = []
             for l in rows:
                 trows.append(
-                    vec2htmlrow(l, maxcol=4, colspec=('l', 'r', 'r', 'i')))
+                    vec2htmlrow(l, maxcol=5,
+                                colspec=('l', 'r', 'r', 'i', 'i')))
             f.write(
                 htlib.table((hdr, htlib.tbody(trows)),
                             {'class': report.tablestyle}))
@@ -5959,6 +6329,32 @@ class report:
                               h + mm2pt(0.5),
                               width=1.5)
         return height
+
+    def lapsplit_detail(self, h, row, zebra=False, header=False):
+        """Output a single column lap/split section row, and return the row height."""
+        geom_w = 1.4 * (self.col2_right - self.col2_left)
+        geom_l = self.midpagew - 0.5 * geom_w
+        geom_r = geom_l + geom_w
+        if zebra:
+            self.drawbox(geom_l - mm2pt(1), h, geom_r + mm2pt(1),
+                         h + self.line_height, 0.07)
+
+        # format text content from detail
+        # [l, r, r, l, r]
+        if row[0]:  # label
+            self.text_left(geom_l, h, row[0], self.fonts['body'])
+        if row[1]:  # lap
+            self.text_right(geom_l + 0.4 * geom_w, h, row[1],
+                            self.fonts['body'])
+        if row[2]:  # elapsed
+            self.text_right(geom_r - 0.3 * geom_w, h, row[2],
+                            self.fonts['body'])
+        if row[3]:  # rank
+            self.text_left(geom_r - 0.28 * geom_w, h, row[3],
+                           self.fonts['bodyoblique'])
+        if row[4]:  # elapsed
+            self.text_right(geom_r, h, row[4], self.fonts['bodyoblique'])
+        return self.line_height
 
     def lapsplit_3row(self, h, rv1, rv2, rv3, zebra=None, places=0):
         """Output a 3 column lap/split section row, and return the row height."""

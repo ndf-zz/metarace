@@ -4,13 +4,44 @@
 
 ### Added
 
+   - add CategoryInfo class for reading standardised competition categories,
+     valid ages and standard distances
+   - add lap/splits detail section compatible with databridge DETAIL objects
+   - include air density estimate in reported weather observations
+   - add standardised date formatting via strops
+   - add method to return tod timeval precision in places
+   - add altname method to Rider objects for official reports
+   - add browser back option to report navigation buttons
+   - add feedback/comment button to nav header
+   - add elite and junior cat fetch to standards
+   - add method to match rider without number by name
+   - add weather adjustments lookup
+   - add temporary detail split report with adjustments column
+
 ### Changed
+
+   - rename factors package to standards and include category lookup
+   - adjust two-column sprint round layout for a5 booklet
+   - process break hints in reverse to maximise content on page
+   - adjust 3 column split positions and include space for ranking
+   - replace download link text with file icons
+   - preserve timeval places for default tod isostr outputs
+   - retain microseconds when creating tod via now()
+   - don't truncate to a higher precision than available in tod
+   - weather thread waits on command queue instead of sleeping
 
 ### Deprecated
 
 ### Removed
 
+   - json download link on report headers
+
 ### Fixed
+
+   - fix incorrect use of subheading font in report body for italicised text
+   - mitigate Timy reported channel delays on coincident impulses
+   - shift breakhints in broken sections
+   - save / load datetime and date objects in jsonconfig
 
 ### Security
  
