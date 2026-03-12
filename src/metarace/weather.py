@@ -9,10 +9,12 @@ import math
 from random import random
 from contextlib import suppress
 from time import sleep, time
+from datetime import datetime
 from metarace import sysconf, savefile, default_file
-from metarace.tod import mkagg
+from metarace.tod import mkagg, mktod
 from urllib3.util import Url
-from uuid import UUID
+from uuid import UUID, uuid4 as random_uuid
+from queue import SimpleQueue, Empty
 
 # Configuration defaults - via AC Weather API
 _SOURCE = 'ac'
@@ -21,6 +23,8 @@ _PORT = 443
 _USETLS = True
 _LOCATION_ENDPOINT = '/api/locations'
 _DATA_ENDPOINT = '/api/data'
+_ADJUST_ENDPOINT = '/api/corrections'
+_ADJUST_LIFETIME = 120
 _POLLTIME = 59
 _TIMEOUT = 10  # request timeout
 _LOCATIONSCACHE = 'locations.json'
@@ -78,6 +82,13 @@ _CONFIG_SCHEMA = {
         'attr': 'locationep',
         'hint': 'Endpoint for location IDs',
         'default': _LOCATION_ENDPOINT,
+        'defer': True,
+    },
+    'adjustep': {
+        'prompt': 'Adjustments:',
+        'attr': 'adjustep',
+        'hint': 'Endpoint for adjustment lookups',
+        'default': _ADJUST_ENDPOINT,
         'defer': True,
     },
     'hostname': {
@@ -218,6 +229,7 @@ class BaseWeather(threading.Thread):
     def __init__(self, facility=None):
         """Construct weather thread object."""
         threading.Thread.__init__(self, daemon=True)
+        self._q = SimpleQueue()
         self.t = 0.0
         self.h = 0.0
         self.p = 0.0
@@ -225,6 +237,7 @@ class BaseWeather(threading.Thread):
         self._lt = None
         self._running = None
         self._s = None
+        self._adjust = {}
 
         sysconf.add_section('weather', _CONFIG_SCHEMA)
         self._locationid = None
@@ -238,6 +251,7 @@ class BaseWeather(threading.Thread):
         self._timeout = sysconf.get_value('weather', 'timeout')
         self._dataep = sysconf.get_value('weather', 'dataep')
         self._locationep = sysconf.get_value('weather', 'locationep')
+        self._adjustep = sysconf.get_value('weather', 'adjustep')
         # todo: strip relative path from front of endpoints
         self._scheme = 'https' if self._usetls else 'http'
 
@@ -257,10 +271,96 @@ class BaseWeather(threading.Thread):
     def exit(self):
         """Request thread termination."""
         self._running = False
+        self._q.put(None)
 
     def _read(self):
         """Update weather readings"""
         pass
+
+    def _req_adjust(self, reqid):
+        """Request weather adjustments for a queued detail object."""
+        if reqid in self._adjust:
+            adjust = self._adjust[reqid]
+            adjust['status'] = 'not implemented'
+            _log.debug('%s[%s] Adjustment %r not implemented', self._facility,
+                       self.native_id, reqid)
+        else:
+            _log.debug('%s[%s] Adjustment %r not found', self._facility,
+                       self.native_id, reqid)
+
+    def _del_adjust(self, reqid):
+        """Remove a previously requested adjustment."""
+        if reqid in self._adjust:
+            _log.debug('%s[%s] Adjustment %r removed', self._facility,
+                       self.native_id, reqid)
+            del (self._adjust[reqid])
+
+    def _prune_adjust(self):
+        """Remove any stale adjustments."""
+        dels = set()
+        nowtime = time()
+        for reqid, adjust in self._adjust.items():
+            elap = nowtime - adjust['time']
+            if elap > _ADJUST_LIFETIME:
+                dels.add(reqid)
+        for reqid in dels:
+            self._del_adjust(reqid)
+
+    def trigger(self):
+        """Force a re-reading of API."""
+        self._q.put(('trigger', ))
+
+    def del_adjust(self, reqid):
+        """Request removal of previously requested adjustment."""
+        self._q.put(('del-adjust', reqid))
+
+    def adjust_info(self, reqid):
+        """Return information string for specified request."""
+        ret = None
+        if reqid in self._adjust:
+            url = self._adjust[reqid]['url']
+            if url is not None:
+                ds = datetime.fromtimestamp(
+                    self._adjust[reqid]['time']).astimezone()
+            ret = 'Adjustments from %s %s' % (url,
+                                              ds.isoformat(timespec='seconds'))
+        return ret
+
+    def check_adjust(self, reqid):
+        """Request status of previously requested adjustment.
+
+        Return value is one of:
+
+            None: Unknown reqid
+            'requested': Request had been queued, but not processed
+            'busy': Request is being processed
+            'complete': Request was completed successfully, detail updated
+            'error': One or more errors were encountered processing detail
+            'not implemented': Weather object does not support adjustments
+        """
+        ret = None
+        if reqid in self._adjust:
+            ret = self._adjust[reqid]['status']
+        return ret
+
+    def req_adjust(self, detail, lap1id=None):
+        """Request weather-adjusted values for provided detail object.
+
+        Returns a key that can be used to query status of request.
+
+        If lap1id is provided, use that split for the end of lap 1,
+        otherwise a flying start is assumed.
+        """
+        reqid = str(random_uuid())
+        self._adjust[reqid] = {
+            'detail': detail,
+            'status': 'requested',
+            'time': time(),
+            'lap1id': lap1id,
+            'url': None,
+        }
+        self._q.put(('req-adjust', reqid))
+        return reqid
 
     def run(self):
         """Called via Thread.start()."""
@@ -269,14 +369,46 @@ class BaseWeather(threading.Thread):
             # may be set False before run is called
             self._running = True
         with requests.Session() as self._s:
+            ltime = 0
             while self._running:
+                # fetch next weather observation
                 try:
-                    self._read()
+                    nowtime = time()
+                    elap = nowtime - ltime
+                    if elap > self._polltime:
+                        self._read()
+                        if self._adjust:
+                            self._prune_adjust()
+                        ltime = nowtime
+                        elap = 0
+                    ndelay = max(
+                        1, self._polltime + 0.10 * self._polltime * random() -
+                        elap)
+                    command = self._q.get(timeout=ndelay)
+                    if command is not None:
+                        _log.debug('%s[%s] command: %r', self._facility,
+                                   self.native_id, command)
+                        if command[0] == 'req-adjust':
+                            self._req_adjust(command[1])
+                        elif command[0] == 'del-adjust':
+                            self._del_adjust(command[1])
+                        elif command[0] == 'trigger':
+                            ltime = 0
+                        else:
+                            _log.debug('%s[%s] unknown command %r',
+                                       self._facility, self.native_id,
+                                       command[0])
+                except Empty:
+                    _log.debug('%s[%s] timeout', self._facility,
+                               self.native_id)
                 except Exception as e:
                     _log.warning('%s[%s] %s: %s', self._facility,
                                  self.native_id, e.__class__.__name__, e)
-                sleep(self._polltime + 0.25 * self._polltime * random())
         _log.debug('Exit %s[%s]', self._facility, self.native_id)
+
+    def adjust(self, detail):
+        """Update the provided detail object with weather-adjusted times."""
+        pass
 
     def __enter__(self):
         self.start()
@@ -298,6 +430,77 @@ class ACWeather(BaseWeather):
         self._lt = None
         self._locationid = None
         self._facility = facility
+
+    def _req_adjust(self, reqid):
+        """Request weather adjustments for a queued detail object."""
+        if reqid in self._adjust:
+            adjust = self._adjust[reqid]
+            self._fetch_adjustments(adjust)
+        else:
+            _log.debug('%s[%s] Adjustment %r not found', self._facility,
+                       self.native_id, reqid)
+
+    def _fetch_adjustments(self, adjust):
+        """Fetch adjusted times, update detail and return status."""
+        adjust['status'] = 'busy'
+        try:
+            detail = adjust['detail']
+            lap1id = adjust['lap1id']
+            if detail and isinstance(detail, dict):
+                request = []
+                count = 0
+                for rider, data in detail.items():
+                    lap1 = None
+                    lap1val = None
+                    weather = data['weather']
+                    for sid, split in data['splits'].items():
+                        stime = mktod(split['elapsed'])
+                        if stime is not None:
+                            if lap1id:
+                                # standing start
+                                if lap1 is None:
+                                    lap1val = float(stime.timeval)
+                                if sid == lap1id:
+                                    lap1 = sid
+                            req = {
+                                'Temp': weather['t'],
+                                'Press': weather['p'],
+                                'Hum': weather['h'],
+                                'TotalTime': float(stime.timeval),
+                                'Lap1': lap1val,
+                            }
+                            request.append((req, rider, sid, split))
+                # now send request to ACweather
+                url = Url(scheme=self._scheme,
+                          host=self._hostname,
+                          port=self._port,
+                          path=self._adjustep).url
+                adjust['url'] = self._hostname
+                reqlist = [r[0] for r in request]
+                _log.debug('%s[%s] Request(%d): %r', self._facility,
+                           self.native_id, len(reqlist), reqlist)
+                r = self._s.post(url, json=reqlist, timeout=self._timeout)
+                if r.status_code == 200:
+                    response = r.json()
+                    _log.debug('%s[%s] Response(%d): %r', self._facility,
+                               self.native_id, len(response), response)
+                    for idx, adjustment in enumerate(response):
+                        adjtime = mktod('%0.3f' % (adjustment, ))
+                        split = request[idx][3]
+                        split['adjusted'] = adjtime
+                    adjust['status'] = 'complete'
+                else:
+                    _log.debug('%s[%s] Invalid adjustment response %r',
+                               self._facility, self.native_id, r.status_code)
+                    adjust['status'] = 'error'
+            else:
+                _log.debug('%s[%s] Invalid adjustment request', self._facility,
+                           self.native_id)
+                adjust['status'] = 'error'
+        except Exception as e:
+            _log.debug('%s[%s] Adjustment error: %s', self._facility,
+                       self.native_id, e)
+            adjust['status'] = 'error'
 
     def _updatelocations(self):
         """Fetch the locations data from AC Weather."""
@@ -417,3 +620,4 @@ class Comet(BaseWeather):
             _log.warning('%s reading %s weather from %s: %s',
                          e.__class__.__name__, self._facility, self._hostname,
                          e)
+            sleep(10)
