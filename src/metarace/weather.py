@@ -322,8 +322,8 @@ class BaseWeather(threading.Thread):
             if url is not None:
                 ds = datetime.fromtimestamp(
                     self._adjust[reqid]['time']).astimezone()
-            ret = 'Adjustments from %s %s' % (url,
-                                              ds.isoformat(timespec='seconds'))
+                ret = 'Adjustments from %s %s' % (
+                    url, ds.isoformat(timespec='seconds'))
         return ret
 
     def check_adjust(self, reqid):
@@ -399,11 +399,11 @@ class BaseWeather(threading.Thread):
                                        self._facility, self.native_id,
                                        command[0])
                 except Empty:
-                    _log.debug('%s[%s] timeout', self._facility,
-                               self.native_id)
+                    pass
                 except Exception as e:
                     _log.warning('%s[%s] %s: %s', self._facility,
                                  self.native_id, e.__class__.__name__, e)
+                    sleep(10)
         _log.debug('Exit %s[%s]', self._facility, self.native_id)
 
     def adjust(self, detail):
@@ -453,45 +453,52 @@ class ACWeather(BaseWeather):
                     lap1 = None
                     lap1val = None
                     weather = data['weather']
-                    for sid, split in data['splits'].items():
-                        stime = mktod(split['elapsed'])
-                        if stime is not None:
-                            if lap1id:
-                                # standing start
-                                if lap1 is None:
-                                    lap1val = float(stime.timeval)
-                                if sid == lap1id:
-                                    lap1 = sid
-                            req = {
-                                'Temp': weather['t'],
-                                'Press': weather['p'],
-                                'Hum': weather['h'],
-                                'TotalTime': float(stime.timeval),
-                                'Lap1': lap1val,
-                            }
-                            request.append((req, rider, sid, split))
-                # now send request to ACweather
-                url = Url(scheme=self._scheme,
-                          host=self._hostname,
-                          port=self._port,
-                          path=self._adjustep).url
-                adjust['url'] = self._hostname
-                reqlist = [r[0] for r in request]
-                _log.debug('%s[%s] Request(%d): %r', self._facility,
-                           self.native_id, len(reqlist), reqlist)
-                r = self._s.post(url, json=reqlist, timeout=self._timeout)
-                if r.status_code == 200:
-                    response = r.json()
-                    _log.debug('%s[%s] Response(%d): %r', self._facility,
-                               self.native_id, len(response), response)
-                    for idx, adjustment in enumerate(response):
-                        adjtime = mktod('%0.3f' % (adjustment, ))
-                        split = request[idx][3]
-                        split['adjusted'] = adjtime
-                    adjust['status'] = 'complete'
+                    if weather is not None:
+                        for sid, split in data['splits'].items():
+                            stime = mktod(split['elapsed'])
+                            if stime is not None:
+                                if lap1id:
+                                    # standing start
+                                    if lap1 is None:
+                                        lap1val = float(stime.timeval)
+                                    if sid == lap1id:
+                                        lap1 = sid
+                                req = {
+                                    'Temp': weather['t'],
+                                    'Press': weather['p'],
+                                    'Hum': weather['h'],
+                                    'TotalTime': float(stime.timeval),
+                                    'Lap1': lap1val,
+                                }
+                                request.append((req, rider, sid, split))
+                if request:
+                    # send request to ACweather
+                    url = Url(scheme=self._scheme,
+                              host=self._hostname,
+                              port=self._port,
+                              path=self._adjustep).url
+                    adjust['url'] = self._hostname
+                    reqlist = [r[0] for r in request]
+                    _log.debug('%s[%s] Request(%d): %r', self._facility,
+                               self.native_id, len(reqlist), reqlist)
+                    r = self._s.post(url, json=reqlist, timeout=self._timeout)
+                    if r.status_code == 200:
+                        response = r.json()
+                        _log.debug('%s[%s] Response(%d): %r', self._facility,
+                                   self.native_id, len(response), response)
+                        for idx, adjustment in enumerate(response):
+                            adjtime = mktod('%0.3f' % (adjustment, ))
+                            split = request[idx][3]
+                            split['adjusted'] = adjtime
+                        adjust['status'] = 'complete'
+                    else:
+                        _log.debug('%s[%s] Invalid adjustment response %r',
+                                   self._facility, self.native_id,
+                                   r.status_code)
+                        adjust['status'] = 'error'
                 else:
-                    _log.debug('%s[%s] Invalid adjustment response %r',
-                               self._facility, self.native_id, r.status_code)
+                    _log.debug('%s[%s] Empty adjustment request',
+                               self._facility, self.native_id)
                     adjust['status'] = 'error'
             else:
                 _log.debug('%s[%s] Invalid adjustment request', self._facility,
@@ -620,4 +627,3 @@ class Comet(BaseWeather):
             _log.warning('%s reading %s weather from %s: %s',
                          e.__class__.__name__, self._facility, self._hostname,
                          e)
-            sleep(10)
