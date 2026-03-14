@@ -6341,19 +6341,20 @@ class report:
 
         # format text content from detail
         # [l, r, r, l, r]
-        if row[0]:  # label
-            self.text_left(geom_l, h, row[0], self.fonts['body'])
-        if row[1]:  # lap
-            self.text_right(geom_l + 0.4 * geom_w, h, row[1],
+        ro = vecmap(row, 5)
+        if ro[0]:  # label
+            self.text_left(geom_l, h, ro[0], self.fonts['body'])
+        if ro[1]:  # lap
+            self.text_right(geom_l + 0.4 * geom_w, h, ro[1],
                             self.fonts['body'])
-        if row[2]:  # elapsed
-            self.text_right(geom_r - 0.3 * geom_w, h, row[2],
+        if ro[2]:  # elapsed
+            self.text_right(geom_r - 0.3 * geom_w, h, ro[2],
                             self.fonts['body'])
-        if row[3]:  # rank
-            self.text_left(geom_r - 0.28 * geom_w, h, row[3],
+        if ro[3]:  # rank
+            self.text_left(geom_r - 0.28 * geom_w, h, ro[3],
                            self.fonts['bodyoblique'])
-        if row[4]:  # elapsed
-            self.text_right(geom_r, h, row[4], self.fonts['bodyoblique'])
+        if ro[4]:  # elapsed
+            self.text_right(geom_r, h, ro[4], self.fonts['bodyoblique'])
         return self.line_height
 
     def lapsplit_3row(self, h, rv1, rv2, rv3, zebra=None, places=0):
