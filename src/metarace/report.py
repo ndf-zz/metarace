@@ -1392,7 +1392,8 @@ class sprintround:
             for l in rows:
                 trows.append(vec2htmlrow(l))
             f.write(
-                htlib.table(htlib.tbody(trows), {'class': report.tablestyle}))
+                htlib.table(htlib.tbody(trows),
+                            {'class': report.tablenostripe}))
             f.write('\n')
         if self.footer:
             f.write(htlib.p(self.footer.strip()))
@@ -1606,25 +1607,42 @@ class sprintfinal:
         if len(self.lines) > 0:
             trows = []
             trows.append(
-                vec2htmlrow([None, None, None, 'Heat 1', 'Heat 2', 'Heat 3'],
-                            maxcol=6,
-                            colspec=('l', 'r', 'l', 'ci')))
+                vec2htmlrow(
+                    [None, None, None, None, 'Heat 1', 'Heat 2', 'Heat 3'],
+                    maxcol=7,
+                    colspec=('l', 'r', 'r', 'l', 'ci')))
             rows = []
             for c in self.lines:  # each row is a pair/contest
                 # 'a' rider
                 av = [c[1][j] for j in [0, 1, 2, 4, 5, 6]]  # skip info col
+                awin = False
+                if len(c[1]) > 8:
+                    awin = c[1][8]
+                if awin:
+                    av.insert(1, '\u2023')
+                else:
+                    av.insert(1, '')
                 av[0] = c[0]
                 rows.append(av)
                 # 'b' rider
                 bv = [c[2][j] for j in [0, 1, 2, 4, 5, 6]]
+                bwin = False
+                if len(c[2]) > 8:
+                    bwin = c[2][8]
+                if bwin:
+                    bv.insert(1, '\u2023')
+                else:
+                    bv.insert(1, '')
                 bv[0] = None
                 rows.append(bv)
                 rows.append([])
             for l in rows:
                 trows.append(
-                    vec2htmlrow(l, maxcol=6, colspec=('i', 'r', 'l', 'c')))
+                    vec2htmlrow(l, maxcol=7,
+                                colspec=('i', 'r', 'r', 'l', 'c')))
             f.write(
-                htlib.table(htlib.tbody(trows), {'class': report.tablestyle}))
+                htlib.table(htlib.tbody(trows),
+                            {'class': report.tablenostripe}))
             f.write('\n')
         if self.footer:
             f.write(htlib.p(self.footer.strip()))
