@@ -117,6 +117,7 @@ SECTION_HEIGHT = mm2pt(5.3)  # height of section title
 TWOCOL_WIDTH = mm2pt(75.0)  # width of col on 2 col page
 THREECOL_WIDTH = mm2pt(50.0)  # width of col on 3 col page
 TABLESTYLE = 'table table-striped table-sm w-auto align-middle'  # html table style
+TABLENOSTRIPE = 'table table-hover table-sm w-auto align-middle'  # alt table style
 BUTTONSTYLE = 'btn btn-primary btn-sm'  # html normal button link
 WARNBUTTONSTYLE = 'btn btn-warning btn-sm'  # html provisional button link
 
@@ -2797,7 +2798,7 @@ class detailsplits:
                                 colspec=('l', 'r', 'r', 'i', 'i')))
             f.write(
                 htlib.table((hdr, htlib.tbody(trows)),
-                            {'class': report.tablestyle}))
+                            {'class': report.tablenostripe}))
             f.write('\n')
 
         if self.prizes:
@@ -5150,7 +5151,7 @@ class report:
         self.provisional = False
         self.id = 'Report'
         self.reportstatus = None  # optional flag for virtual etc
-        self.serialno = str(int(time.time()))  # may be overidden
+        self.serialno = str(time.time())  # may be overidden
         self.eventid = None  # stage no or other identifier
         self.customlinks = []  # manual override links
         self.navbar = ''  # meet navigation
@@ -5278,6 +5279,7 @@ class report:
         self.gamutstdfont = GAMUTSTDFONT
         self.gamutobfont = GAMUTOBFONT
         self.tablestyle = TABLESTYLE
+        self.tablenostripe = TABLENOSTRIPE
         self.buttonstyle = BUTTONSTYLE
         self.warnbuttonstyle = WARNBUTTONSTYLE
         self.strings = {}
