@@ -464,6 +464,13 @@ _TEAM_SCHEMA = {
         'defer': True,
         'default': '',
     },
+    'cat': {
+        'prompt': 'Categories:',
+        'attr': 'cat',
+        'defer': True,
+        'hint': 'Space separated list of categories',
+        'default': '',
+    },
     'org': {
         'prompt': 'Organisation:',
         'attr': 'org',
