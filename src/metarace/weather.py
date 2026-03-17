@@ -258,7 +258,6 @@ class BaseWeather(threading.Thread):
         # sanity check params before spinning up
         if not self._facility or not self._hostname:
             _log.debug('Weather service not configured')
-            self._running = False
 
     def valid(self):
         """Return true if current measurements are valid."""
@@ -376,7 +375,8 @@ class BaseWeather(threading.Thread):
                     nowtime = time()
                     elap = nowtime - ltime
                     if elap > self._polltime:
-                        self._read()
+                        if self._facility:
+                            self._read()
                         if self._adjust:
                             self._prune_adjust()
                         ltime = nowtime
@@ -557,7 +557,7 @@ class ACWeather(BaseWeather):
         if self._getlocation() is None:
             _log.warning('Location ID for %s not found, weather disabled',
                          self._facility)
-            self._running = False
+            self._facility = None
             return
         try:
             url = Url(scheme=self._scheme,
