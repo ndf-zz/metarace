@@ -4,6 +4,20 @@
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [2.1.23] 2026-03-18
+
+### Added
+
    - add CategoryInfo class for reading standardised competition categories,
      valid ages and standard distances
    - add lap/splits detail section compatible with databridge DETAIL objects
@@ -29,8 +43,8 @@
    - retain microseconds when creating tod via now()
    - don't truncate to a higher precision than available in tod
    - weather thread waits on command queue instead of sleeping
-
-### Deprecated
+   - add category field to team schema
+   - use fractional serial number on report to avoid missed reload
 
 ### Removed
 
@@ -43,8 +57,6 @@
    - shift breakhints in broken sections
    - save / load datetime and date objects in jsonconfig
 
-### Security
- 
 ## [2.1.22] 2026-01-29
 
 ### Added
@@ -84,7 +96,7 @@
 
 ### Removed
 
-   - stat button backgound svg images
+   - stat button background svg images
 
 ### Fixed
 
@@ -208,7 +220,7 @@
 
    - override column alignment option on html table export
    - comet weather station value reader
-   - include debug in report ouput
+   - include debug in report output
 
 ### Changed
 
