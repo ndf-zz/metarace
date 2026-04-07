@@ -145,25 +145,25 @@ class config:
 
     def get_decimal(self, section, key, default=None):
         ret = default
-        with suppress(ValueError, TypeError):
+        with suppress(ValueError, TypeError, KeyError):
             ret = Decimal(self.get(section, key))
         return ret
 
     def get_date(self, section, key, default=None):
         ret = default
-        with suppress(ValueError, TypeError):
+        with suppress(ValueError, TypeError, KeyError):
             ret = date.fromisoformat(self.get(section, key))
         return ret
 
     def get_datetime(self, section, key, default=None):
         ret = default
-        with suppress(ValueError, TypeError):
+        with suppress(ValueError, TypeError, KeyError):
             ret = datetime.fromisoformat(self.get(section, key))
         return ret
 
     def get_float(self, section, key, default=None):
         ret = default
-        with suppress(ValueError, TypeError):
+        with suppress(ValueError, TypeError, KeyError):
             ret = float(self.get(section, key))
         return ret
 
@@ -181,7 +181,7 @@ class config:
 
     def get_posint(self, section, key, default=None):
         ret = default
-        with suppress(ValueError, TypeError):
+        with suppress(ValueError, TypeError, KeyError):
             ret = int(self.get(section, key))
             if ret < 0:
                 ret = default
@@ -189,7 +189,7 @@ class config:
 
     def get_int(self, section, key, default=None):
         ret = default
-        with suppress(ValueError, TypeError):
+        with suppress(ValueError, TypeError, KeyError):
             ret = int(self.get(section, key))
         return ret
 
