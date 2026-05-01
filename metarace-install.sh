@@ -185,16 +185,25 @@ if [ -e /etc/os-release ] ; then
   # This machine probably uses systemd, check distro and version
   . /etc/os-release
   echo "Distribution/Release:"
-  dv=$(echo "$VERSION_ID" | cut -d . -f 1)
+  dv=''
+  if [ -n "$VERSION_ID" ] ; then
+    dv=$(echo "$VERSION_ID" | cut -d . -f 1)
+  fi
   case "$ID" in
     "debian")
       pkgstyle="apt"
       ttygroup="dialout"
       lpgroup="lpadmin"
-      if [ "$dv" -gt 10 ] ; then
-        echo_continue "$NAME $VERSION"
+      if [ -n "$dv" ] ; then
+        if [ "$dv" -gt 10 ] ; then
+          echo_continue "$NAME $VERSION"
+        else
+          check_continue "$NAME $VERSION not supported."
+        fi
       else
-        check_continue "$NAME $VERSION not supported."
+        if [ -n "$PRETTY_NAME" ] ; then
+          echo_continue "$PRETTY_NAME"
+        fi
       fi
     ;;
     "ubuntu")
