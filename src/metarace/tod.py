@@ -34,7 +34,6 @@ import decimal
 import re
 import logging
 from datetime import datetime, time
-from dateutil.parser import isoparse, parse as dateparse
 from bisect import bisect_left as _bisect
 
 # module log object
@@ -87,19 +86,19 @@ def fromobj(obj):
     return ret
 
 
-def fromdate(timestr=''):
-    """Try to parse the provided str as a local datetime"""
+def fromiso(timestr=''):
+    """Return a tuple (datestr, tod) in local timezone from ISO 8601 timestr."""
     rd = None
     rt = None
     try:
         # retrieve date and time for the current timezone
-        d = dateparse(timestr).astimezone()
+        d = datetime.fromisoformat(timestr).astimezone()
         rd = d.date().isoformat()
         tv = 3600 * d.hour + 60 * d.minute + d.second + d.microsecond / MILL
         rt = mktod(tv)
         rt.source = timestr
     except Exception as e:
-        _log.debug('fromdate() %s: %s', e.__class__.__name__, e)
+        _log.debug('fromiso() %s: %s', e.__class__.__name__, e)
     return (rd, rt)
 
 
@@ -119,22 +118,6 @@ def mergedate(ltime=None, date=None, micros=False):
                       second=lt.second,
                       microsecond=lt.microsecond)
     return ld
-
-
-def fromiso(timestr=''):
-    """Retrieve date and TOD from 8601 date and time of day string"""
-    rd = None
-    rt = None
-    try:
-        # retrieve date and time for the current timezone
-        d = isoparse(timestr).astimezone()
-        rd = d.date().isoformat()
-        tv = 3600 * d.hour + 60 * d.minute + d.second + d.microsecond / MILL
-        rt = mktod(tv)
-        rt.source = timestr
-    except Exception as e:
-        _log.debug('fromiso() %s: %s', e.__class__.__name__, e)
-    return (rd, rt)
 
 
 def fromqc(timestr=''):
