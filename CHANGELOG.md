@@ -1,18 +1,19 @@
 # Changelog
 
-## [Unreleased]
-
-### Added
+## [2.1.24] 2026-05-01
 
 ### Changed
 
-### Deprecated
+   - require ISO 8601 format for tod fromiso method
 
 ### Removed
 
+   - remove superfluous fromdate function in tod
+
 ### Fixed
 
-### Security
+   - Suppress KeyError in config get_x methods
+   - Fix installer error when VERSION_ID missing from os-release
 
 ## [2.1.23] 2026-03-18
 
