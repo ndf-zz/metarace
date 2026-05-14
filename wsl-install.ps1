@@ -5,7 +5,7 @@
 ## See https://go.microsoft.com/fwlink/?LinkID=135170
 ## Recommended Setting, 	
 ## 			Set-ExecutionPolicy -ExecutionPolicy RemoteSigned  
-## (you can revert to Restricted afterwards if rquired)
+## (you can revert to Restricted afterwards if required)
 ## Script must be run with administrative rights
 ##
 ## WSL Requires Virtual Machine Platform and will attempt to install from online sources
@@ -23,9 +23,9 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 
 # Define the path to your provisioning script
 $MetaraceScript = "metarace-install.sh"
-$MetaraceUrl = "https://github.com/ndf-zz/metarace/raw/refs/heads/main/metarace-install.sh"
+$MetaraceUrl = "https://6-v.org/software/metarace-install.sh"
 $ProvisionScript = "wsl-provision.sh"
-$ProvisionUrl = "https://github.com/ndf-zz/metarace/raw/refs/heads/main/wsl-provision.sh"
+$ProvisionUrl = "https://6-v.org/software/wsl-provision.sh"
 $ProvisionBasePathWin = "C:\temp\"
 $ProvisionBasePathWSL = "/mnt/c/temp/"
 $MetaracePathWin = $ProvisionBasePathWin + $MetaraceScript

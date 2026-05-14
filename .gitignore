@@ -9,6 +9,7 @@ __pycache__/
 # homeslice
 TODO
 *.notes
+*.asc
 
 # Distribution / packaging
 .Python

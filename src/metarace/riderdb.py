@@ -85,6 +85,7 @@ _ALT_COLUMNS = {
     'date': 'yob',
     'year': 'yob',
     'dob': 'yob',
+    'mini': 'seed',
 }
 
 # Category columns
@@ -102,7 +103,7 @@ _CATEGORY_COLUMNS = {
     'nat': 'Nationality',
     'yob': 'Year of Birth',
     'sex': 'Sex',
-    'seed': 'Seeding',
+    'seed': 'Minimum Laptime',
     'data': 'Data Reference',
 }
 
@@ -364,6 +365,14 @@ _CATEGORY_SCHEMA = {
         'hint': 'Target number of laps for this category',
         'default': '',
     },
+    'seed': {
+        'prompt': 'Min lap:',
+        'control': 'short',
+        'defer': True,
+        'hint': 'Minimum lap time override for this category',
+        'attr': 'seed',
+        'default': '',
+    },
     'ref': {
         'prompt': 'Distance:',
         'attr': 'ref',
@@ -379,51 +388,6 @@ _CATEGORY_SCHEMA = {
         'control': 'short',
         'defer': True,
         'hint': 'Optional category lap prefix',
-        'default': '',
-    },
-}
-
-# Config schema for a series
-_CATEGORY_SERIES = {
-    'rtype': {
-        'prompt': 'Series',
-        'control': 'section',
-    },
-    'no': {
-        'prompt': 'ID:',
-        'control': 'short',
-        'attr': 'no',
-        'hint': 'Series ID',
-        'defer': True,
-        'default': '',
-    },
-    'series': {
-        'prompt': 'Series:',
-        'control': 'short',
-        'readonly': True,
-        'attr': 'series',
-        'defer': True,
-        'default': '',
-    },
-    'first': {
-        'prompt': 'Title:',
-        'attr': 'first',
-        'hint': 'Series title',
-        'defer': True,
-        'default': '',
-    },
-    'last': {
-        'prompt': 'Subtitle:',
-        'attr': 'last',
-        'hint': 'Series subtitle',
-        'defer': True,
-        'default': '',
-    },
-    'note': {
-        'prompt': 'Footer:',
-        'attr': 'note',
-        'defer': True,
-        'hint': 'Supplementary footer text for reports',
         'default': '',
     },
 }

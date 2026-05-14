@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.25] 2026-05-14
+
+### Added
+
+   - Include minimum laptime override for categories
+
+### Changed
+
+   - Add welcome text and install confirmation to shared
+     installation script
+   - Update homepage and reporistory for move to codeberg
+
+### Removed
+
+   - Remove superfluous lpadmin group check from wsl provision
+     script
+
 ## [2.1.24] 2026-05-01
 
 ### Changed

@@ -1,8 +1,17 @@
-#!/usr/bin/env sh
 #
 # Crude installation script for Unix-like systems
 #
+# Run with sh:
+#
+#  $ sh metarace-install.sh
+#
+
 set -e
+VERSION="2.1.25"
+
+# Install location
+DEST="Documents/metarace"
+DPATH="${HOME}/${DEST}"
 
 # XDG names
 XDG_OLD_APP_BASE="org.6_v"
@@ -85,7 +94,7 @@ sysup_apt() {
       sudo apt-get install -y fonts-texgyre fonts-noto evince rsync
       check_continue "MX detected: MQTT broker not installed."
     else
-      sudo apt-get install -y fonts-texgyre fonts-noto evince mosquitto rsync
+      sudo apt-get install -y fonts-texgyre fonts-noto evince mosquitto rsync mosquitto-clients
     fi
     echo_continue "Done"
   else
@@ -149,11 +158,32 @@ sysup_pkg() {
   echo_continue "Done"
 }
 
+## Begin Script
+
 # abort if not normal user
 if [ "$(id -u)" -eq 0 ]; then
-  echo "Running as root, installation aborted."
+  echo "Please run as non-root user."
   exit
 fi
+
+# show welcome text
+cat <<__EOF__
+
+  -- Metarace Desktop Installer - Version ${VERSION} --
+
+ This script installs desktop metarace applications:
+
+   trackmeet : Results for track cycling meets
+   roadmeet : Results for road and cyclocross meets
+   tagreg : Transponder management
+   ttstart : Time trial starter console
+
+ If required, system requirements are updated and desktop
+ shortcuts added. For actions requiring administrator access,
+ you will be prompted by sudo to enter your password.
+
+__EOF__
+check_yesno "Install desktop applications to ${DPATH}?"
 
 # ensure write access to wd
 cd /tmp
@@ -301,7 +331,7 @@ elif [ "$pkgstyle" = "none" ] ; then
   # skipped by os-release
   true
 else
-  if check_yesno "Use $pkgstyle to install requirements?" ; then
+  if check_yesno "Use $pkgstyle to install system requirements?" ; then
     # Don't update packages if sudo not available
     if check_command sudo ; then
       case "$pkgstyle" in
@@ -420,7 +450,6 @@ else
 fi
 
 # check working dir
-DPATH="$HOME/Documents/metarace"
 VDIR="venv"
 VPATH="$DPATH/$VDIR"
 echo "Check Installation Path:"
@@ -650,4 +679,4 @@ else
 fi
 
 echo
-echo "Metarace packages installed."
+echo "Metarace desktop installation complete."
